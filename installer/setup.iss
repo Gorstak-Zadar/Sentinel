@@ -125,10 +125,45 @@ begin
   Exec(Icacls, '"' + DirPath + '" /remove:d *S-1-5-32-545 /T /C /Q', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
+// Rename every loaded PE (EXE + DLL) in the install dir to *.old before the copy.
+// A DLL mapped by the running Service/Agent cannot be overwritten or deleted
+// (DeleteFile fails with "code 5, Access is denied"), but it CAN be renamed —
+// Windows lets you rename a mapped image, and Inno then writes the new file in
+// its place. The [Run] "del *.old" step cleans the renamed originals afterward.
+procedure RenameLockedBinariesAside(const DirPath: String);
+var
+  FindRec: TFindRec;
+  Name, Lower, Full: String;
+begin
+  if not DirExists(DirPath) then
+    Exit;
+  if FindFirst(DirPath + '\*', FindRec) then
+  begin
+    try
+      repeat
+        if (FindRec.Attributes and FILE_ATTRIBUTE_DIRECTORY) = 0 then
+        begin
+          Name := FindRec.Name;
+          Lower := Lowercase(Name);
+          // Only relocate PE images we ship and overwrite; leave *.old alone.
+          if ((Copy(Lower, Length(Lower) - 3, 4) = '.dll') or
+              (Copy(Lower, Length(Lower) - 3, 4) = '.exe')) then
+          begin
+            Full := DirPath + '\' + Name;
+            RenameFile(Full, Full + '.old');
+          end;
+        end;
+      until not FindNext(FindRec);
+    finally
+      FindClose(FindRec);
+    end;
+  end;
+end;
+
 procedure StopExistingService();
 var
   ResultCode: Integer;
-  Svc, Taskkill: String;
+  Svc, Taskkill, Sc: String;
 begin
   Svc := ExpandConstant('{app}\Sentinel.Service.exe');
   if FileExists(Svc) then
@@ -137,20 +172,29 @@ begin
     Sleep(800);
   end;
 
+  // Stop the watchdog FIRST via the SCM, otherwise SentinelGuard restarts
+  // Sentinel.Service mid-upgrade and re-locks the DLLs (the regression that
+  // brought back "DeleteFile code 5"). Then stop the main service. Give the
+  // SCM time to actually transition to STOPPED before we taskkill/rename.
+  Sc := SysNative('sc.exe');
+  Exec(Sc, 'stop SentinelGuard', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec(Sc, 'stop Sentinel', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(2000);
+
   Taskkill := SysNative('taskkill.exe');
   Exec(Taskkill, '/F /IM "Sentinel.Service.exe"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec(Taskkill, '/F /IM "Sentinel.Agent.exe"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Sleep(1000);
+  Sleep(1500);
 
   ResetInstallDirAcls(ExpandConstant('{app}'));
   ResetInstallDirAcls(ExpandConstant('{commonpf}\Sentinel'));
   ResetInstallDirAcls(ExpandConstant('{commonpf32}\Sentinel'));
   ResetInstallDirAcls(ExpandConstant('{autopf}\Sentinel'));
 
-  if FileExists(ExpandConstant('{app}\Sentinel.Service.exe')) then
-    RenameFile(ExpandConstant('{app}\Sentinel.Service.exe'), ExpandConstant('{app}\Sentinel.Service.exe.old'));
-  if FileExists(ExpandConstant('{app}\Sentinel.Agent.exe')) then
-    RenameFile(ExpandConstant('{app}\Sentinel.Agent.exe'), ExpandConstant('{app}\Sentinel.Agent.exe.old'));
+  // Rename every loaded EXE/DLL aside so Inno can write the new payload even if
+  // a handle is still mapped. Covers Sentinel.Core.dll and the
+  // Microsoft.Extensions.*.dll set that tripped the failed upgrade.
+  RenameLockedBinariesAside(ExpandConstant('{app}'));
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;

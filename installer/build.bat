@@ -121,6 +121,7 @@ if not exist "%~dp0SentinelSetup-%VERSION%.exe" (
 set "RELEASES_DIR=%~dp0..\releases\%VERSION%"
 if not exist "%RELEASES_DIR%" md "%RELEASES_DIR%"
 copy /y "%~dp0SentinelSetup-%VERSION%.exe" "%RELEASES_DIR%\" >nul
+del /y "%~dp0SentinelSetup-%VERSION%.exe"
 echo Copied installer to releases\%VERSION%\
 
 echo ==============================================

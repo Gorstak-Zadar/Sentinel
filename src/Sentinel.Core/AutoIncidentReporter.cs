@@ -158,6 +158,14 @@ namespace Sentinel.Core
                             _windowsEventLog.WriteEvidencePack(detection, packPath);
                     }
                     catch { /* Event Log optional */ }
+
+                    // B1: mirror a signed summary off-host so a local admin who suppresses
+                    // Sentinel cannot also erase the proof. Opt-in + fail-closed; the local pack
+                    // write above is independent of mirror success.
+                    if (_config.MirrorEvidenceOffHost && !string.IsNullOrEmpty(packPath))
+                    {
+                        await MirrorEvidenceOffHostAsync(detection, packPath!).ConfigureAwait(false);
+                    }
                 }
 
                 if (_config.ReportThreatIntel)
@@ -785,6 +793,62 @@ namespace Sentinel.Core
             await System.IO.FileNet48.WriteAllTextAsync(
                 Path.Combine(reportDir, "victim_affidavit.txt"),
                 sb.ToString(), Encoding.UTF8).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// B1: builds a minimal <see cref="EvidenceSummary"/> from a sealed pack and mirrors it
+        /// off-host via the HMAC-signed ThreatReporting proxy. No file contents or secrets are
+        /// sent — only detection metadata, indicators, and the machine-bound manifest hashes as
+        /// origin proof. Fail-closed and never-throw (delegates to ThreatReportService).
+        /// </summary>
+        private async Task MirrorEvidenceOffHostAsync(DetectionEvent detection, string packDir)
+        {
+            try
+            {
+                var reportId = Path.GetFileName(packDir.TrimEnd(Path.DirectorySeparatorChar));
+                var indicators = ExtractIndicators(detection);
+
+                // Read the sealed manifest hashes from disk (origin proof). Best-effort.
+                string manifestSha256 = string.Empty;
+                string manifestHmac = string.Empty;
+                try
+                {
+                    var manifestPath = Path.Combine(packDir, "MANIFEST.sha256");
+                    var hmacPath = Path.Combine(packDir, "MANIFEST.hmac");
+                    if (File.Exists(manifestPath))
+                        manifestSha256 = ComputeSha256Hex(File.ReadAllBytes(manifestPath));
+                    if (File.Exists(hmacPath))
+                        manifestHmac = File.ReadAllText(hmacPath).Trim().ToLowerInvariant();
+                }
+                catch { /* origin proof is optional; summary still useful */ }
+
+                var summary = new EvidenceSummary
+                {
+                    ReportId = reportId,
+                    SentinelVersion = _productVersion,
+                    Host = Environment.MachineName,
+                    SealedUtc = DateTime.UtcNow.ToString("O"),
+                    Rule = detection.RuleName,
+                    SignalType = detection.SignalType.ToString(),
+                    Tier = detection.Tier.ToString(),
+                    Confidence = detection.Confidence,
+                    ProcessName = detection.ProcessName,
+                    ProcessId = detection.ProcessId,
+                    Hashes = indicators.Hashes.Take(10).ToArray(),
+                    Ips = indicators.Ips.Where(ip => !IsPrivateOrLocalIp(ip)).Take(10).ToArray(),
+                    Urls = indicators.Urls.Take(10).ToArray(),
+                    ManifestSha256 = manifestSha256,
+                    ManifestHmacSha256 = manifestHmac
+                };
+
+                await _threatReportService.ReportEvidenceAsync(summary).ConfigureAwait(false);
+                _logger.LogDebug("[AutoIncidentReporter] Off-host evidence mirror attempted for {ReportId}", reportId);
+            }
+            catch (Exception ex)
+            {
+                // Never let off-host mirroring affect local pack behavior.
+                _logger.LogDebug(ex, "[AutoIncidentReporter] Off-host evidence mirror failed");
+            }
         }
 
         private async Task SealPackIntegrityAsync(

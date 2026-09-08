@@ -154,6 +154,19 @@ namespace Sentinel.Service
 
             await host.StartAsync();
 
+            // B1: mark a graceful host/OS stop as expected so the AntiTamperGuard exit hook does
+            // not flag it as a suspicious tamper stop. Under UseWindowsService this fires on a
+            // cooperative SCM stop and on SERVICE_CONTROL_SHUTDOWN (OS shutdown). A hard kill
+            // never fires it, so a TerminateProcess still classifies as unexpected.
+            try
+            {
+                var lifetime = host.Services.GetService<Microsoft.Extensions.Hosting.IHostApplicationLifetime>();
+                lifetime?.ApplicationStopping.Register(() =>
+                    Sentinel.Core.ShutdownContext.MarkExpected(
+                        Sentinel.Core.ExpectedShutdownReason.SystemShutdown));
+            }
+            catch { /* best-effort lifecycle hook */ }
+
             AppendDiagnostic("startup_trace.log",
                 $"[{DateTime.UtcNow:O}] host.StartAsync() completed. Blocking Main forever (ManualResetEvent)...\n");
 
@@ -853,6 +866,10 @@ namespace Sentinel.Service
 
         protected override void OnStop()
         {
+            // Cooperative SCM stop of the watchdog — mark expected so any exit hook in this
+            // process treats it as a normal lifecycle stop, not a tamper suppression (B1).
+            Sentinel.Core.ShutdownContext.MarkExpected(
+                Sentinel.Core.ExpectedShutdownReason.ServiceControllerStop);
             _stop = true;
         }
     }

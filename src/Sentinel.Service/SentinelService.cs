@@ -186,6 +186,22 @@ namespace Sentinel.Service
         }
 
 
+        /// <summary>
+        /// Invoked by the .NET host when the Service Control Manager issues a cooperative Stop
+        /// (e.g. `sc stop`, host shutdown, upgrade/uninstall teardown). Recording this marks the
+        /// impending process exit as <b>expected</b> so the AntiTamperGuard exit hook does not
+        /// classify it as a suspicious tamper stop (threat-model B1 — alert-before-suppression).
+        /// A hard kill (TerminateProcess) never routes through here, so it correctly stays
+        /// classified as unexpected.
+        /// </summary>
+        public override Task StopAsync(CancellationToken cancellationToken)
+        {
+            // If OS shutdown already marked SystemShutdown, the first-writer-wins rule keeps it.
+            Sentinel.Core.ShutdownContext.MarkExpected(
+                Sentinel.Core.ExpectedShutdownReason.ServiceControllerStop);
+            return base.StopAsync(cancellationToken);
+        }
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             // STABILITY v1.4.8: If ExecuteAsync returns for ANY reason, the .NET Host

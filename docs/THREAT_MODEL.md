@@ -302,9 +302,31 @@ See [design.md](design.md) for the full component inventory (all MonitorGroups +
 - Service registry key ACL'd to deny Administrators delete (partial)
 - ServiceProtectionMonitor detects SCM tampering
 
-**Residual risk:** HIGH. Local admin can always win against userland. This is a fundamental Windows limitation without PPL or kernel driver.
+**Durable-evidence-survival additions (v2.5.8):**
+- **Stop classification (alert-before-suppression).** `ShutdownContext` records whether the
+  process is stopping for a legitimate reason (cooperative SCM stop via `StopAsync`, OS shutdown
+  via `IHostApplicationLifetime.ApplicationStopping`, upgrade, uninstall). The `AntiTamperGuard`
+  exit hook (`WriteLastGasp`) reads it: an **expected** stop is recorded as a normal lifecycle
+  event; an **unexpected** exit (e.g. `taskkill`, or an SCM stop that never routed through the
+  cooperative path) is recorded as `SERVICE_STOP_SUSPECTED` in the append-only audit trail plus a
+  Tier1 `AntiTamper` **LogOnly** detection when the engine is still reachable. The coverage gap
+  becomes evidence instead of silence.
+- **Off-host evidence mirror (opt-in).** When `AutoIncidentReporting.MirrorEvidenceOffHost` is
+  enabled (default **false**), each chain-confirmed evidence pack also uploads a signed **summary**
+  (`/report/evidence`) through the existing HMAC-signed ThreatReporting proxy, so a local admin who
+  suppresses Sentinel cannot also erase the proof. The upload is fail-closed (FR-11: skipped
+  silently without a ≥16-char shared secret), never transmits file contents or secrets, and carries
+  the machine-bound manifest HMAC only as an origin proof (verifies on the source host).
 
-**Honest assessment:** If the attacker has admin and knows Sentinel is running, they can kill it. The watchdog adds seconds of delay, not real protection.
+**Residual risk:** HIGH. Local admin can always win against userland — this is a fundamental
+Windows limitation without PPL or a kernel driver. The additions above do **not** prevent
+suppression; a local admin can still delete the local audit/pack files and disable the off-host
+mirror. They make the attack (and the stop itself) more likely to be **recorded and to survive**.
+
+**Honest assessment:** If the attacker has admin and knows Sentinel is running, they can kill it.
+The watchdog adds seconds of delay, not real protection. What changed in v2.5.8 is durability of
+*evidence*, not invincibility: an unexpected stop is now logged as suspected tampering, and (when
+opted in) confirmed-attack evidence is mirrored off-box before suppression.
 
 ---
 
@@ -512,6 +534,16 @@ See [design.md](design.md) for the full component inventory (all MonitorGroups +
 ### B13: Threat proxy forgery (FIXED in v1.6.0)
 
 **Attack:** Unauthenticated or client-key HMAC on the Cloudflare Worker allowed anyone to forge threat reports / burn VT quota.
+
+**`/report/evidence` route (v2.5.8 — off-host evidence mirror, deployed out-of-band):**
+- Accepts the signed `EvidenceSummary` JSON (report id, version, host, detection metadata,
+  indicators, machine-bound manifest `sha256` + `hmac`). Verifies the client HMAC exactly like the
+  other `/report/*` routes (same `X-Sentinel-Timestamp` / `-Nonce` / `-Signature` scheme, nonce
+  consumed after verification, per-IP rate limit) and stores the summary.
+- The summary carries the machine-bound manifest HMAC as an **origin proof** only (it re-verifies on
+  the source host). For portable verification, the Worker MAY return a **server-signed receipt**
+  (server key, no host secret ever leaves the box). The Worker is deployed separately and is not in
+  this repo; the client never depends on the receipt for correctness.
 
 **Mitigation (v1.6.0+):**
 - Worker requires `SENTINEL_SHARED_SECRET` (fail closed with 503 if missing)

@@ -516,19 +516,80 @@ namespace Sentinel.Core
 
         private void WriteLastGasp(string reason)
         {
+            // Uptime is best-effort; a dying process may already have lost access to its own
+            // Process handle, so guard it independently of the rest of the record.
+            string uptime;
+            try
+            {
+                uptime = (DateTimeOffset.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime()).ToString();
+            }
+            catch { uptime = "unknown"; }
+
+            var pid = System.Net48Environment.ProcessId;
+
+            // Always write the raw last-gasp line (unchanged forensic behavior).
             try
             {
                 var entry = System.Text.Json.JsonSerializer.Serialize(new
                 {
                     Timestamp = DateTimeOffset.UtcNow,
                     Reason = reason,
-                    ProcessId = System.Net48Environment.ProcessId,
-                    Uptime = (DateTimeOffset.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime()).ToString(),
+                    ProcessId = pid,
+                    Uptime = uptime,
                     LastTick = _lastTick
                 });
                 File.AppendAllText(_lastGaspPath, entry + Environment.NewLine);
             }
             catch { } // Best-effort — we're dying
+
+            // B1: classify the stop and record it durably in the append-only audit trail.
+            // Expected (cooperative SCM stop / OS shutdown / upgrade / uninstall) → lifecycle event.
+            // Otherwise → suspected tamper suppression (alert-before-suppression).
+            try
+            {
+                if (ShutdownContext.IsExpected)
+                {
+                    _eventLogger.LogServiceStopExpected(
+                        reason: $"{reason}; expected={ShutdownContext.Reason}",
+                        processId: pid,
+                        uptime: uptime);
+                }
+                else
+                {
+                    var classification =
+                        "Sentinel exited without a cooperative shutdown signal (no SCM Stop, OS " +
+                        "shutdown, upgrade, or uninstall was recorded). Consistent with a possible " +
+                        "tamper stop or process kill while the service was still registered.";
+
+                    _eventLogger.LogServiceStopSuspected(
+                        reason: reason,
+                        processId: pid,
+                        uptime: uptime,
+                        lastTick: _lastTick,
+                        classification: classification);
+
+                    // Emit a Tier1 LogOnly AntiTamper detection IF the engine is still reachable.
+                    // On a dying process this is best-effort; the audit-log write above is the
+                    // durable fallback. Fire-and-forget so we never block the exit hook.
+                    try
+                    {
+                        _ = _detectionEngine.EmitAsync(new DetectionEvent
+                        {
+                            RuleName = "Anti-Tamper: Service Stopped Unexpectedly",
+                            Evidence = $"Process exit '{reason}' with no expected-shutdown signal (pid {pid}, uptime {uptime}).",
+                            Reasoning = classification,
+                            Confidence = 0.90,
+                            Tier = DetectionTier.Tier1Behavioral,
+                            AuthorizedResponse = ResponseAction.LogOnly,
+                            SignalType = SignalType.AntiTamper,
+                            ProcessName = "SYSTEM",
+                            ProcessId = 0
+                        });
+                    }
+                    catch { /* engine may be gone — audit record already written */ }
+                }
+            }
+            catch { } // Best-effort — never throw out of the exit path.
         }
 
         /// <summary>

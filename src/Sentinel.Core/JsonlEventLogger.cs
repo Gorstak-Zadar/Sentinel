@@ -82,8 +82,10 @@ namespace Sentinel.Core
 
             // ── Audit log setup (Improvement #5 from GorstaksProtection) ─────────
             // Daily-rotated, SYSTEM+Admins-only append file written BEFORE any kill/block.
-            var sentinelDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Sentinel");
+            // Lives in the same directory as the events log (ProgramData\Sentinel in production,
+            // or a custom directory when one is supplied) so the audit trail travels with the log.
+            var sentinelDir = Path.GetDirectoryName(_logFilePath)
+                ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "Sentinel");
             _auditLogFilePath = Path.Combine(sentinelDir,
                 $"audit-{DateTime.UtcNow:yyyy-MM-dd}.jsonl");
             TryOpenAuditFileInternal();
@@ -221,6 +223,84 @@ namespace Sentinel.Core
             finally
             {
                 _auditSemaphore.Release();
+            }
+        }
+
+        /// <summary>
+        /// B1 (durable evidence survival): records that the Sentinel process is exiting under
+        /// circumstances that were NOT marked as an expected/cooperative stop — i.e. a possible
+        /// tamper suppression. Written to the append-only audit trail (SYSTEM+Admins ACL) so the
+        /// coverage gap is itself evidence.
+        ///
+        /// This is the <b>synchronous, best-effort</b> variant intended for the process-exit hook,
+        /// where awaiting is unsafe (the runtime is tearing down). It performs a single append and
+        /// swallows all failures.
+        /// </summary>
+        public void LogServiceStopSuspected(
+            string reason,
+            int processId,
+            string uptime,
+            DateTimeOffset lastTick,
+            string classification)
+        {
+            try
+            {
+                TryOpenAuditFileInternal();
+                if (_auditDegraded || _auditWriter == null) return;
+
+                var entry = new
+                {
+                    AuditType      = "SERVICE_STOP_SUSPECTED",
+                    Timestamp      = DateTime.UtcNow,
+                    Reason         = reason,
+                    Classification = classification,
+                    ProcessId      = processId,
+                    Uptime         = uptime,
+                    LastTick       = lastTick
+                };
+
+                var json = JsonSerializer.Serialize(entry);
+
+                // Best-effort synchronous write — cannot await on a dying process. The audit
+                // writer is AutoFlush, so the line hits disk immediately.
+                _auditWriter.WriteLine(json);
+                _auditWriter.Flush();
+            }
+            catch
+            {
+                // Best-effort — we're dying. Never throw out of the exit path (NFR-2).
+            }
+        }
+
+        /// <summary>
+        /// Records a normal, expected service-stop lifecycle event to the append-only audit trail.
+        /// Synchronous/best-effort for use from the exit hook.
+        /// </summary>
+        public void LogServiceStopExpected(
+            string reason,
+            int processId,
+            string uptime)
+        {
+            try
+            {
+                TryOpenAuditFileInternal();
+                if (_auditDegraded || _auditWriter == null) return;
+
+                var entry = new
+                {
+                    AuditType = "SERVICE_STOP_EXPECTED",
+                    Timestamp = DateTime.UtcNow,
+                    Reason    = reason,
+                    ProcessId = processId,
+                    Uptime    = uptime
+                };
+
+                _auditWriter.WriteLine(JsonSerializer.Serialize(entry));
+                _auditWriter.Flush();
+            }
+            catch
+            {
+                // Best-effort.
             }
         }
 

@@ -2,6 +2,44 @@
 
 
 
+## [2.5.8] - 2026-09-09
+
+### Added — Durable evidence survival (threat-model B1)
+
+Makes attack evidence — and the act of stopping Sentinel itself — survive a local-admin
+suppression, without pretending userland can prevent that suppression. This is the first roadmap
+Theme 1 item (`docs/ROADMAP.md`), implemented as spec `.kiro/specs/durable-evidence-survival/`.
+
+- **Stop classification (alert-before-suppression).** New `ShutdownContext` process-lifetime signal
+  records when a stop is *expected* — cooperative SCM stop (`SentinelService.StopAsync`), OS
+  shutdown (`IHostApplicationLifetime.ApplicationStopping`), upgrade, or uninstall. The
+  `AntiTamperGuard` exit hook (`WriteLastGasp`) now classifies: an expected stop is logged as a
+  `SERVICE_STOP_EXPECTED` lifecycle event; an unexpected exit (e.g. `taskkill`, or a stop that never
+  routed through the cooperative path) is logged as `SERVICE_STOP_SUSPECTED` in the append-only
+  audit trail plus a Tier1 `AntiTamper` **LogOnly** detection when the engine is still reachable.
+- **Off-host evidence mirror (opt-in, default off).** New
+  `AutoIncidentReporting.MirrorEvidenceOffHost`. When enabled, each chain-confirmed evidence pack
+  also uploads a signed `EvidenceSummary` via a new `/report/evidence` route on the existing
+  HMAC-signed ThreatReporting proxy, so a local admin who suppresses Sentinel cannot also erase the
+  proof. Fail-closed (FR-11: skipped silently without a ≥16-char secret), never transmits file
+  contents or secrets, and carries the machine-bound manifest HMAC only as an origin proof.
+- **Audit log now sits beside the events log.** `JsonlEventLogger`'s append-only `audit-*.jsonl`
+  is written in the same directory as `events.jsonl` (ProgramData\Sentinel in production, or the
+  supplied custom directory) so the audit trail travels with the log and is testable.
+
+### Honest ceiling
+
+Residual risk for B1 stays **HIGH**: a local admin can still delete the local audit/pack files and
+disable the off-host mirror. This work improves the *durability and visibility* of evidence, not
+invincibility. `docs/THREAT_MODEL.md` B1 and B13 updated accordingly.
+
+### Tests
+
+New `DurableEvidenceStopClassificationTests` (ShutdownContext + audit records, incl. never-throw on
+a disposed logger) and `DurableEvidenceMirrorTests` (opt-in default false, payload minimality,
+signed `/report/evidence` contract, fail-closed). All green; existing JsonlEventLogger /
+ThreatReportService / AutoIncidentReporter / ProxyAuthHelper suites remain green.
+
 ## [2.5.7] - 2026-09-08
 
 Continuing the typed-family migration (see `docs/typed-family-migration.md`). Each migrated

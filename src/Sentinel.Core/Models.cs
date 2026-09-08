@@ -367,6 +367,16 @@ namespace Sentinel.Core
         public bool GenerateLocalEvidencePack { get; set; } = true;
 
         /// <summary>
+        /// B1 (durable evidence survival): when true, a signed <b>summary</b> of each
+        /// chain-confirmed evidence pack is mirrored off-host via the existing HMAC-signed
+        /// ThreatReporting proxy so a local admin who suppresses Sentinel cannot also erase the
+        /// proof. Default <b>false</b> (opt-in) — matches the honest, no-covert-exfil posture.
+        /// Requires a configured ThreatReporting ProxyEndpoint + shared secret; fails closed
+        /// (skips silently) when the secret is missing. Never uploads file contents or secrets.
+        /// </summary>
+        public bool MirrorEvidenceOffHost { get; set; } = false;
+
+        /// <summary>
         /// Submit hashes/URLs/IPs via ThreatReportService (MalwareBazaar/URLhaus/AbuseIPDB).
         /// Requires ThreatReporting proxy secret. Community intel — not law enforcement.
         /// </summary>

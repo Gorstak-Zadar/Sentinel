@@ -132,7 +132,7 @@ namespace Sentinel.Tests
         [Fact]
         public void ProductInfo_MatchesTwoOneTwoCurrentVersion()
         {
-            Assert.Equal("2.5.6", ProductInfo.Version);
+            Assert.Equal("2.5.7", ProductInfo.Version);
         }
 
         [Theory]

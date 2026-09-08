@@ -128,7 +128,8 @@ namespace Sentinel.Core
                                     "Does not patch the kernel race — stops the exploit host. Kill-grade. " +
                                     $"Covers {CveCoverageHeuristics.CveAfdAlt1}/{CveCoverageHeuristics.CveAfdAlt2} class, not just named campaigns.",
                                     staging ? 0.90 : 0.86, name, pid, path, parentName, parentPid,
-                                    SignalType.SecurityEvasion, killGrade: true).ConfigureAwait(false);
+                                    SignalType.SecurityEvasion, killGrade: true,
+                                    family: TerminalFamily.TokenTheft).ConfigureAwait(false);
                             }
                         }
 
@@ -247,7 +248,7 @@ namespace Sentinel.Core
         private async Task EmitAsync(
             string rule, string evidence, string reasoning, double conf,
             string name, int pid, string? path, string parentName, int parentPid,
-            SignalType signal, bool killGrade = false)
+            SignalType signal, bool killGrade = false, TerminalFamily? family = null)
         {
             var key = rule + ":" + pid;
             if (!ShouldAlert(key)) return;
@@ -273,6 +274,10 @@ namespace Sentinel.Core
                 ProcessName = name,
                 ProcessId = pid,
                 SignalType = signal,
+                // Explicit terminal family when the caller declares one (only the kill-grade
+                // Kernel Exploit Loader does today). Non-killGrade emits stay WeakObserveSeed=true
+                // and classify null regardless, so leaving family null there preserves behavior.
+                Family = family,
                 Metadata = meta
             }).ConfigureAwait(false);
         }

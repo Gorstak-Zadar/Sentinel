@@ -499,6 +499,7 @@ namespace Sentinel.Core
                         ProcessName = processName,
                         ProcessId = pid,
                         SignalType = SignalType.NetworkC2,
+                        Family = TerminalFamily.C2Beacon,
                         Confidence = 0.92,
                         Tier = DetectionTier.Tier1Behavioral,
                         AuthorizedResponse = response,

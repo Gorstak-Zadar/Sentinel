@@ -51,7 +51,7 @@ namespace Sentinel.Core
         private static readonly string[] AttackRuleKeywords =
         {
             "ransomware", "cuckoo", "injection", "reverse shell", "credential", "lsass",
-            "beacon", "exfil", "c2", "dump", "mimi" + "katz", "cobalt", "lateral", "token theft",
+            "beacon", "exfil", "c2", "dump", "mimikatz", "cobalt", "lateral", "token theft",
             "shadow copy", "uac bypass", "persistence", "rootkit", "keylog", "clipbanker",
             "process hollowing", "dll sideload", "supply chain", "reinfection", "malware",
             "stalkerware", "surveillance", "remote control", "session theft", "webcam", "screen capture"

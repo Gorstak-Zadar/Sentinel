@@ -312,6 +312,9 @@ namespace Sentinel.Core
                                 Tier = DetectionTier.Tier1Behavioral,
                                 AuthorizedResponse = ResponseAction.KillProcessTree,
                                 SignalType = SignalType.AntiTamper,
+                                // Terminal Evasion: rule name matches the "ETW/Event Log Manipulation"
+                                // Evasion fragment (kill-grade). Preserves current substring classification.
+                                Family = TerminalFamily.Evasion,
                                 ProcessName = name,
                                 ProcessId = pid,
                             });

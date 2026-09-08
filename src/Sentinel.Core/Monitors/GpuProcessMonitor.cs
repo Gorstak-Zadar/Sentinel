@@ -329,6 +329,7 @@ namespace Sentinel.Core
                         ProcessName = browserName,
                         ProcessId = gpuPid,
                         SignalType = SignalType.NetworkC2,
+                        Family = TerminalFamily.C2Beacon,
                         Metadata = new Dictionary<string, string>
                         {
                             { "AttackVector", "GPU_SANDBOX_ESCAPE_C2" },

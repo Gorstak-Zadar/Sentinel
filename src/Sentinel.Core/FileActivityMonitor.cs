@@ -314,6 +314,11 @@ namespace Sentinel.Core
                                     ProcessName = reparseCreator.name,
                                     ProcessId = reparseCreator.pid,
                                     SignalType = hive || cloud ? SignalType.SecurityEvasion : SignalType.Generic,
+                                    // Terminal TokenTheft only for the LegacyHive branch (rule name
+                                    // "LegacyHive: …" matches the "LegacyHive" fragment). The cloud
+                                    // branch is SecurityEvasion observe and the else branch is a
+                                    // Generic junction kill — neither classifies as TokenTheft today.
+                                    Family = hive ? (TerminalFamily?)TerminalFamily.TokenTheft : null,
                                     Metadata = new Dictionary<string, string>
                                     {
                                         ["Path"] = e.FullPath,

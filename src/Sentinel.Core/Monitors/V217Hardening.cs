@@ -370,12 +370,12 @@ namespace Sentinel.Core
         // Split so exact names don't appear as contiguous PE string-table entries.
         private static readonly string[] DecoyPipeNames = new[]
         {
-            "msag" + "ent_01",        // CobaltStrike default
-            "MSSE" + "-1234-server",  // CobaltStrike alternate
-            "postex" + "_ssh_0001",   // CobaltStrike post-exploitation
-            "win_svc" + "_pipe",      // Generic RAT pattern
-            "ntsv" + "cs_00",         // known C2 pipe name
-            "DserName" + "Pipe_00",   // known handler pipe name
+            "msagent_01",        // CobaltStrike default
+            "MSSE-1234-server",  // CobaltStrike alternate
+            "postex_ssh_0001",   // CobaltStrike post-exploitation
+            "win_svc_pipe",      // Generic RAT pattern
+            "ntsvcs_00",         // known C2 pipe name
+            "DserNamePipe_00",   // known handler pipe name
         };
 
         public DecoyPipeMonitor(DetectionEngine detectionEngine, ILogger<DecoyPipeMonitor> logger)
@@ -452,6 +452,7 @@ namespace Sentinel.Core
                         ProcessName = clientProcessName,
                         ProcessId = clientPid,
                         SignalType = SignalType.NetworkC2,
+                        Family = TerminalFamily.C2Beacon,
                         Metadata = new Dictionary<string, string>
                         {
                             ["PipeName"] = pipeName,

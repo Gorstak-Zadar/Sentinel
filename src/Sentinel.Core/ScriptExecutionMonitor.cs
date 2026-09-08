@@ -37,14 +37,16 @@ namespace Sentinel.Core
         // Malicious patterns in PowerShell script blocks
         private static readonly string[] MaliciousPatterns = new[]
         {
-            // AMSI bypass — strings assembled at runtime so they don't appear as
-            // contiguous literals in the PE string table (AV false-positive mitigation).
-            "Amsi" + "InitFailed", "amsi" + ".dll", "Amsi" + "ScanBuffer", "Amsi" + "Utils",
+            // AMSI bypass. Plaintext by design: C# folds "Amsi" + "ScanBuffer" back to the
+            // full literal in the compiled PE, so splitting was cosmetic — and ML AV scores
+            // the runtime-assembly PATTERN as evasion. A signed binary with plaintext
+            // detection signatures reads as a security product, not malware.
+            "AmsiInitFailed", "amsi.dll", "AmsiScanBuffer", "AmsiUtils",
             "Set-MpPreference -DisableRealtimeMonitoring",
-            // Credential theft — split so names don't appear as contiguous PE string-table entries
-            "Invoke-" + "Mimikatz", "sekurlsa" + "::logonpasswords", "Get-Credential",
+            // Credential theft
+            "Invoke-Mimikatz", "sekurlsa::logonpasswords", "Get-Credential",
             "System.Net.NetworkCredential", "ConvertFrom-SecureString",
-            "dpapi::" + "masterkey", "lsadump" + "::sam", "kerberos" + "::list",
+            "dpapi::masterkey", "lsadump::sam", "kerberos::list",
             // Sentinel evasion
             "Sentinel", "Sentinel", "Stop-Service.*Sentinel",
             // Download cradles
@@ -385,6 +387,10 @@ namespace Sentinel.Core
                                 ProcessName = proc.ProcessName,
                                 ProcessId = proc.Id,
                                 SignalType = SignalType.AmsiTampering,
+                                // Only the non-system "AMSI Bypass Detected" case is a terminal
+                                // Evasion. The system-host "AMSI Not Loaded" case is observe-only
+                                // and must stay non-terminal (matches current substring behavior).
+                                Family = systemHost ? (TerminalFamily?)null : TerminalFamily.Evasion,
                                 Metadata = new Dictionary<string, string>
                                 {
                                     ["ImagePath"] = imagePath ?? "",

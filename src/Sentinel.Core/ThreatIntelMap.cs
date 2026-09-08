@@ -23,7 +23,7 @@ namespace Sentinel.Core
         {
             eventId = 0;
             if (string.IsNullOrEmpty(apiName) ||
-                !apiName.StartsWith(EventIdPrefix, StringComparison.Ordinal))
+                !apiName!.StartsWith(EventIdPrefix, StringComparison.Ordinal))
                 return false;
             return int.TryParse(apiName.Substring(EventIdPrefix.Length), out eventId);
         }
@@ -38,7 +38,7 @@ namespace Sentinel.Core
                 return false;
             }
 
-            return apiName.IndexOf("VirtualAllocEx", StringComparison.OrdinalIgnoreCase) >= 0
+            return apiName!.IndexOf("VirtualAllocEx", StringComparison.OrdinalIgnoreCase) >= 0
                 || apiName.IndexOf("WriteProcessMemory", StringComparison.OrdinalIgnoreCase) >= 0
                 || apiName.IndexOf("NtWriteVirtualMemory", StringComparison.OrdinalIgnoreCase) >= 0
                 || apiName.IndexOf("NtAllocateVirtualMemory", StringComparison.OrdinalIgnoreCase) >= 0

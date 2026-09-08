@@ -336,8 +336,8 @@ namespace Sentinel.Core
             // Prefer terminal / high-signal families by name first
             if (ContainsAny(r, "BYOVD", "Vulnerable Driver", "kdmapper")) return "BYOVD";
             if (ContainsAny(r, "Token Theft", "Impersonat", "SeImpersonate", "Potato")) return "TokenTheft";
-            if (ContainsAny(r, "LSASS", "Credential Dump", "Mimi" + "katz", "SAM hive", "DCSync")) return "Credential";
-            if (ContainsAny(r, "Reverse Shell", "Bind Shell", "revshell", "mete" + "rpreter")) return "ReverseShell";
+            if (ContainsAny(r, "LSASS", "Credential Dump", "Mimikatz", "SAM hive", "DCSync")) return "Credential";
+            if (ContainsAny(r, "Reverse Shell", "Bind Shell", "revshell", "meterpreter")) return "ReverseShell";
             if (ContainsAny(r, "Ransomware", "Shadow Copy", "Mass File Rename", "Bulk Encrypt")) return "Ransomware";
             if (ContainsAny(r, "Beacon", "C2", "Command-and-Control")) return "C2";
             if (ContainsAny(r, "Exfil", "DNS Tunnel", "DNS Exfil", "Data Staging")) return "Exfil";

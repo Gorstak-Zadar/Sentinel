@@ -106,6 +106,6 @@ namespace Sentinel.Core
     /// <summary>Central product version for metrics/UI (keep in sync with version.txt).</summary>
     public static class ProductInfo
     {
-        public const string Version = "2.5.6";
+        public const string Version = "2.5.7";
     }
 }

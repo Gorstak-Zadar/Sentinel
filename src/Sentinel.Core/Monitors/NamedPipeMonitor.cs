@@ -204,6 +204,7 @@ namespace Sentinel.Core
                         Tier = DetectionTier.Tier1Behavioral,
                         AuthorizedResponse = ResponseAction.KillProcessTree,
                         SignalType = SignalType.NetworkC2,
+                        Family = TerminalFamily.C2Beacon,
                         ProcessName = ownerName,
                         ProcessId = (int)ownerPid,
                     });

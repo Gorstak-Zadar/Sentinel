@@ -16,7 +16,7 @@ namespace Sentinel.Core
             ("LSASS", new[] { "T1003.001" }),
             ("Credential Dump", new[] { "T1003" }),
             ("Credential Theft", new[] { "T1003" }),
-            ("Mimi" + "katz", new[] { "T1003.001", "T1003" }),
+            ("Mimikatz", new[] { "T1003.001", "T1003" }),
             ("SAM hive", new[] { "T1003.002" }),
             ("DCSync", new[] { "T1003.006" }),
             ("Token Theft", new[] { "T1134" }),

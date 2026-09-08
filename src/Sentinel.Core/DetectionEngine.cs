@@ -366,10 +366,25 @@ namespace Sentinel.Core
                 ? TimeSpan.FromSeconds(10)
                 : TimeSpan.FromSeconds(30);
 
-            var lastTime = _dedupCache.AddOrUpdate(key, now, (k, oldTime) =>
-                now - oldTime < dedupWindow ? oldTime : now);
+            // Determine — atomically per key — whether THIS call is the one that claims
+            // the dedup slot (fresh insert or window expired). Relying on timestamp equality
+            // is unsafe: two events processed within the same ~15ms DateTime.UtcNow tick share
+            // an identical `now`, so the old `lastTime != now` check let a duplicate slip
+            // through and emit twice. The add/update factories run atomically under
+            // ConcurrentDictionary's per-key lock, so a bool set inside them is race-free.
+            bool claimed = false;
+            _dedupCache.AddOrUpdate(
+                key,
+                _ => { claimed = true; return now; },              // first time we've seen this key
+                (_, oldTime) =>
+                {
+                    if (now - oldTime < dedupWindow)
+                        return oldTime;                            // still inside window → suppress
+                    claimed = true;                                // window expired → re-arm + emit
+                    return now;
+                });
 
-            if (lastTime != now)
+            if (!claimed)
             {
                 return; // Suppressed by existing recent entry
             }

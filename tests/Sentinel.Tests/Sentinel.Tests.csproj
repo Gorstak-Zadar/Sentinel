@@ -28,4 +28,5 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Sentinel.Core\Sentinel.Core.csproj" />
   </ItemGroup>
+
 </Project>

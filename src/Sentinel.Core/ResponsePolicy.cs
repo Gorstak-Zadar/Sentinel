@@ -23,17 +23,11 @@ namespace Sentinel.Core
         /// <summary>
         /// The only single-signal families that may carry Tier1 (kill-grade) labels.
         /// Everything else is Tier2 observe fuel for correlation / composites.
+        /// v2.6: derived from the typed <see cref="TerminalFamily"/> taxonomy so a
+        /// mistyped string literal can no longer silently drop a family from kill-grade.
         /// </summary>
-        public static readonly HashSet<string> KillGradeTerminalFamilies = new(StringComparer.OrdinalIgnoreCase)
-        {
-            "CredentialDump",
-            "TokenTheft",
-            "ReverseShell",
-            "C2Beacon",
-            "WmiPersistence",
-            "Evasion",
-            "Injection",
-        };
+        public static readonly HashSet<string> KillGradeTerminalFamilies =
+            new(TerminalFamilies.KillGradeCanonicalStrings(), StringComparer.OrdinalIgnoreCase);
 
         /// <summary>Minimum confidence for a kill-grade family to stay Tier1 (default 0.85).</summary>
         public const double DefaultMinTier1Confidence = 0.85;
@@ -96,9 +90,9 @@ namespace Sentinel.Core
             }),
             ("CredentialDump", new[]
             {
-                "LSASS", "Credential Dump", "Credential Theft", "Mimi" + "katz", "sekur" + "lsa",
-                "proc" + "dump", "comsvcs", "Mini" + "Dump", "DumpCred", "SAM hive", "SECURITY hive",
-                "ntds" + ".dit", "DCSync", "secrets" + "dump", "Credential Canary",
+                "LSASS", "Credential Dump", "Credential Theft", "Mimikatz", "sekurlsa",
+                "procdump", "comsvcs", "MiniDump", "DumpCred", "SAM hive", "SECURITY hive",
+                "ntds.dit", "DCSync", "secretsdump", "Credential Canary",
             }),
             ("TokenTheft", new[]
             {
@@ -112,7 +106,7 @@ namespace Sentinel.Core
             ("ReverseShell", new[]
             {
                 "Reverse Shell", "Bind Shell", "Interactive Shell", "pty.spawn",
-                "socket.dup", "nc -e", "ncat", "revshell", "mete" + "rpreter",
+                "socket.dup", "nc -e", "ncat", "revshell", "meterpreter",
                 "ClickFix Encoded",
             }),
             ("Exfil", new[]
@@ -509,15 +503,22 @@ namespace Sentinel.Core
             if (IsWeakObserveSeed(detection))
                 return null;
 
+            // v2.6: An explicitly-declared typed family is authoritative — a migrated monitor
+            // stated its outcome directly, so we don't guess from substrings. This is checked
+            // AFTER the benign-noise / weak-seed safety demotions above (those always win) but
+            // BEFORE the SignalType switch and rule-name matching below.
+            if (detection.Family.HasValue)
+                return detection.Family.Value.ToCanonicalString();
+
             switch (detection.SignalType)
             {
                 case SignalType.LsassAccess:
                 case SignalType.CredentialTheft:
-                    return "CredentialDump";
+                    return TerminalFamily.CredentialDump.ToCanonicalString();
                 case SignalType.ReverseShell:
-                    return "ReverseShell";
+                    return TerminalFamily.ReverseShell.ToCanonicalString();
                 case SignalType.NetworkC2:
-                    return "C2Beacon";
+                    return TerminalFamily.C2Beacon.ToCanonicalString();
             }
 
             var haystack = string.Join(" ",
@@ -536,6 +537,16 @@ namespace Sentinel.Core
 
             return null;
         }
+
+        /// <summary>
+        /// v2.6: Typed classification of a detection into its <see cref="TerminalFamily"/>,
+        /// or null if the detection is not terminal. This is the typed counterpart to
+        /// <see cref="ClassifyTerminalOutcome"/> and is implemented directly in terms of it,
+        /// so the two can never disagree. Prefer this in new code; the string method remains
+        /// for the existing metadata/evidence contracts.
+        /// </summary>
+        public static TerminalFamily? ClassifyTerminalFamily(DetectionEvent detection)
+            => TerminalFamilies.FromCanonicalString(ClassifyTerminalOutcome(detection));
 
         public static bool IsBenignInstallerNoise(DetectionEvent detection)
         {

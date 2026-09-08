@@ -149,6 +149,7 @@ namespace Sentinel.Core
                     ProcessName = name,
                     ProcessId = proc.Id,
                     SignalType = SignalType.AntiTamper,
+                    Family = TerminalFamily.Evasion,
                     Metadata = new Dictionary<string, string>
                     {
                         ["ThreadId"] = thread.Id.ToString(),
@@ -215,6 +216,7 @@ namespace Sentinel.Core
                     ProcessName = name,
                     ProcessId = proc.Id,
                     SignalType = SignalType.ProcessInjection,
+                    Family = TerminalFamily.Injection,
                     Metadata = new Dictionary<string, string>
                     {
                         ["RwxRegionCount"] = rwx.Count.ToString(),

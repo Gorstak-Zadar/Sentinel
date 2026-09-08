@@ -338,6 +338,7 @@ namespace Sentinel.Core
                                     ProcessName = processName,
                                     ProcessId = owningPid,
                                     SignalType = SignalType.NetworkC2,
+                                    Family = TerminalFamily.C2Beacon,
                                     Metadata = new Dictionary<string, string>
                                     {
                                         { "RemoteAddress", remoteIp },

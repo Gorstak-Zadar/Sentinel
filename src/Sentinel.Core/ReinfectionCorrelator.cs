@@ -139,7 +139,7 @@ namespace Sentinel.Core
         private static bool IsProtectedInstallPath(string? path)
         {
             if (string.IsNullOrEmpty(path)) return false;
-            var n = path.Replace('/', '\\');
+            var n = path!.Replace('/', '\\');
             return n.Contains(@"\Program Files\")
                 || n.Contains(@"\Program Files (x86)\")
                 || n.Contains(@"\WindowsApps\")

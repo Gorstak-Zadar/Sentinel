@@ -197,7 +197,21 @@ namespace Sentinel.Tests
                 // Submit same event twice rapidly (within dedup window)
                 engine.SubmitTelemetry(context);
                 engine.SubmitTelemetry(context);
-                await Task.Delay(1200);
+
+                // Poll for the first detection to land instead of a fixed delay — under full-suite
+                // CPU contention the single-reader channel drain can lag past any fixed timeout,
+                // which previously made this test flaky (count observed as 0).
+                int count = 0;
+                for (int i = 0; i < 40; i++)
+                {
+                    await Task.Delay(100);
+                    count = CountDetectionsForPid();
+                    if (count >= 1) break;
+                }
+
+                // Give the duplicate a chance to (incorrectly) slip through, then confirm dedup
+                // held the count at exactly one.
+                await Task.Delay(300);
 
                 // Dedup should produce exactly one detection for this PID.
                 Assert.Equal(1, CountDetectionsForPid());

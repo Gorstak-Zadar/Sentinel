@@ -26,6 +26,7 @@ namespace Sentinel.Core
                         ProcessName = pt.ProcessName,
                         ProcessId = pt.ProcessId,
                         SignalType = SignalType.LsassAccess,
+                        Family = TerminalFamily.CredentialDump,
                         Confidence = 0.90,
                         Tier = DetectionTier.Tier1Behavioral,
                         AuthorizedResponse = ResponseAction.KillProcessTree,
@@ -128,6 +129,7 @@ namespace Sentinel.Core
                             ProcessName = pt.ProcessName,
                             ProcessId = pt.ProcessId,
                             SignalType = SignalType.ReverseShell,
+                            Family = TerminalFamily.ReverseShell,
                             Confidence = 0.85,
                             Tier = DetectionTier.Tier1Behavioral,
                             AuthorizedResponse = ResponseAction.KillProcessTree,
@@ -199,6 +201,7 @@ namespace Sentinel.Core
                 ProcessName = tit.ProcessName,
                 ProcessId = tit.ProcessId,
                 SignalType = SignalType.ProcessInjection,
+                Family = TerminalFamily.Injection,
                 Confidence = 0.90,
                 Tier = DetectionTier.Tier1Behavioral,
                 AuthorizedResponse = ResponseAction.QuarantineAndKill,
@@ -319,20 +322,23 @@ namespace Sentinel.Core
         // (Kaspersky, Defender) scores runtime string assembly as evasion, not hygiene.
         private static readonly (string Pattern, string Category)[] ToolSignatures = new[]
         {
-            // C2 frameworks — split so names don't appear as contiguous PE string-table entries
-            ("co" + "balt", "C2"), ("co" + "beacon", "C2"), ("beacon.dll", "C2"),
-            ("mete" + "rpreter", "C2"), ("msf" + "venom", "C2"), ("msf" + "console", "C2"),
+            // C2 frameworks. Plaintext: the C# spec folds "co" + "balt" back to "cobalt"
+            // in the compiled PE anyway, so source-splitting is cosmetic — and the split
+            // PATTERN itself is what ML AV (Kaspersky/Defender) scores as evasion. Plaintext
+            // in a signed binary reads as a security product; obfuscation reads as malware.
+            ("cobalt", "C2"), ("cobeacon", "C2"), ("beacon.dll", "C2"),
+            ("meterpreter", "C2"), ("msfvenom", "C2"), ("msfconsole", "C2"),
             ("sliver", "C2"), ("havoc", "C2"),
 
             // Credential tools
-            ("mimi" + "katz", "CredTool"), ("sekur" + "lsa", "CredTool"), ("kerberos" + "::list", "CredTool"),
-            ("laza" + "gne", "CredTool"), ("pypy" + "katz", "CredTool"),
-            ("rube" + "us", "CredTool"), ("asrep" + "roast", "CredTool"), ("kerber" + "oast", "CredTool"),
+            ("mimikatz", "CredTool"), ("sekurlsa", "CredTool"), ("kerberos::list", "CredTool"),
+            ("lazagne", "CredTool"), ("pypykatz", "CredTool"),
+            ("rubeus", "CredTool"), ("asreproast", "CredTool"), ("kerberoast", "CredTool"),
 
             // AD attack tools
-            ("blood" + "hound", "ADTool"), ("sharp" + "hound", "ADTool"),
-            ("crackmap" + "exec", "ADTool"), ("imp" + "acket", "ADTool"),
-            ("pse" + "xec", "ADTool"), ("wmi" + "exec", "ADTool"),
+            ("bloodhound", "ADTool"), ("sharphound", "ADTool"),
+            ("crackmapexec", "ADTool"), ("impacket", "ADTool"),
+            ("psexec", "ADTool"), ("wmiexec", "ADTool"),
 
             // === LOLBin abuse (behavioral: binary + suspicious arguments) ===
             // Download/execute
@@ -486,6 +492,10 @@ namespace Sentinel.Core
                             ProcessName = pt.ProcessName,
                             ProcessId = pt.ProcessId,
                             SignalType = category.Equals("C2") ? SignalType.NetworkC2 : SignalType.SuspiciousProcess,
+                            // Only C2-category tool hits are a terminal C2Beacon; other tool
+                            // categories (CredTool/ADTool/LOLBin) are not tagged terminal here
+                            // and continue to classify via the existing substring path.
+                            Family = category.Equals("C2") ? TerminalFamily.C2Beacon : (TerminalFamily?)null,
                             Confidence = 0.95,
                             Tier = DetectionTier.Tier1Behavioral,
                             AuthorizedResponse = ResponseAction.KillProcessTree,
@@ -563,6 +573,7 @@ namespace Sentinel.Core
                             ProcessName = pt.ProcessName,
                             ProcessId = pt.ProcessId,
                             SignalType = SignalType.NetworkC2,
+                            Family = TerminalFamily.C2Beacon,
                             Confidence = 0.85,
                             Tier = DetectionTier.Tier1Behavioral,
                             AuthorizedResponse = ResponseAction.KillProcessTree,
@@ -805,6 +816,7 @@ namespace Sentinel.Core
                 ProcessName = pt.ProcessName ?? "",
                 ProcessId = pt.ProcessId,
                 SignalType = SignalType.ReverseShell,
+                Family = TerminalFamily.ReverseShell,
                 Confidence = 0.96,
                 Tier = DetectionTier.Tier1Behavioral,
                 AuthorizedResponse = ResponseAction.KillProcessTree,
@@ -917,6 +929,7 @@ namespace Sentinel.Core
                         ProcessName = pt.ProcessName,
                         ProcessId = pt.ProcessId,
                         SignalType = SignalType.CredentialTheft,
+                        Family = TerminalFamily.CredentialDump,
                         Confidence = 0.90,
                         Tier = DetectionTier.Tier1Behavioral,
                         AuthorizedResponse = ResponseAction.KillProcessTree,

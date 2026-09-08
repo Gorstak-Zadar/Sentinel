@@ -486,6 +486,14 @@ namespace Sentinel.Core
         public string ProcessName { get; set; } = string.Empty;
         public int ProcessId { get; set; }
         public SignalType SignalType { get; set; } = SignalType.Generic;
+        /// <summary>
+        /// v2.6: Optional TYPED terminal-outcome family. When a monitor sets this explicitly,
+        /// <see cref="ResponsePolicy.ClassifyTerminalOutcome"/> trusts it directly instead of
+        /// inferring the family from rule-name substrings — removing the "renamed a rule,
+        /// silently lost its kill-grade classification" bug class. Null for legacy detections,
+        /// which continue to flow through the proven substring classifier unchanged.
+        /// </summary>
+        public TerminalFamily? Family { get; set; }
         public Dictionary<string, string> Metadata { get; set; } = new();
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         public ResponseAction AuthorizedResponse { get; set; } = ResponseAction.LogOnly;

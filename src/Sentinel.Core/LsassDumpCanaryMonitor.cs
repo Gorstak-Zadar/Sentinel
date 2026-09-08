@@ -147,6 +147,9 @@ namespace Sentinel.Core
                             ProcessName = processName,
                             ProcessId = pid,
                             SignalType = SignalType.LsassAccess,
+                            // v2.6: declare the terminal family typed, so classification is
+                            // robust to any future rule-name or SignalType change.
+                            Family = TerminalFamily.CredentialDump,
                             Metadata = new Dictionary<string, string>
                             {
                                 ["SourceImage"] = sourceImage!,
@@ -215,7 +218,8 @@ namespace Sentinel.Core
                             AuthorizedResponse = ResponseAction.KillProcessTree,
                             ProcessName = shortName,
                             ProcessId = pid,
-                            SignalType = SignalType.LsassAccess
+                            SignalType = SignalType.LsassAccess,
+                            Family = TerminalFamily.CredentialDump
                         });
                     }
                 }
@@ -264,7 +268,8 @@ namespace Sentinel.Core
                             AuthorizedResponse = ResponseAction.KillProcessTree,
                             ProcessName = shortName,
                             ProcessId = 0,
-                            SignalType = SignalType.LsassAccess
+                            SignalType = SignalType.LsassAccess,
+                            Family = TerminalFamily.CredentialDump
                         });
                     }
                 }

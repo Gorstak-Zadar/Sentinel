@@ -1784,6 +1784,7 @@ namespace Sentinel.Core
                 ProcessName = name,
                 ProcessId = pid,
                 SignalType = SignalType.NetworkC2,
+                Family = TerminalFamily.C2Beacon,
                 Metadata = ProtocolEmitMeta.Create(path, "mesh", udpN, weak: false, "UDP+HTTPS"),
             }).ConfigureAwait(false);
         }
@@ -1925,6 +1926,7 @@ namespace Sentinel.Core
                 ProcessName = name,
                 ProcessId = pid,
                 SignalType = SignalType.NetworkC2,
+                Family = TerminalFamily.C2Beacon,
                 Metadata = ProtocolEmitMeta.Create(path, "webhook", 443, weak: false, "HTTPS"),
             }).ConfigureAwait(false);
         }

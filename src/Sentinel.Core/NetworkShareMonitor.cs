@@ -363,6 +363,7 @@ namespace Sentinel.Core
                             ProcessName = "SYSTEM",
                             ProcessId = 0,
                             SignalType = SignalType.CredentialTheft,
+                            Family = TerminalFamily.CredentialDump,
                             Metadata = new Dictionary<string, string>
                             {
                                 ["Username"] = username,

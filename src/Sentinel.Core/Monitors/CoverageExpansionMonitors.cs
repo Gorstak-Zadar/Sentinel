@@ -132,6 +132,9 @@ namespace Sentinel.Core
                                 ProcessName = name,
                                 ProcessId = pid,
                                 SignalType = SignalType.SecurityEvasion,
+                                // Terminal TokenTheft: rule name matches the "LPE Scaffold: Privilege
+                                // Escalation Tool" fragment (kill-grade). Preserves current classification.
+                                Family = TerminalFamily.TokenTheft,
                                 Metadata = new Dictionary<string, string>
                                 {
                                     ["LpeTool"] = matched ?? "",

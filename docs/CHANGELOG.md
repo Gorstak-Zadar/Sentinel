@@ -2,6 +2,49 @@
 
 
 
+## [2.5.7] - 2026-09-08
+
+Continuing the typed-family migration (see `docs/typed-family-migration.md`). Each migrated
+`DetectionEvent` now declares its terminal outcome via the typed `Family` property instead of
+relying on fragile rule-name substring matching. Every tag preserves the current
+`ClassifyTerminalOutcome` result byte-for-byte — a detection classifies to the same family it
+did before, now via the authoritative typed path. Build stays 0W/0E and all tests green
+(2,192 → 2,235 with the new parity suite).
+
+**Invariants are now test-locked, not just documented.** New `TerminalFamilyMigrationParityTests`
+(43 cases) converts the earlier code-review hand-tracing into permanent regression guards:
+per-site parity (typed result == legacy result with `Family` cleared), Family-vs-SignalType
+agreement (guards a future `NetworkC2` + `Family = Exfil` silent reclassification), a guard
+that a kill-grade `Family` cannot promote a `WeakObserveSeed`/`WeakChainOnly`/`PureUxObserve`
+detection, and pins that every conditional null-sibling branch stays non-terminal.
+
+### Added
+
+- `tests/Sentinel.Tests/TerminalFamilyMigrationParityTests.cs` — 43 parity/safety guards for the
+  typed-family migration (see `docs/typed-family-migration.md` "Test guards"). Emit shapes mirror
+  the actual tagged sites; new tagged sites must add a shape to `TaggedTerminalShapes`.
+
+### Changed
+
+- `CredentialDump` — tagged `NetworkShareMonitor` SMB lateral movement and additional `Rules` sites.
+- `ReverseShell` — tagged the `Rules` ClickFix Encoded terminal.
+- `C2Beacon` — tagged `Rules` `AttackToolsRule` (conditional: only when `category == "C2"`, else `null`
+  to preserve the substring fallthrough) and the malicious C2 domain emit.
+- `Injection` — tagged `EtwThreatIntelMonitor` remote memory injection.
+- `Evasion` — tagged `ScriptExecutionMonitor` AMSI bypass (conditional on non-`systemHost`),
+  `EtwThreatIntelMonitor` unmapped thread, `CriticalMonitors` Hell's Gate / indirect syscall,
+  and `EtwProviderTamperMonitor` ETW/Event Log Manipulation.
+- `TokenTheft` — tagged `CoverageExpansionMonitors` LPE Scaffold tool, `CveCoverageMonitors`
+  Kernel Exploit Loader (new optional `family:` param on the shared `EmitAsync` helper), and
+  `FileActivityMonitor` LegacyHive reparse (conditional on `hive`).
+- `WmiPersistence` — tagged `SystemIntegrityMonitors` (WMI Policy Rewrite; Hostile Event Subscription
+  conditional on `hostile`) and `EtwEventDispatcher` (WMI-Activity permanent, conditional on `permanent`).
+- `docs/typed-family-migration.md` — progress log table and "Deliberately NOT tagged" section
+  expanded to record every migrated site and every trap left `null` (e.g. the
+  `EtwEventWrite Patched` KillProcessTree site that matches no Evasion fragment, and the
+  `TokenTheftMonitor` SYSTEM-token site that classifies as CredentialDump via `SignalType`).
+
+
 ## [2.5.6] - 2026-09-07
 
 Policy hardening, doc reconciliation, adversarial test coverage, installer size reduction, and docs reorganisation.

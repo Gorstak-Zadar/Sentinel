@@ -59,3 +59,12 @@ installer/*.exe
 installer/WindowsSentinelSetup-1.2.5.exe
 publish/service/WindowsSentinel.Service.exe
 publish/agent/WindowsSentinel.Agent.exe
+
+# Kiro workspace config (AI tooling artifact)
+.kiro/
+
+# Semantic review artifacts (not source)
+semantic-review/
+
+# Test result artifacts
+**/TestResults/

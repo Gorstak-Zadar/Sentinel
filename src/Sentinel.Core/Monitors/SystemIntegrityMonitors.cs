@@ -1388,6 +1388,11 @@ namespace Sentinel.Core
                             ProcessName = pid > 4 ? "WmiPrvSE.exe" : "SYSTEM",
                             ProcessId = pid,
                             SignalType = SignalType.SecurityEvasion,
+                            // Terminal WmiPersistence only for the hostile branch (rule name
+                            // "WMI Persistence: Hostile Event Subscription" matches a fragment).
+                            // The non-hostile "Persistence: New WMI Event Subscription" matches no
+                            // fragment and stays non-terminal today — keep it null.
+                            Family = hostile ? (TerminalFamily?)TerminalFamily.WmiPersistence : null,
                             Metadata = new Dictionary<string, string>
                             {
                                 { "WmiSnapshotKey", sub },
@@ -1541,6 +1546,10 @@ namespace Sentinel.Core
                 ProcessName = procName,
                 ProcessId = pid,
                 SignalType = SignalType.SecurityEvasion,
+                // Terminal WmiPersistence: both rule-name branches ("WMI Persistence + Policy
+                // Rewrite" and "WMI Policy Rewrite: …") match WmiPersistence fragments today.
+                // Preserves current substring classification.
+                Family = TerminalFamily.WmiPersistence,
                 Metadata = new Dictionary<string, string>
                 {
                     { "WmiHostHint", wmiHint ? "true" : "false" },

@@ -215,7 +215,7 @@ namespace Sentinel.Tests
         [Fact]
         public void Version_IsCurrent()
         {
-            Assert.Equal("2.5.6", ProductInfo.Version);
+            Assert.Equal("2.5.7", ProductInfo.Version);
         }
     }
 
@@ -239,7 +239,7 @@ namespace Sentinel.Tests
             Assert.Equal(1, snap.TelemetryReceived);
             Assert.Equal(1, snap.CompositesEmitted);
             Assert.Equal(1, snap.WeightedCompositesEmitted);
-            Assert.Equal("2.5.6", snap.ProductVersion);
+            Assert.Equal("2.5.7", snap.ProductVersion);
         }
     }
 }

@@ -651,6 +651,11 @@ namespace Sentinel.Core
                 ProcessName = processName,
                 ProcessId = pid,
                 SignalType = SignalType.SecurityEvasion,
+                // Terminal WmiPersistence for both permanent branches: hostile ->
+                // "WMI Persistence: Hostile Event Subscription" and non-hostile ->
+                // "WMI-Activity: Permanent Consumer" both match WmiPersistence fragments.
+                // The temporary branch matches no fragment and stays non-terminal today.
+                Family = permanent ? (TerminalFamily?)TerminalFamily.WmiPersistence : null,
                 Metadata = new Dictionary<string, string>
                 {
                     { "WmiActivityEventId", evt.EventId.ToString() },

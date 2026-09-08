@@ -155,6 +155,9 @@ namespace Sentinel.Core
                                 ProcessName = name,
                                 ProcessId = proc.Id,
                                 SignalType = SignalType.SecurityEvasion,
+                                // Terminal Evasion: rule name matches "Indirect Syscall" / "Hell's Gate"
+                                // Evasion fragments (kill-grade). Preserves current substring classification.
+                                Family = TerminalFamily.Evasion,
                                 Metadata = new Dictionary<string, string>
                                 {
                                     ["SyscallStubCount"] = scan.WellFormedStubs.ToString(),

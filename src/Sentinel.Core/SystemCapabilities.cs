@@ -7,19 +7,19 @@ namespace Sentinel.Core
     /// Runtime capability probes for a possibly heavily-stripped Windows image.
     ///
     /// Design principle (per the "gracefully degrade" requirement): if an OS facility is
-    /// missing — WMI, ETW, the Windows Event Log, a service, a registry hive, performance
-    /// counters — Sentinel must SKIP the feature that needs it and keep everything else
+    /// missing - WMI, ETW, the Windows Event Log, a service, a registry hive, performance
+    /// counters - Sentinel must SKIP the feature that needs it and keep everything else
     /// running, instead of throwing at startup.
     ///
     /// Each probe is:
-    ///   • cached (probed once, result reused) so repeated checks are free,
-    ///   • fully isolated — the actual facility touch lives in a separate NoInlining method
+    ///   - cached (probed once, result reused) so repeated checks are free,
+    ///   - fully isolated - the actual facility touch lives in a separate NoInlining method
     ///     so that even a JIT-time assembly/type-load failure (e.g. System.Management missing
     ///     on a trimmed image) is caught by the try/catch in the public probe rather than
     ///     escaping and faulting the process.
     ///
     /// IMPORTANT: the try/catch must wrap the CALL to the inner method, because a missing-type
-    /// exception surfaces when the runtime JITs the method that references the missing type —
+    /// exception surfaces when the runtime JITs the method that references the missing type -
     /// i.e. at the call boundary, not inside the inner method body.
     /// </summary>
     public static class SystemCapabilities
@@ -138,7 +138,7 @@ namespace Sentinel.Core
             catch { return false; }
         }
 
-        // ── Isolated probes (NoInlining keeps the risky type references off the caller's frame) ──
+        //  Isolated probes (NoInlining keeps the risky type references off the caller's frame) 
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         private static bool ProbeManagementAssembly()

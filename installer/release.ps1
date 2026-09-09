@@ -40,7 +40,7 @@ $VersionFile = Join-Path $RepoRoot "version.txt"
 
 function Write-Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 
-# ── Version policy: increment by one with carry on 9 ────────────────────────────
+#  Version policy: increment by one with carry on 9 
 function Get-NextVersion([string]$current) {
     $parts = $current.Trim().Split('.')
     if ($parts.Count -ne 3) {
@@ -63,7 +63,7 @@ function Get-NextVersion([string]$current) {
     return "$major.$minor.$patch"
 }
 
-# ── Extract the CHANGELOG section for a version as GitHub release notes ──────────
+#  Extract the CHANGELOG section for a version as GitHub release notes 
 function Get-ChangelogNotes([string]$Version) {
     $fallback = "Sentinel $Version. See docs/CHANGELOG.md for details."
     $changelog = Join-Path $RepoRoot "docs\CHANGELOG.md"
@@ -94,7 +94,7 @@ function Get-ChangelogNotes([string]$Version) {
     return "## Sentinel $Version`n`n$text"
 }
 
-# ── Read current + compute next ─────────────────────────────────────────────────
+#  Read current + compute next 
 if (-not (Test-Path $VersionFile)) { throw "version.txt not found at $VersionFile" }
 $Current = (Get-Content $VersionFile -Raw).Trim()
 Write-Step "Current version: $Current"
@@ -116,11 +116,11 @@ if ($DryRun) {
     return
 }
 
-# ── 1. Bump version.txt (single source of truth; build.ps1 stamps everything else) ─
+#  1. Bump version.txt (single source of truth; build.ps1 stamps everything else) 
 Write-Step "Writing version.txt"
 Set-Content -Path $VersionFile -Value $Next -NoNewline
 
-# ── 2. Build installer (publishes, stamps, compiles Inno Setup, copies to releases\) ─
+#  2. Build installer (publishes, stamps, compiles Inno Setup, copies to releases\) 
 Write-Step "Building installer via build.ps1"
 & (Join-Path $PSScriptRoot "build.ps1")
 if ($LASTEXITCODE -ne 0) { throw "build.ps1 failed" }
@@ -148,20 +148,20 @@ function Invoke-External {
     return $code
 }
 
-# ── 3. Commit ────────────────────────────────────────────────────────────────────
+#  3. Commit 
 Write-Step "Committing release $Next"
 # Stage all tracked modifications + the intended new/version files. Build artifacts under
 # publish/ are gitignored; releases/<ver> is added explicitly.
-# Note: releases/ is gitignored — the installer ships as a GitHub release artifact (step 5),
+# Note: releases/ is gitignored - the installer ships as a GitHub release artifact (step 5),
 # not as a committed binary. So it is intentionally not staged here.
 Invoke-External git @('-C', $RepoRoot, 'add', '-A', '--', 'src', 'tests', 'docs', 'version.txt', 'installer/setup.iss', 'installer/release.ps1')
 Invoke-External git @('-C', $RepoRoot, 'commit', '-m', "Release $Next")
 
-# ── 4. Push to origin/main ────────────────────────────────────────────────────────
+#  4. Push to origin/main 
 Write-Step "Pushing to origin"
 Invoke-External git @('-C', $RepoRoot, 'push', 'origin', 'HEAD')
 
-# ── 5. Publish GitHub release with installer attached ──────────────────────────────
+#  5. Publish GitHub release with installer attached 
 if ($NoPublish) {
     Write-Step "Skipping GitHub release (-NoPublish)."
 } else {

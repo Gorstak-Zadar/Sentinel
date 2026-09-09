@@ -17,13 +17,13 @@ using Microsoft.Win32;
 
 namespace Sentinel.Core
 {
-    // ──────────────────────────────────────────────
-    // Application Integrity Monitor — Cuckoo Egg Detection
+    // 
+    // Application Integrity Monitor - Cuckoo Egg Detection
     // Detects unauthorized replacement of protected applications.
     // Baselines executables by SHA-256 hash + Authenticode publisher.
     // On mismatch: kills offender, quarantines impostor, generates
     // forensic incident report suitable for law enforcement filing.
-    // ──────────────────────────────────────────────
+    // 
 
     /// <summary>
     /// Configuration for a single protected application.
@@ -142,13 +142,13 @@ namespace Sentinel.Core
             if (!_config.Enabled || _config.ProtectedApps.Count == 0)
             {
                 _logger.LogInformation("[ApplicationIntegrityMonitor] Disabled or no apps configured. Sleeping indefinitely.");
-                // STABILITY v1.4.8: Do NOT return — a completed BackgroundService task
+                // STABILITY v1.4.8: Do NOT return - a completed BackgroundService task
                 // triggers host shutdown in .NET 6+. Sleep until cancellation instead.
                 try { await Task.Delay(Timeout.Infinite, ct); } catch (OperationCanceledException) { }
                 return;
             }
 
-            _logger.LogInformation("[ApplicationIntegrityMonitor] Starting — protecting {Count} applications", _config.ProtectedApps.Count);
+            _logger.LogInformation("[ApplicationIntegrityMonitor] Starting - protecting {Count} applications", _config.ProtectedApps.Count);
 
             // Phase 1: Baseline all protected applications
             foreach (var app in _config.ProtectedApps)
@@ -165,7 +165,7 @@ namespace Sentinel.Core
                     }
                     else
                     {
-                        _logger.LogWarning("[ApplicationIntegrityMonitor] Could not baseline {Name} at {Path} — file not found",
+                        _logger.LogWarning("[ApplicationIntegrityMonitor] Could not baseline {Name} at {Path} - file not found",
                             app.Name, app.ExecutablePath);
                     }
                 }
@@ -254,10 +254,10 @@ namespace Sentinel.Core
                         await CheckSingleApplicationAsync(filePath);
                         return;
                     }
-                    // File locked — very short retry (100ms) to minimize the TOCTOU window
+                    // File locked - very short retry (100ms) to minimize the TOCTOU window
                     await Task.Delay(100);
                 }
-                // All retries failed (file locked for 500ms+) — still check, may catch on next periodic scan
+                // All retries failed (file locked for 500ms+) - still check, may catch on next periodic scan
                 await CheckSingleApplicationAsync(filePath);
             });
         }
@@ -277,22 +277,22 @@ namespace Sentinel.Core
 
             try
             {
-                // Case 1: File deleted — someone removed our protected app
+                // Case 1: File deleted - someone removed our protected app
                 if (!File.Exists(executablePath))
                 {
                     await EmitCuckooDetection(baseline, "DELETED",
                         $"Protected application '{baseline.Name}' binary was deleted from {executablePath}",
-                        "Binary deletion indicates uninstallation or replacement in progress — cuckoo egg preparation phase.");
+                        "Binary deletion indicates uninstallation or replacement in progress - cuckoo egg preparation phase.");
                     return;
                 }
 
-                // Case 2: Hash changed — binary was replaced
+                // Case 2: Hash changed - binary was replaced
                 var currentHash = ComputeFileHash(executablePath);
                 if (currentHash == null) return; // File locked, will retry next cycle
 
                 if (!string.Equals(currentHash, baseline.Sha256Hash))
                 {
-                    // Hash mismatch — verify publisher
+                    // Hash mismatch - verify publisher
                     var currentPublisher = GetAuthenticodePublisher(executablePath);
                     var currentProductName = GetFileProductName(executablePath);
 
@@ -314,7 +314,7 @@ namespace Sentinel.Core
                         return;
                     }
 
-                    // CUCKOO EGG DETECTED — different publisher or unsigned
+                    // CUCKOO EGG DETECTED - different publisher or unsigned
                     var evidence = BuildCuckooEvidenceString(baseline, executablePath, currentHash, currentPublisher, currentProductName);
                     var reasoning = BuildCuckooReasoningString(baseline, currentPublisher, currentProductName);
 
@@ -325,7 +325,7 @@ namespace Sentinel.Core
 
                     // Observe-until-chain (default): detect + log only. No kill/quarantine/restore
                     // until ResponsePolicy authorizes host mutation (multi-signal / chain).
-                    // Never pass null chain context — single cuckoo signal is not kill authority.
+                    // Never pass null chain context - single cuckoo signal is not kill authority.
                     if (ResponsePolicy.MayPerformInlineHostMutation(_sentinelConfig))
                     {
                         await RespondToCuckooEgg(executablePath, baseline, offenderPid);
@@ -333,7 +333,7 @@ namespace Sentinel.Core
                     else
                     {
                         _logger.LogInformation(
-                            "[ApplicationIntegrityMonitor] Cuckoo egg observed for {Name} — LogOnly (observe-until-chain; no inline kill)",
+                            "[ApplicationIntegrityMonitor] Cuckoo egg observed for {Name} - LogOnly (observe-until-chain; no inline kill)",
                             baseline.Name);
                     }
 
@@ -366,7 +366,7 @@ namespace Sentinel.Core
             if (!string.IsNullOrEmpty(impostorPublisher)) metadata["ImpostorPublisher"] = impostorPublisher!;
             if (!string.IsNullOrEmpty(impostorProduct)) metadata["ImpostorProduct"] = impostorProduct!;
 
-            // Recommend LogOnly at emit — DetectionEngine.ApplyTierLaw also demotes non-kill-grade.
+            // Recommend LogOnly at emit - DetectionEngine.ApplyTierLaw also demotes non-kill-grade.
             // Destructive response only via AdvancedResponseEngine after chain confirm (or lab AR).
             await _detectionEngine.EmitAsync(new DetectionEvent
             {
@@ -426,11 +426,11 @@ namespace Sentinel.Core
             await RestoreFromBackupAsync(executablePath, baseline);
         }
 
-        // ──────────────────────────────────────────────
+        // 
         // Forensic Incident Report Generation
         // Generates a structured report with all evidence needed
         // for filing with law enforcement (police report).
-        // ──────────────────────────────────────────────
+        // 
 
         private async Task GenerateForensicReportAsync(AppBaseline baseline, string executablePath,
             string impostorHash, string? impostorPublisher, string? impostorProduct, int offenderPid)
@@ -442,10 +442,10 @@ namespace Sentinel.Core
             try { Directory.CreateDirectory(reportDir); } catch { return; }
 
             var report = new StringBuilder();
-            report.AppendLine("╔══════════════════════════════════════════════════════════════════╗");
-            report.AppendLine("║     WINDOWS SENTINEL — FORENSIC INCIDENT REPORT                ║");
-            report.AppendLine("║     Application Integrity Violation (Cuckoo Egg Attack)        ║");
-            report.AppendLine("╚══════════════════════════════════════════════════════════════════╝");
+            report.AppendLine("");
+            report.AppendLine("     WINDOWS SENTINEL - FORENSIC INCIDENT REPORT                ");
+            report.AppendLine("     Application Integrity Violation (Cuckoo Egg Attack)        ");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine($"Report ID:        {reportId}");
             report.AppendLine($"Generated:        {timestamp:yyyy-MM-dd HH:mm:ss} UTC");
@@ -453,17 +453,17 @@ namespace Sentinel.Core
             report.AppendLine($"OS Version:       {Environment.OSVersion}");
             report.AppendLine($"User Account:     {Environment.UserDomainName}\\{Environment.UserName}");
             report.AppendLine();
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("INCIDENT SUMMARY");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine($"A protected application was replaced with unauthorized software.");
             report.AppendLine($"This constitutes unauthorized modification of computer software,");
             report.AppendLine($"potentially violating computer fraud and unauthorized access laws.");
             report.AppendLine();
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("VICTIM APPLICATION (Original/Legitimate)");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine($"  Name:           {baseline.Name}");
             report.AppendLine($"  Path:           {baseline.ExecutablePath}");
@@ -507,9 +507,9 @@ namespace Sentinel.Core
         private async Task AppendImpostorDetails(string reportDir, StringBuilder report,
             string impostorHash, string? impostorPublisher, string? impostorProduct, string executablePath)
         {
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("IMPOSTOR APPLICATION (Unauthorized Replacement)");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine($"  Publisher:      {impostorPublisher ?? "UNSIGNED (no valid Authenticode signature)"}");
             report.AppendLine($"  Product:        {impostorProduct ?? "UNKNOWN"}");
@@ -547,9 +547,9 @@ namespace Sentinel.Core
 
         private async Task AppendOffenderDetails(string reportDir, StringBuilder report, int offenderPid)
         {
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("OFFENDER PROCESS (Software that performed the replacement)");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
 
             if (offenderPid > 4)
@@ -569,7 +569,7 @@ namespace Sentinel.Core
                     var ancestors = GetProcessAncestry(offenderPid);
                     foreach (var ancestor in ancestors)
                     {
-                        report.AppendLine($"    └─ PID {ancestor.pid}: {ancestor.name} ({ancestor.path})");
+                        report.AppendLine($"     PID {ancestor.pid}: {ancestor.name} ({ancestor.path})");
                     }
 
                     // Save offender module list
@@ -604,9 +604,9 @@ namespace Sentinel.Core
 
         private async Task AppendNetworkEvidence(string reportDir, StringBuilder report, int offenderPid)
         {
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("NETWORK EVIDENCE");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
 
             var connections = new List<string>();
@@ -622,13 +622,13 @@ namespace Sentinel.Core
                         report.AppendLine("  Offender's Network Connections:");
                         foreach (var conn in offenderConns)
                         {
-                            var line = $"    {conn.protocol} {conn.localAddr}:{conn.localPort} → {conn.remoteAddr}:{conn.remotePort} ({conn.state})";
+                            var line = $"    {conn.protocol} {conn.localAddr}:{conn.localPort} -> {conn.remoteAddr}:{conn.remotePort} ({conn.state})";
                             report.AppendLine(line);
                             connections.Add(line);
                         }
                         report.AppendLine();
-                        report.AppendLine("  ⚠ These IP addresses may identify the source of the unauthorized access.");
-                        report.AppendLine("  ⚠ Request ISP subscriber information via law enforcement subpoena.");
+                        report.AppendLine("   These IP addresses may identify the source of the unauthorized access.");
+                        report.AppendLine("   Request ISP subscriber information via law enforcement subpoena.");
                     }
                     else
                     {
@@ -637,7 +637,7 @@ namespace Sentinel.Core
                 }
                 else
                 {
-                    report.AppendLine("  Offender process not identified — capturing full connection snapshot.");
+                    report.AppendLine("  Offender process not identified - capturing full connection snapshot.");
                 }
 
                 // Save full connection snapshot regardless
@@ -654,64 +654,64 @@ namespace Sentinel.Core
         private async Task AppendTimelineAndRecommendations(string reportDir, StringBuilder report,
             AppBaseline baseline, DateTime detectionTime)
         {
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("TIMELINE");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
-            report.AppendLine($"  {baseline.BaselinedAt:yyyy-MM-dd HH:mm:ss} UTC — Application integrity baselined (known good state)");
-            report.AppendLine($"  {detectionTime:yyyy-MM-dd HH:mm:ss} UTC — Unauthorized replacement detected by Sentinel");
-            report.AppendLine($"  {detectionTime.AddSeconds(1):yyyy-MM-dd HH:mm:ss} UTC — Automated response: offender killed, impostor quarantined");
+            report.AppendLine($"  {baseline.BaselinedAt:yyyy-MM-dd HH:mm:ss} UTC - Application integrity baselined (known good state)");
+            report.AppendLine($"  {detectionTime:yyyy-MM-dd HH:mm:ss} UTC - Unauthorized replacement detected by Sentinel");
+            report.AppendLine($"  {detectionTime.AddSeconds(1):yyyy-MM-dd HH:mm:ss} UTC - Automated response: offender killed, impostor quarantined");
             report.AppendLine();
 
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("LEGAL CLASSIFICATION");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine("  This incident may constitute violations of:");
             report.AppendLine();
-            report.AppendLine("  • Computer Fraud and Abuse Act (18 U.S.C. § 1030) — Unauthorized access/modification");
-            report.AppendLine("  • EU Directive 2013/40/EU — Attacks against information systems");
-            report.AppendLine("  • UK Computer Misuse Act 1990 — Unauthorized modification of computer material");
-            report.AppendLine("  • Croatian Criminal Code Art. 266 — Unauthorized computer interference");
-            report.AppendLine("  • German StGB § 303a — Data tampering (Datenveränderung)");
+            report.AppendLine("  - Computer Fraud and Abuse Act (18 U.S.C.  1030) - Unauthorized access/modification");
+            report.AppendLine("  - EU Directive 2013/40/EU - Attacks against information systems");
+            report.AppendLine("  - UK Computer Misuse Act 1990 - Unauthorized modification of computer material");
+            report.AppendLine("  - Croatian Criminal Code Art. 266 - Unauthorized computer interference");
+            report.AppendLine("  - German StGB  303a - Data tampering (Datenvernderung)");
             report.AppendLine();
             report.AppendLine("  The replacement of legitimate software with unauthorized software on a");
             report.AppendLine("  user's computer without consent constitutes unauthorized modification of");
             report.AppendLine("  computer programs and data, a criminal offense in most jurisdictions.");
             report.AppendLine();
 
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("RECOMMENDED ACTIONS FOR LAW ENFORCEMENT FILING");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine("  1. Preserve this report and all files in the report directory.");
             report.AppendLine("  2. The quarantined impostor binary is DPAPI-encrypted in the Sentinel");
-            report.AppendLine("     quarantine vault — available for forensic analysis upon request.");
+            report.AppendLine("     quarantine vault - available for forensic analysis upon request.");
             report.AppendLine("  3. Network connection IPs (if present) can be used to identify the");
             report.AppendLine("     perpetrator via ISP records (requires court order/subpoena).");
             report.AppendLine("  4. The impostor's Authenticode certificate (if signed) identifies the");
             report.AppendLine("     publishing organization responsible for the replacement software.");
             report.AppendLine("  5. File timestamps establish the time window of unauthorized access.");
             report.AppendLine();
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("EVIDENCE FILES IN THIS DIRECTORY");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
-            report.AppendLine("  • incident_report.txt     — This report");
-            report.AppendLine("  • network_snapshot.txt    — All network connections at time of detection");
-            report.AppendLine("  • offender_modules.txt    — Loaded modules of the offending process");
-            report.AppendLine("  • impostor_certificate.cer — Authenticode cert of the impostor (if signed)");
+            report.AppendLine("  - incident_report.txt     - This report");
+            report.AppendLine("  - network_snapshot.txt    - All network connections at time of detection");
+            report.AppendLine("  - offender_modules.txt    - Loaded modules of the offending process");
+            report.AppendLine("  - impostor_certificate.cer - Authenticode cert of the impostor (if signed)");
             report.AppendLine();
-            report.AppendLine("═══════════════════════════════════════════════════════════════════");
+            report.AppendLine("");
             report.AppendLine("         Generated by Sentinel Application Integrity Monitor");
-            report.AppendLine("═══════════════════════════════════════════════════════════════════");
+            report.AppendLine("");
 
             await Task.CompletedTask;
         }
 
-        // ──────────────────────────────────────────────
+        // 
         // Helper Methods
-        // ──────────────────────────────────────────────
+        // 
 
         private AppBaseline? CreateBaseline(ProtectedApplication app)
         {
@@ -815,7 +815,7 @@ namespace Sentinel.Core
 
                 if (!File.Exists(backupPath))
                 {
-                    _logger.LogWarning("[ApplicationIntegrityMonitor] No backup found at {Path} — cannot restore", backupPath);
+                    _logger.LogWarning("[ApplicationIntegrityMonitor] No backup found at {Path} - cannot restore", backupPath);
                     return;
                 }
 
@@ -828,7 +828,7 @@ namespace Sentinel.Core
                     Directory.CreateDirectory(dir);
 
                 await System.IO.FileNet48.WriteAllBytesAsync(executablePath, decrypted);
-                _logger.LogWarning("[ApplicationIntegrityMonitor] ✓ Restored original {Name} from backup", baseline.Name);
+                _logger.LogWarning("[ApplicationIntegrityMonitor]  Restored original {Name} from backup", baseline.Name);
 
                 await _eventLogger.LogEventAsync("integrity_restore", new
                 {
@@ -1037,7 +1037,7 @@ namespace Sentinel.Core
                 var certBytes = cert2.Export(X509ContentType.Cert);
                 File.WriteAllBytes(Path.Combine(reportDir, "impostor_certificate.cer"), certBytes);
             }
-            catch { } // Not signed — that's evidence too
+            catch { } // Not signed - that's evidence too
         }
 
         private static string BuildCuckooEvidenceString(AppBaseline baseline, string executablePath,
@@ -1051,7 +1051,7 @@ namespace Sentinel.Core
             if (!string.IsNullOrEmpty(currentProductName) && currentProductName != baseline.ProductName)
                 sb.Append($"Product changed from '{baseline.ProductName}' to '{currentProductName}'. ");
 
-            sb.Append("This is a cuckoo egg attack — unauthorized software placed in a trusted location.");
+            sb.Append("This is a cuckoo egg attack - unauthorized software placed in a trusted location.");
             return sb.ToString();
         }
 

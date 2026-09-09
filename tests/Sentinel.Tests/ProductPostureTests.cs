@@ -27,7 +27,7 @@ namespace Sentinel.Tests
         [Fact]
         public void TryProactiveHostLockdown_AlwaysSucceeds()
         {
-            // v2.5.5: hardening is always-on — denyReason is always empty.
+            // v2.5.5: hardening is always-on - denyReason is always empty.
             Assert.True(ProductPosture.TryProactiveHostLockdown(new SentinelConfig(), out var reason));
             Assert.Equal("", reason);
         }
@@ -42,7 +42,7 @@ namespace Sentinel.Tests
         [Fact]
         public void HardeningModule_Default_ApplyOrFail_DoesNotThrow()
         {
-            // v2.5.5: ApplyOrFail always runs the hardening trio — must not throw.
+            // v2.5.5: ApplyOrFail always runs the hardening trio - must not throw.
             var ex = Record.Exception(() =>
             {
                 HardeningModule.ApplyOrFail();

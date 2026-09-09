@@ -154,7 +154,7 @@ namespace Sentinel.Tests
         public void Extract_IPv6_Host_DetectsIp()
         {
             var v = UrlFeatureExtractor.Extract("http://[::1]:8080/path");
-            // IPv6 loopback — depends on Uri parsing, but should not crash
+            // IPv6 loopback - depends on Uri parsing, but should not crash
             Assert.True(v.UrlLength > 0);
         }
     }

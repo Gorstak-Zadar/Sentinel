@@ -96,7 +96,7 @@ namespace Sentinel.Core
             [MarshalAs(UnmanagedType.LPWStr)] public string? shi2_passwd;
         }
 
-        // Baseline of local shares at startup — new shares after this are suspicious
+        // Baseline of local shares at startup - new shares after this are suspicious
         private readonly HashSet<string> _baselineLocalShares = new(StringComparer.OrdinalIgnoreCase);
 
         public NetworkShareMonitor(
@@ -157,7 +157,7 @@ namespace Sentinel.Core
                     RuleName = isAdmin
                         ? "Network Share: Admin Share Mapped"
                         : "Network Share: New Drive Mapped",
-                    Evidence = $"New network mapping: {mapping.LocalDrive ?? "net use"} → {mapping.RemotePath}",
+                    Evidence = $"New network mapping: {mapping.LocalDrive ?? "net use"} -> {mapping.RemotePath}",
                     Reasoning = isAdmin
                         ? "An administrative share (C$, ADMIN$, IPC$) was mapped at runtime. " +
                           "This is a common lateral movement technique where attackers use stolen " +
@@ -185,7 +185,7 @@ namespace Sentinel.Core
         /// Detects new local SMB shares being created after service start.
         /// An attacker can run 'net share PWNED=C:\ /grant:everyone,full' to expose drives
         /// to the network without triggering any existing monitor.
-        /// v1.4.1: New detection — closes local share creation blind spot.
+        /// v1.4.1: New detection - closes local share creation blind spot.
         /// </summary>
         private async Task DetectNewLocalShareCreation(CancellationToken ct)
         {
@@ -199,7 +199,7 @@ namespace Sentinel.Core
                     // New share appeared after startup
                     _baselineLocalShares.Add(share.Name);
 
-                    // Default admin shares are always present — don't alert on them
+                    // Default admin shares are always present - don't alert on them
                     if (AdminShares.Contains(share.Name)) continue;
 
                     // Determine severity based on what's being shared
@@ -220,7 +220,7 @@ namespace Sentinel.Core
                         Reasoning = isFullDrive
                             ? "A new network share was created exposing an ENTIRE DRIVE to the network. " +
                               "This gives any network-reachable machine full read/write access to all files on the drive. " +
-                              "This is a critical data exposure — either an attacker creating exfiltration access or " +
+                              "This is a critical data exposure - either an attacker creating exfiltration access or " +
                               "preparing for remote file manipulation via passive FTP/SMB from a rogue device."
                             : "A new network share was created after Sentinel startup. Runtime share creation " +
                               "is uncommon in normal operation and may indicate an attacker exposing local files " +
@@ -354,7 +354,7 @@ namespace Sentinel.Core
                             Evidence = $"User '{username}' accessing admin share path: {path} " +
                                        $"(Permissions: {entry.fi3_permissions})",
                             Reasoning = "A remote user is accessing an administrative share on this system. " +
-                                        "This is a strong indicator of lateral movement — the attacker has " +
+                                        "This is a strong indicator of lateral movement - the attacker has " +
                                         "obtained valid credentials and is accessing the system remotely " +
                                         "via SMB for file operations, code deployment, or data theft.",
                             Confidence = 0.88,
@@ -413,7 +413,7 @@ namespace Sentinel.Core
 
                         _alertedShares[alertKey] = DateTimeOffset.UtcNow;
 
-                        // New session from remote — low confidence by itself
+                        // New session from remote - low confidence by itself
                         // but feeds into correlation engine
                         await _detectionEngine.EmitAsync(new DetectionEvent
                         {

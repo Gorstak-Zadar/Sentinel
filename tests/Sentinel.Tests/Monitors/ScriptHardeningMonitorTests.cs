@@ -6,14 +6,14 @@ using Xunit;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for ScriptHardeningMonitor — verifies obfuscation scoring,
+    /// Tests for ScriptHardeningMonitor - verifies obfuscation scoring,
     /// Shannon entropy calculation, and detection of known evasion patterns.
     /// </summary>
     public class ScriptHardeningMonitorTests
     {
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Obfuscation scoring (re-implementation of private CalculateObfuscationScore)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void ObfuscationScore_CleanScript_ScoresZero()
@@ -98,9 +98,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(score <= 10, $"Score {score} exceeds max of 10");
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Shannon entropy calculation
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void ShannonEntropy_EmptyString_ReturnsZero()
@@ -144,9 +144,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(entropy > 4.5, $"Expected >4.5 for random chars, got {entropy}");
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // PowerShell evasion detection patterns
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("-encodedcommand")]
@@ -178,9 +178,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Matches(@"-[Ee](xecutionPolicy|xec|p)\s+[Bb]ypass", cmdLine);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helper re-implementations for testing private logic
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static readonly Regex TickObfuscation = new(@"`[A-Za-z]", RegexOptions.Compiled);
         private static readonly Regex ConcatObfuscation = new(@"'[A-Za-z]'\s*\+\s*'[A-Za-z]'", RegexOptions.Compiled);

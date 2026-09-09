@@ -261,7 +261,7 @@ namespace Sentinel.Core
             {
                 if (DateTime.UtcNow - _startTime < TimeSpan.FromMinutes(LearningPhaseDurationMinutes))
                 {
-                    // Learning phase: record subnet — but NEVER learn from unsigned binaries
+                    // Learning phase: record subnet - but NEVER learn from unsigned binaries
                     // in suspicious staging paths. Malware that activates during the learning
                     // window (e.g., via Run key persistence) would otherwise have its C2 subnets
                     // baselined as "normal" and never trigger enforcement-phase alerts.
@@ -298,7 +298,7 @@ namespace Sentinel.Core
             // Base confidence for unknown subnet connection
             double confidence = 0.55;
 
-            // If the binary is signed, lower confidence — signed software connecting
+            // If the binary is signed, lower confidence - signed software connecting
             // to new subnets is less suspicious (games, updaters, etc.) but still tracked.
             if (_signerTrust != null && pid > 4)
             {
@@ -336,7 +336,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Verifies that a process claiming to be in the NetworkAllowlist is actually
-        /// the legitimate binary — not malware renamed to "chrome.exe" or "svchost.exe".
+        /// the legitimate binary - not malware renamed to "chrome.exe" or "svchost.exe".
         /// Requires EITHER a valid Authenticode signature OR residence in a system/protected directory.
         /// Results are cached per PID to avoid repeated verification (expensive).
         /// </summary>
@@ -353,7 +353,7 @@ namespace Sentinel.Core
                 var imagePath = SecurityValidation.GetProcessImagePath(pid);
                 if (string.IsNullOrEmpty(imagePath))
                 {
-                    // Can't resolve path — don't trust
+                    // Can't resolve path - don't trust
                     _allowlistVerificationCache[pid] = false;
                     return false;
                 }
@@ -404,12 +404,12 @@ namespace Sentinel.Core
                 if (_signerTrust != null && _signerTrust.IsSignedFile(imagePath!))
                     return false;
 
-                // v1.8.3: known portable UUP/download tools may be unsigned under Downloads —
+                // v1.8.3: known portable UUP/download tools may be unsigned under Downloads -
                 // still allow subnet learning so enforcement does not alert-storm mid-download.
                 if (InstallerHeuristics.IsBenignPortableWorkContext(null, imagePath))
                     return false;
 
-                // Unsigned binary — check if it's in a suspicious staging location
+                // Unsigned binary - check if it's in a suspicious staging location
                 var pathLower = imagePath!.ToLowerInvariant();
                 return pathLower.Contains(@"\temp\") ||
                        pathLower.Contains(@"\tmp\") ||

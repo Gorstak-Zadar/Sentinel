@@ -1,4 +1,4 @@
-// ForumHrWatchMonitor — v1.7.6 dedicated surveillance for forum.hr
+// ForumHrWatchMonitor - v1.7.6 dedicated surveillance for forum.hr
 //
 // The hosts-file block of forum.hr was removed as opinionated: legitimate users
 // should be able to browse the forum. This monitor replaces blanket blocking with
@@ -37,7 +37,7 @@ namespace Sentinel.Core
         // Resolved A/AAAA records for watched hostnames
         private readonly ConcurrentDictionary<string, byte> _forumIps = new(StringComparer.OrdinalIgnoreCase);
 
-        // Tracked TCP sessions to forum.hr IPs: "pid:ip:port" → first-seen
+        // Tracked TCP sessions to forum.hr IPs: "pid:ip:port" -> first-seen
         private readonly ConcurrentDictionary<string, ForumConnState> _tracked = new();
 
         // DNS activity attributed to PIDs (via DnsQueryMonitor feed)
@@ -77,7 +77,7 @@ namespace Sentinel.Core
         private static readonly HashSet<string> SoftExemptProcesses = new(StringComparer.OrdinalIgnoreCase)
         {
             "Sentinel.Service", "Sentinel.Agent",
-            "svchost", // system DNS/network stack noise — demote only
+            "svchost", // system DNS/network stack noise - demote only
         };
 
         [StructLayout(LayoutKind.Sequential)]
@@ -111,7 +111,7 @@ namespace Sentinel.Core
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
             _logger.LogInformation(
-                "[ForumHrWatchMonitor] Started — watching forum.hr for non-browser C2/relay abuse (site not blocked)");
+                "[ForumHrWatchMonitor] Started - watching forum.hr for non-browser C2/relay abuse (site not blocked)");
 
             await Task.Delay(TimeSpan.FromSeconds(30), ct);
 
@@ -168,7 +168,7 @@ namespace Sentinel.Core
             var activity = _dnsByPid.GetOrAdd(pid, _ => new DnsActivity());
             activity.Record(domain);
 
-            // PID 0 = unattributed DNS event log feed — track volume only, no kill
+            // PID 0 = unattributed DNS event log feed - track volume only, no kill
             if (pid <= 4)
             {
                 if (activity.QueryCount >= 30 && !activity.AlertedVolume)
@@ -184,7 +184,7 @@ namespace Sentinel.Core
             if (BrowserProcesses.Contains(procName)) return;
             if (SoftExemptProcesses.Contains(procName)) return;
 
-            // Non-browser process resolving forum.hr more than once → suspicious
+            // Non-browser process resolving forum.hr more than once -> suspicious
             if (activity.QueryCount >= 2 && ShouldAlert($"dns:{pid}", AlertCooldown))
             {
                 bool signed = _signerTrust?.IsSignedProcess(pid) ?? false;
@@ -348,13 +348,13 @@ namespace Sentinel.Core
             });
 
             _logger.LogWarning(
-                "[ForumHrWatchMonitor] Non-browser connection: {Process} (PID {Pid}) → {Ip}:{Port}",
+                "[ForumHrWatchMonitor] Non-browser connection: {Process} (PID {Pid}) -> {Ip}:{Port}",
                 state.ProcessName, state.Pid, state.RemoteIp, state.RemotePort);
         }
 
         private void EvaluatePersistentConnection(ForumConnState state, TimeSpan duration)
         {
-            // Browsers holding long forum sessions are normal — no alert.
+            // Browsers holding long forum sessions are normal - no alert.
             if (BrowserProcesses.Contains(state.ProcessName)) return;
             if (SoftExemptProcesses.Contains(state.ProcessName)) return;
 
@@ -471,7 +471,7 @@ namespace Sentinel.Core
             catch { return string.Empty; }
         }
 
-        // ── Internal types (testable) ────────────────────────────────────────
+        //  Internal types (testable) 
 
         private sealed class ForumConnState
         {

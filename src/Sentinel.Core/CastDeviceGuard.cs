@@ -23,7 +23,7 @@ namespace Sentinel.Core
     ///     phantom Google-spoof Cast devices; leave legitimate baselined Cast alone.
     ///
     /// Incident (2026-06): 192.168.1.100 with OUI B0-B3-69 (SDMC, not Google) on :8009
-    /// held a persistent Chrome Cast channel — C2 relay through "open tab" path.
+    /// held a persistent Chrome Cast channel - C2 relay through "open tab" path.
     /// Paired with TlsCertificateMonitor (planted roots) and NullSessionGuard FCM block
     /// ("Send Tab to Self" via push after token theft).
     /// </summary>
@@ -48,7 +48,7 @@ namespace Sentinel.Core
             "chrome", "msedge", "brave", "vivaldi", "opera", "chromium"
         };
 
-        /// <summary>Real Google Cast hardware OUIs (not B0-B3-69 — that is SDMC / spoof).</summary>
+        /// <summary>Real Google Cast hardware OUIs (not B0-B3-69 - that is SDMC / spoof).</summary>
         private static readonly HashSet<string> RealGoogleCastOuis = new(StringComparer.OrdinalIgnoreCase)
         {
             "F4-F5-D8", "54-60-09", "A4-77-33", "30-FD-38", "48-D6-D5",
@@ -103,7 +103,7 @@ namespace Sentinel.Core
             bool mitmRogueBlock = ProductPosture.AllowsMitmDefenseMutations(_config) && mitm.AutoBlockRogueCast;
 
             _logger.LogInformation(
-                "[CastDeviceGuard] Started — allowlist={Allow} mitmRogueBlock={Mitm}. Trusted={Count} RoguePrefixes={Prefixes}",
+                "[CastDeviceGuard] Started - allowlist={Allow} mitmRogueBlock={Mitm}. Trusted={Count} RoguePrefixes={Prefixes}",
                 enforceAllowlist ? "ENFORCE" : "off",
                 mitmRogueBlock ? "ON" : "OFF",
                 trusted.Length,
@@ -271,7 +271,7 @@ namespace Sentinel.Core
                 await EnsureFirewallBlock(conn.RemoteAddress);
 
                 // Close the weaponized open-tab Cast channel: kill non-browser trees;
-                // browsers stay up (user work) — firewall already cuts :8008/:8009 to the rogue.
+                // browsers stay up (user work) - firewall already cuts :8008/:8009 to the rogue.
                 bool isBrowser = BrowserProcesses.Contains(procName);
                 if (!isBrowser && ProductPosture.AllowsMitmDefenseMutations(_config))
                 {
@@ -295,10 +295,10 @@ namespace Sentinel.Core
                     RuleName = isRogue
                         ? "Cast Device Guard: Fake Chromecast / Rogue Cast Blocked"
                         : "Cast Device Guard: Unauthorized Cast Connection Blocked",
-                    Evidence = $"Process '{procName}' (PID {conn.OwnerPid}) → " +
+                    Evidence = $"Process '{procName}' (PID {conn.OwnerPid}) -> " +
                                $"{conn.RemoteAddress}:{conn.RemotePort} MAC={mac}. {reason} Firewall block applied.",
                     Reasoning = "Chrome/Edge maintain Cast sessions on 8008/8009. A rogue LAN device " +
-                                "spoofing Chromecast becomes a C2 relay through open browser tabs — same " +
+                                "spoofing Chromecast becomes a C2 relay through open browser tabs - same " +
                                 "class as FCM 'Send Tab to Self' after MitM token theft. Firewall block " +
                                 "severs the channel; non-browser processes to the rogue are killed.",
                     Confidence = 0.93,
@@ -342,9 +342,9 @@ namespace Sentinel.Core
             await _detectionEngine.EmitAsync(new DetectionEvent
             {
                 RuleName = "Cast Device Guard: Cast Connection Observed",
-                Evidence = $"Process '{obsProc}' (PID {conn.OwnerPid}) → " +
+                Evidence = $"Process '{obsProc}' (PID {conn.OwnerPid}) -> " +
                            $"{conn.RemoteAddress}:{conn.RemotePort}. Observe-only.",
-                Reasoning = "Cast-port traffic observed. MitmDefense off and TrustedCastDevices empty — " +
+                Reasoning = "Cast-port traffic observed. MitmDefense off and TrustedCastDevices empty - " +
                             "log only so Chromecast keeps working. Enable Sentinel:MitmDefense:Enabled " +
                             "after a fake Cast / MitM incident, or set TrustedCastDevices allowlist.",
                 Confidence = 0.55,

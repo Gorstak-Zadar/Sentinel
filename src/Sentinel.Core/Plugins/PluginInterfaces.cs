@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace Sentinel.Core.Plugins
 {
     /// <summary>
-    /// v2.0 — Detector plugin contract. New detections should implement this
+    /// v2.0 - Detector plugin contract. New detections should implement this
     /// (or IDetectionRule) rather than growing god-files indefinitely.
     /// </summary>
     public interface IDetector
@@ -19,7 +19,7 @@ namespace Sentinel.Core.Plugins
     }
 
     /// <summary>
-    /// v2.0 — Telemetry source plugin (ETW/WMI/poll/custom).
+    /// v2.0 - Telemetry source plugin (ETW/WMI/poll/custom).
     /// </summary>
     public interface ITelemetryProvider
     {
@@ -30,7 +30,7 @@ namespace Sentinel.Core.Plugins
     }
 
     /// <summary>
-    /// v2.0 — External correlation rule (composite pattern as plugin).
+    /// v2.0 - External correlation rule (composite pattern as plugin).
     /// Returns confidence in [0,1] or 0 when no match.
     /// </summary>
     public interface ICorrelationRule
@@ -44,7 +44,7 @@ namespace Sentinel.Core.Plugins
     }
 
     /// <summary>
-    /// v2.0 — Response action plugin (custom remediation beyond built-in engine).
+    /// v2.0 - Response action plugin (custom remediation beyond built-in engine).
     /// </summary>
     public interface IResponsePlugin
     {

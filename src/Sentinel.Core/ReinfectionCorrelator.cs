@@ -16,7 +16,7 @@ namespace Sentinel.Core
     /// Tracks hashes of binaries that were previously killed or quarantined.
     /// If the same hash reappears on disk or in a running process after a reboot
     /// (or after cleanup), it indicates persistent malware with distributed
-    /// self-healing — e.g., copies in pagefile, recycle bin, router, secondary drives.
+    /// self-healing - e.g., copies in pagefile, recycle bin, router, secondary drives.
     /// 
     /// Detection: Tier1 with KillProcessTree + quarantine. Emits high-confidence alert
     /// because the binary has already been confirmed malicious by a prior action.
@@ -26,7 +26,7 @@ namespace Sentinel.Core
         private readonly DetectionEngine _detectionEngine;
         private readonly ILogger<ReinfectionCorrelator> _logger;
 
-        // Hashes we have killed/quarantined — loaded from quarantine dir + kill log
+        // Hashes we have killed/quarantined - loaded from quarantine dir + kill log
         private readonly ConcurrentDictionary<string, KilledEntry> _killedHashes = new(StringComparer.OrdinalIgnoreCase);
 
         // Track what we've already alerted on to avoid spam
@@ -81,7 +81,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Windows system binaries that must NEVER be tracked as "killed malware".
         /// If the response engine kills a process hosted in svchost.exe or other system
-        /// binaries, we must not register that hash — it would cause every svchost instance
+        /// binaries, we must not register that hash - it would cause every svchost instance
         /// on the system to trigger reinfection alerts.
         /// </summary>
         private static readonly HashSet<string> SystemBinaryNames = new(StringComparer.OrdinalIgnoreCase)
@@ -121,7 +121,7 @@ namespace Sentinel.Core
             var nameNoExt = Path.GetFileNameWithoutExtension(pathOrName);
             if (SystemBinaryNames.Contains(nameNoExt)) return true;
 
-            // Check by path — anything in Windows\System32 or Windows\SysWOW64 is a system binary
+            // Check by path - anything in Windows\System32 or Windows\SysWOW64 is a system binary
             var normalized = pathOrName!.Replace('/', '\\');
             if (normalized.Contains(@"\Windows\System32\") ||
                 normalized.Contains(@"\Windows\SysWOW64\") ||
@@ -132,7 +132,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// v2.5.5: Skip processes at protected install paths — Program Files, WindowsApps,
+        /// v2.5.5: Skip processes at protected install paths - Program Files, WindowsApps,
         /// Chrome, Edge, dotnet. These ship DLLs whose hashes may collide with quarantined
         /// copies and trigger false reinfection storms.
         /// </summary>
@@ -150,7 +150,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[ReinfectionCorrelator] Started — loading quarantine history and kill log");
+            _logger.LogInformation("[ReinfectionCorrelator] Started - loading quarantine history and kill log");
 
             // Load all previously quarantined hashes as known-bad
             LoadQuarantineHistory();
@@ -205,7 +205,7 @@ namespace Sentinel.Core
                         var hash = name.Substring(2, 64); // SHA256 = 64 hex chars
                         var originalName = name.Length > 67 ? name.Substring(67) : "unknown";
                         // v2.5.5: Only seed the reinfection table with executable types.
-                        // DLL quarantines must not — Chrome/Edge bundle DLLs whose hash
+                        // DLL quarantines must not - Chrome/Edge bundle DLLs whose hash
                         // matches a quarantined copy and that caused a reinfection storm
                         // (324 quarantine entries, 150 responses in 15 minutes).
                         var ext = System.IO.Path.GetExtension(originalName).ToLowerInvariant();
@@ -282,7 +282,7 @@ namespace Sentinel.Core
                                        $"matches previously killed/quarantined hash {hash[..16]}... " +
                                        $"(originally '{entry.ProcessName}' at '{entry.OriginalPath}', killed at {entry.KilledAt:O})",
                             Reasoning = "A binary that was previously identified as malicious and killed/quarantined has reappeared " +
-                                        "in a running process. This indicates persistent malware with distributed self-healing — " +
+                                        "in a running process. This indicates persistent malware with distributed self-healing - " +
                                         "copies likely exist in pagefile, Recycle Bin, System Volume Information, secondary drives, " +
                                         "or are being pushed from an infected router. All persistence vectors must be cleaned simultaneously.",
                             Confidence = 0.95,
@@ -350,7 +350,7 @@ namespace Sentinel.Core
                                                    $"(originally '{entry.ProcessName}' killed at {entry.KilledAt:O})",
                                         Reasoning = "A copy of a previously killed/quarantined malicious binary was found in a " +
                                                     "persistence location (Recycle Bin, System Volume Information, Temp, etc.). " +
-                                                    "This is a dormant reinfection vector — it will execute on reboot, scheduled task, " +
+                                                    "This is a dormant reinfection vector - it will execute on reboot, scheduled task, " +
                                                     "or watchdog trigger unless removed simultaneously with all other copies.",
                                         Confidence = 0.92,
                                         Tier = DetectionTier.Tier1Behavioral,

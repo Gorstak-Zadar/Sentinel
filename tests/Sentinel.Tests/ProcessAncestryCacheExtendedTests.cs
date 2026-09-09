@@ -58,7 +58,7 @@ namespace Sentinel.Tests
         {
             // First recording
             _cache.RecordProcessStart(70000, 100, "first.exe", @"C:\first.exe");
-            // Second recording (simulate) — authoritative should persist
+            // Second recording (simulate) - authoritative should persist
             _cache.RecordProcessStart(70000, 200, "second.exe", @"C:\second.exe");
             var (parentId, name, _) = _cache.GetProcessInfo(70000);
             // Latest recording wins for authoritative entries

@@ -18,27 +18,27 @@ namespace Sentinel.Core
         private readonly ILogger<FileVerdictScanner> _logger;
         private readonly List<FileSystemWatcher> _watchers = new();
 
-        // All scannable extensions — matches Antivirus.ps1 coverage
+        // All scannable extensions - matches Antivirus.ps1 coverage
         private static readonly HashSet<string> ScanExtensions = new(StringComparer.OrdinalIgnoreCase)
         {
             ".exe", ".dll", ".sys", ".scr", ".bat", ".cmd", ".ps1", ".vbs", ".js", ".hta", ".msi"
         };
 
         // Directories to exclude from scanning (build artifacts, browser updates, user tools)
-        // HARDENING v1.3.0: Removed "temp", "tmp", "cache" — these are primary malware staging areas.
+        // HARDENING v1.3.0: Removed "temp", "tmp", "cache" - these are primary malware staging areas.
         // Previously excluded "downloads" too (removed in 1.2.9). Now only skip paths that are
         // genuinely never attack vectors: build tool intermediates, auto-updater working dirs,
         // and user OS-image tools that perform bulk extraction of legitimate Windows binaries.
-        // v1.3.10: Added WinSxS/CBS/DISM paths — NTLite feature-disable writes hundreds of signed
+        // v1.3.10: Added WinSxS/CBS/DISM paths - NTLite feature-disable writes hundreds of signed
         // MS binaries there per operation; hashing + ADS writes on those files causes file lock
         // contention that stalls NTLite for minutes. Hash reputation is unnecessary for files
         // written exclusively by TrustedInstaller/DISM/NTLite inside the component store.
         private static readonly HashSet<string> ExcludedPaths = new(StringComparer.OrdinalIgnoreCase)
         {
-            // OS image/servicing tools — extract hundreds of signed Microsoft binaries
+            // OS image/servicing tools - extract hundreds of signed Microsoft binaries
             "uupdump", "uup", "uups", "ntlite", "mount", "extracted", "msmg", "offlineimage",
             "winpe", "\\wim\\", "\\scratch\\",
-            // Windows component store / CBS servicing — written only by TrustedInstaller/DISM/NTLite
+            // Windows component store / CBS servicing - written only by TrustedInstaller/DISM/NTLite
             "\\windows\\winsxs\\", "\\windows\\servicing\\", "\\windows\\logs\\cbs\\",
             "\\windows\\logs\\dism\\", "\\windows\\temp\\cab", "\\windows\\temp\\dism",
             // Browser auto-updaters (self-signed, ephemeral)
@@ -47,7 +47,7 @@ namespace Sentinel.Core
 
         // Processes that perform legitimate bulk OS-image servicing.
         // Files written by these processes inside Windows directories are always signed
-        // Microsoft binaries — hash reputation lookups waste API quota and create file locks.
+        // Microsoft binaries - hash reputation lookups waste API quota and create file locks.
         private static readonly HashSet<string> ServicingProcesses = new(StringComparer.OrdinalIgnoreCase)
         {
             "dism", "dismhost", "tiworker", "trustedinstaller", "poqexec", "ntlite"
@@ -72,7 +72,7 @@ namespace Sentinel.Core
         {
             _logger.LogInformation("[FileVerdictScanner] Starting lazy verdict scan and file watchers...");
 
-            // Start drive watchers for all scannable file types — PRIORITY: new files scanned immediately
+            // Start drive watchers for all scannable file types - PRIORITY: new files scanned immediately
             var drives = DriveInfo.GetDrives().Where(d => d.DriveType == DriveType.Fixed && d.IsReady);
             foreach (var drive in drives)
             {
@@ -97,7 +97,7 @@ namespace Sentinel.Core
                 }
             }
 
-            // Lazy background walk — scans every file on every NTFS volume, skipping those already marked
+            // Lazy background walk - scans every file on every NTFS volume, skipping those already marked
             _ = Task.Run(async () => await WalkDrivesAsync(stoppingToken), stoppingToken);
         }
 
@@ -108,7 +108,7 @@ namespace Sentinel.Core
                 return true;
 
             // HARDENING: Files without extensions (or unknown extensions) may still be
-            // Windows PE executables — MalwareBazaar dumps, renamed payloads, and staged
+            // Windows PE executables - MalwareBazaar dumps, renamed payloads, and staged
             // binaries often lack extensions to evade extension-based scanning.
             // Check PE magic bytes (MZ header) for extensionless files.
             if (string.IsNullOrEmpty(ext) || ext.IndexOf('.') < 0)
@@ -155,7 +155,7 @@ namespace Sentinel.Core
         /// Returns true when the process that last touched this file is a known OS-servicing
         /// tool (DISM, TrustedInstaller, NTLite, etc.).  We skip reputation scanning for those
         /// files: they are always signed Microsoft binaries, the API lookup wastes quota, and
-        /// — most importantly — the FileStream open for hashing competes with the exclusive
+        /// - most importantly - the FileStream open for hashing competes with the exclusive
         /// write lock held by the servicing tool, stalling NTLite feature-disable for minutes.
         /// </summary>
         private static bool IsWrittenByServicingProcess(string filePath)
@@ -170,7 +170,7 @@ namespace Sentinel.Core
                         if (ServicingProcesses.Contains(proc.ProcessName))
                         {
                             proc.Dispose();
-                            return true; // A servicing process is active — be conservative
+                            return true; // A servicing process is active - be conservative
                         }
                         proc.Dispose();
                     }
@@ -193,12 +193,12 @@ namespace Sentinel.Core
             if (ExcludedPaths.Any(excluded => pathLower.Contains(excluded))) return;
 
             // v1.3.10: Skip files written by OS-servicing tools (DISM, TrustedInstaller, NTLite).
-            // These are always signed Microsoft binaries — reputation lookups are wasted API calls
+            // These are always signed Microsoft binaries - reputation lookups are wasted API calls
             // and the FileStream open competes with the servicing tool's exclusive write lock,
             // stalling NTLite feature-disable operations for minutes.
             if (IsWrittenByServicingProcess(filePath)) return;
 
-            // Brief stabilization wait — just enough for the write to finish
+            // Brief stabilization wait - just enough for the write to finish
             await Task.Delay(500);
 
             int retries = 3;
@@ -320,29 +320,29 @@ namespace Sentinel.Core
                         break;
                 }
 
-                // Only persist definitive verdicts (not Unknown — will be retried)
+                // Only persist definitive verdicts (not Unknown - will be retried)
                 if (verdict != HashVerdict.Unknown)
                 {
                     _verdictAds.SetVerdict(filePath, hash, verdict);
                 }
 
-                // v1.6.4: Observe-only — log verdict but NEVER modify file permissions.
+                // v1.6.4: Observe-only - log verdict but NEVER modify file permissions.
                 // Sentinel is an EDR (detect + respond to behavior), not an antivirus.
                 // Blocking execution based on reputation scores alone caused false positives
                 // (including quarantining our own installer) and violates the design principle
                 // that response actions only fire when a process is ACTIVELY malicious.
                 // Content-smuggling signals are noteworthy on their own, even if the composite
-                // verdict lands short of Unsafe — surface them explicitly so an analyst sees them.
+                // verdict lands short of Unsafe - surface them explicitly so an analyst sees them.
                 if (reputationResult.StaticAnalysis.IsMzZipPolyglot)
                 {
                     _logger.LogWarning(
-                        "[FileVerdictScanner] MZ+ZIP polyglot detected: {FilePath} (SHA256: {Hash}) — runs as .exe but also extracts as a .zip archive.",
+                        "[FileVerdictScanner] MZ+ZIP polyglot detected: {FilePath} (SHA256: {Hash}) - runs as .exe but also extracts as a .zip archive.",
                         filePath, hash);
                 }
                 if (reputationResult.StaticAnalysis.HasEmbeddedScriptPayload)
                 {
                     _logger.LogWarning(
-                        "[FileVerdictScanner] Embedded script payload in compressed stream: {FilePath} (SHA256: {Hash}) — decompresses to executable script content.",
+                        "[FileVerdictScanner] Embedded script payload in compressed stream: {FilePath} (SHA256: {Hash}) - decompresses to executable script content.",
                         filePath, hash);
                 }
 

@@ -8,7 +8,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for MonitorRegistry — tracks monitor health, states, and watchdog.
+    /// Tests for MonitorRegistry - tracks monitor health, states, and watchdog.
     /// MonitorRegistry requires DetectionEngine + JsonlEventLogger, so we test
     /// through the public API with a minimal setup.
     /// </summary>
@@ -22,7 +22,7 @@ namespace Sentinel.Tests
             _tempDir = Path.Combine(Path.GetTempPath(), "sentinel_monreg_test_" + Guid.NewGuid().ToString("N")[..8]);
             Directory.CreateDirectory(_tempDir);
             var eventLogger = new JsonlEventLogger(Path.Combine(_tempDir, "events.jsonl"));
-            // MonitorRegistry needs DetectionEngine and JsonlEventLogger — pass null for DE if allowed
+            // MonitorRegistry needs DetectionEngine and JsonlEventLogger - pass null for DE if allowed
             // Based on the error, constructor is: MonitorRegistry(DetectionEngine, JsonlEventLogger, ILogger<MonitorRegistry>)
             // We cannot easily construct DetectionEngine, so let's test via the registry's public behavior
             // by testing what we can without a full DI graph.

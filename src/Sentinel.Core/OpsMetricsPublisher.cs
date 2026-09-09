@@ -11,7 +11,7 @@ using Sentinel.Core.Plugins;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v2.0 — Publishes ops_metrics.json for the Agent Ops dashboard.
+    /// v2.0 - Publishes ops_metrics.json for the Agent Ops dashboard.
     /// Fail-soft: never crashes the host if ProgramData is unavailable.
     /// </summary>
     public sealed class OpsMetricsPublisher : BackgroundService

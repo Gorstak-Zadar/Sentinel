@@ -10,7 +10,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// v1.7.7 — Auto incident reporting, LE portal directory, indicator extraction.
+    /// v1.7.7 - Auto incident reporting, LE portal directory, indicator extraction.
     /// </summary>
     public class V177FeatureTests
     {
@@ -159,7 +159,7 @@ namespace Sentinel.Tests
 
                 var threatCfg = new ThreatReportingConfig { Enabled = false };
                 var threat = new ThreatReportService(threatCfg, NullLogger<ThreatReportService>.Instance);
-                // SilentObserve default blocks packs until chain-confirmed — disable for pack-path unit test
+                // SilentObserve default blocks packs until chain-confirmed - disable for pack-path unit test
                 var sentinelCfg = new SentinelConfig { SilentObserve = false, ObserveUntilChain = false };
                 var reporter = new AutoIncidentReporter(cfg, threat, NullLogger<AutoIncidentReporter>.Instance,
                     sentinelConfig: sentinelCfg);
@@ -291,7 +291,7 @@ namespace Sentinel.Tests
                     RuleName = "Threat Intel: Remote Memory Injection",
                     SignalType = SignalType.ProcessInjection,
                     Tier = DetectionTier.Tier1Behavioral,
-                    Confidence = 0.55, // below MinConfidence — previously blocked packs
+                    Confidence = 0.55, // below MinConfidence - previously blocked packs
                     AuthorizedResponse = ResponseAction.QuarantineAndKill,
                     ProcessName = "evil.exe",
                     ProcessId = 4242,

@@ -4,16 +4,16 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for ReinfectionCorrelator — verifies detection model for reinfection events,
+    /// Tests for ReinfectionCorrelator - verifies detection model for reinfection events,
     /// system binary exclusion logic, and executable extension classification.
     /// The correlator requires DetectionEngine (complex DI), so we test the observable
     /// static logic and detection models.
     /// </summary>
     public class ReinfectionCorrelatorTests
     {
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Detection model for reinfection events
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void Reinfection_ProcessReappearance_Model()
@@ -50,14 +50,14 @@ namespace Sentinel.Tests
             Assert.Equal(ResponseAction.Quarantine, detection.AuthorizedResponse);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Category classification
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void Reinfection_CategorizedAsSecurityEvasion()
         {
-            // The rule contains "evasion" — verify evasion category
+            // The rule contains "evasion" - verify evasion category
             var category = ScoringEngine.CategorizeDetection("Security Evasion: Reinfection Detected");
             Assert.Equal(DetectionCategory.SecurityEvasion, category);
         }
@@ -69,9 +69,9 @@ namespace Sentinel.Tests
             Assert.True(ScoringEngine.IsPresidentsLawRule("Security Evasion: Reinfection Detected"));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Executable extension classification (mirrors private logic)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData(".exe", true)]
@@ -92,9 +92,9 @@ namespace Sentinel.Tests
             Assert.Equal(isExecutable, IsExecutableExtension(ext));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // System binary exclusion (mirrors private IsWindowsSystemBinary)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("svchost.exe", true)]
@@ -119,9 +119,9 @@ namespace Sentinel.Tests
             Assert.Equal(isSystem, IsWindowsSystemBinary(path));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helper re-implementations (mirrors private logic)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static bool IsExecutableExtension(string ext)
         {

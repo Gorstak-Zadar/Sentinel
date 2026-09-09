@@ -315,9 +315,9 @@ namespace Sentinel.Core
                                     ProcessId = reparseCreator.pid,
                                     SignalType = hive || cloud ? SignalType.SecurityEvasion : SignalType.Generic,
                                     // Terminal TokenTheft only for the LegacyHive branch (rule name
-                                    // "LegacyHive: …" matches the "LegacyHive" fragment). The cloud
+                                    // "LegacyHive: ..." matches the "LegacyHive" fragment). The cloud
                                     // branch is SecurityEvasion observe and the else branch is a
-                                    // Generic junction kill — neither classifies as TokenTheft today.
+                                    // Generic junction kill - neither classifies as TokenTheft today.
                                     Family = hive ? (TerminalFamily?)TerminalFamily.TokenTheft : null,
                                     Metadata = new Dictionary<string, string>
                                     {
@@ -344,8 +344,8 @@ namespace Sentinel.Core
                 return;
             }
 
-            // Targeted AppData noise suppression — only skip known high-noise, low-threat subpaths.
-            // DO NOT blanket-exclude \appdata\ — attackers stage payloads in Temp, Roaming\Microsoft, etc.
+            // Targeted AppData noise suppression - only skip known high-noise, low-threat subpaths.
+            // DO NOT blanket-exclude \appdata\ - attackers stage payloads in Temp, Roaming\Microsoft, etc.
             if (IsNoisyAppDataPath(pathLower))
             {
                 return;
@@ -390,7 +390,7 @@ namespace Sentinel.Core
             }
 
             // Critical: detect writes to System32/SysWOW64 by non-OS processes
-            // Exclude drivers\etc — managed by HostsFileGuard directly
+            // Exclude drivers\etc - managed by HostsFileGuard directly
             if ((e.ChangeType == WatcherChangeTypes.Created || e.ChangeType == WatcherChangeTypes.Changed) &&
                 IsProtectedOsDirectory(pathLower) &&
                 !pathLower.Contains(@"\drivers\etc\"))
@@ -412,19 +412,19 @@ namespace Sentinel.Core
                         var changeVerb = e.ChangeType == WatcherChangeTypes.Created ? "created" : "changed";
                         // Observe-only: Steam DirectX / GPU redistributables write here constantly.
                         // Kill only if a multi-signal chain later ties the same PID to C2/exfil/etc.
-                        // Unresolved writer (PID 0) is never kill-class — attribution race, not BYOVD.
+                        // Unresolved writer (PID 0) is never kill-class - attribution race, not BYOVD.
                         bool attributed = processInfo.pid > 4;
                         bool redist = InstallerHeuristics.IsDirectXOrRuntimeRedist(processInfo.name, e.FullPath);
-                        // DirectX / VC++ / GPU redist → Tier2 observe only (maybe 1–2 signals).
+                        // DirectX / VC++ / GPU redist -> Tier2 observe only (maybe 1-2 signals).
                         // Never kill-grade confidence, never composite/chain seed.
                         _ = _detectionEngine.EmitAsync(new DetectionEvent
                         {
                             RuleName = "System Integrity: Unauthorized Write to System Directory",
                             Evidence = $"File '{e.FullPath}' was {changeVerb} by process '{processInfo.name}' (PID {processInfo.pid})",
                             Reasoning = redist
-                                ? "DirectX/runtime redistributable wrote to System32/SysWOW64 — normal installer life. Tier2 observe only; never Tier1/composite/kill."
+                                ? "DirectX/runtime redistributable wrote to System32/SysWOW64 - normal installer life. Tier2 observe only; never Tier1/composite/kill."
                                 : "A non-system process wrote to a protected OS directory (System32/SysWOW64). " +
-                                  "Logged for correlation only — installers (DirectX, VC++, GPU runtimes) do this legitimately. " +
+                                  "Logged for correlation only - installers (DirectX, VC++, GPU runtimes) do this legitimately. " +
                                   "Destructive response requires multi-signal proof of token theft / cred dump / reverse shell / C2.",
                             Confidence = redist ? 0.35 : (attributed ? 0.55 : 0.40),
                             Tier = DetectionTier.Tier2Indicator,
@@ -590,7 +590,7 @@ namespace Sentinel.Core
         ///
         /// v1.3.10: Added CBS component-store paths and DISM offline servicing paths.
         /// NTLite's feature-disable operation modifies WinSxS, CBS package manifests, and
-        /// DISM scratch directories — all of which generate hundreds of events/second that
+        /// DISM scratch directories - all of which generate hundreds of events/second that
         /// previously caused the RM scan to stall the feature-disable operation for minutes.
         ///
         /// SECURITY: These paths are still protected by:
@@ -605,9 +605,9 @@ namespace Sentinel.Core
         /// </summary>
         private static bool IsUserToolWorkingPath(string pathLower)
         {
-            // Never skip live System32/SysWOW64 — those stay fully monitored.
+            // Never skip live System32/SysWOW64 - those stay fully monitored.
             // NOTE: WinSxS and CBS are excluded below because they are only ever written
-            // by TrustedInstaller/DISM/NTLite during OS servicing — not by malware at runtime.
+            // by TrustedInstaller/DISM/NTLite during OS servicing - not by malware at runtime.
             // The IsTrustedSystemWriter check on System32/SysWOW64 already gates those paths.
             if (pathLower.Contains(@"\windows\system32\") ||
                 pathLower.Contains(@"\windows\syswow64\"))
@@ -631,11 +631,11 @@ namespace Sentinel.Core
             {
                 // Only suppress if a known servicing process is actually running
                 if (!IsServicingProcessActive())
-                    return false; // No servicing tool running — monitor this path normally
+                    return false; // No servicing tool running - monitor this path normally
                 return true;
             }
 
-            // CBS / Windows component store — written en-masse by DISM and NTLite during
+            // CBS / Windows component store - written en-masse by DISM and NTLite during
             // feature enable/disable. Generates thousands of manifest/delta/catalog writes
             // per feature operation; RM calls on every event cause minutes-long stalls.
             // These paths are ALWAYS safe to suppress because they live under \Windows\
@@ -703,12 +703,12 @@ namespace Sentinel.Core
                 ext == ".hta" || ext == ".msi" || ext == ".scr" || ext == ".com" ||
                 ext == ".pif" || ext == ".lnk" || ext == ".wsf")
             {
-                return false; // Not noisy — monitor this
+                return false; // Not noisy - monitor this
             }
 
             // ALWAYS monitor: Temp directories (primary staging area for payloads)
             if (pathLower.Contains(@"\appdata\local\temp\"))
-                return false; // Not noisy — monitor this
+                return false; // Not noisy - monitor this
 
             // ALWAYS monitor: Startup-related paths
             if (pathLower.Contains(@"\appdata\roaming\microsoft\windows\start menu\"))
@@ -732,7 +732,7 @@ namespace Sentinel.Core
                 "msmpeng", "nissrv", "securityhealthservice",
                 "dism", "dismhost", "sfc", "poqexec",
                 // NTLite performs offline OS servicing (feature removal, component cleanup)
-                // and commits changes to mounted WIM images — writes signed MS binaries to System32
+                // and commits changes to mounted WIM images - writes signed MS binaries to System32
                 "ntlite",
                 // Critical system processes that legitimately modify System32
                 "csrss", "smss", "wininit", "services", "lsass", "svchost",
@@ -781,7 +781,7 @@ namespace Sentinel.Core
             // Own PID = Sentinel itself writing (e.g., quarantine lock files)
             if (pid == System.Net48Environment.ProcessId) return true;
 
-             // Verify by path — only trust if running from System32/Windows or Defender folder, or if it is signed by Microsoft
+             // Verify by path - only trust if running from System32/Windows or Defender folder, or if it is signed by Microsoft
              try
              {
                  var imagePath = SecurityValidation.GetProcessImagePath(pid);
@@ -804,7 +804,7 @@ namespace Sentinel.Core
              }
              catch (System.ComponentModel.Win32Exception)
              {
-                 // Access denied — likely a protected system process (csrss, smss, lsass)
+                 // Access denied - likely a protected system process (csrss, smss, lsass)
                  // If we can't read it but it has a system-like name, trust it
                  return lowerName == "system" || pid <= 4;
              }

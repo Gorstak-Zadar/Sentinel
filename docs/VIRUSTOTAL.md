@@ -8,7 +8,7 @@ inspection, service install, quarantine, hooks), not just malware signatures.
 
 ## v2.4.0: offensive string table elimination (Kaspersky build-time quarantine)
 
-Kaspersky 21.26 was quarantining `Sentinel.Core.dll` immediately on build —
+Kaspersky 21.26 was quarantining `Sentinel.Core.dll` immediately on build -
 blocking the installer entirely. The trigger was **contiguous offensive tool
 name strings** in the PE string table, specifically:
 
@@ -26,15 +26,15 @@ was removed entirely (AMSI bypass coverage remains via `ScriptExecutionMonitor`
 Event 4104 patterns and `SyscallStubMonitor` ntdll baseline).
 
 **Remaining `GetProcAddress` usage** (three files outside the 2.3.8 policy) was
-also eliminated — replaced with `PeExportResolver`, a pure C# PE export table
+also eliminated - replaced with `PeExportResolver`, a pure C# PE export table
 walker using `Marshal.Read*` with no `GetProcAddress` P/Invoke declaration.
 
 ### ASR / "ransomware" blocks are not the same as VT
 
 Microsoft Defender **Attack Surface Reduction** rule
-`c1db55ab-…` is named *"Use advanced protection against ransomware"*. When it
+`c1db55ab-...` is named *"Use advanced protection against ransomware"*. When it
 fires (Event 1121), it is **blocking untrusted/low-prevalence EXEs** (often
-Inno Setup extractors under `%TEMP%`) — **not** a classification that
+Inno Setup extractors under `%TEMP%`) - **not** a classification that
 "Sentinel is ransomware."
 
 Still, Sentinel must **never enable that rule in Block mode** against itself
@@ -60,11 +60,11 @@ proof of malware.
 
 ## v2.3.8: transparency over evasion (post-2.3.6 VT)
 
-Project history showed two opposite “AV hygiene” strategies fighting each other:
+Project history showed two opposite "AV hygiene" strategies fighting each other:
 
-- **v2.3.6:** removed split-string API hiding — Kaspersky ML treats
+- **v2.3.6:** removed split-string API hiding - Kaspersky ML treats
   `string.Concat("Open","Process")` as **evasion**.
-- **v2.3.7:** re-introduced `GetProcAddress` resolution to scrub the IAT —
+- **v2.3.7:** re-introduced `GetProcAddress` resolution to scrub the IAT -
   Defender / generic ML often treat dynamic resolution of `OpenProcess` /
   `ReadProcessMemory` as **evasion** too.
 
@@ -74,22 +74,22 @@ still draw a few generic hits until **Authenticode (ideally EV)** is applied.
 
 ### Changes
 
-1. **`NativeResolver`** — plain `[DllImport]` for process-inspection APIs
+1. **`NativeResolver`** - plain `[DllImport]` for process-inspection APIs
    (no runtime export resolution).
-2. **Detection vocab** — `Rules` / `FileReputationEngine` / script & agent
+2. **Detection vocab** - `Rules` / `FileReputationEngine` / script & agent
    monitors use contiguous literals again (no `S()` / `A()` Concat helpers).
-3. **Quarantine vault** — blobs are `SENQ` magic + DPAPI under
+3. **Quarantine vault** - blobs are `SENQ` magic + DPAPI under
    `%ProgramData%\Sentinel\Quarantine\*.senq` (structured EDR vault, not
    in-place user-file encryption). Targets Alyac `MSIL.Ransom.Agent`.
-4. **Composite display name** — `Active Mass-Encryption Chain` (was
+4. **Composite display name** - `Active Mass-Encryption Chain` (was
    `Active Ransomware Chain`) to reduce PE string bait; `SignalType.Ransomware`
    enum kept for compatibility.
-5. **Installer** — `VersionInfo*` synced to 2.3.7+; fewer `icacls` trees on
+5. **Installer** - `VersionInfo*` synced to 2.3.7+; fewer `icacls` trees on
    upgrade; description without `&` entity quirks.
 
 ## v2.3.6: AV false positive root causes fixed
 
-Kaspersky flagged `Sentinel.Core.dll` (confirmed via `report.rpt` — path
+Kaspersky flagged `Sentinel.Core.dll` (confirmed via `report.rpt` - path
 `C:\Program Files (x86)\Sentinel\Sentinel.Core.dll`). Two patterns were the cause:
 
 ### 1. Split-string API name obfuscation (removed)
@@ -103,7 +103,7 @@ this as an **evasion indicator**.
 ### 2. LGPO.exe embedded as assembly resource (removed)
 
 `HardeningModule.cs` previously embedded `LGPO.exe` as an `EmbeddedResource`
-and extracted it at runtime — the classic dropper pattern.
+and extracted it at runtime - the classic dropper pattern.
 
 **Fix:** `LGPO.exe` and `GSecurity.inf` ship as plain files in the install dir.
 
@@ -116,13 +116,13 @@ and extracted it at runtime — the classic dropper pattern.
 
 ## What we do in the binary (v2.3.8+)
 
-1. **Read-only process inspection** via normal imports — `OpenProcess`,
+1. **Read-only process inspection** via normal imports - `OpenProcess`,
    `ReadProcessMemory`, `VirtualQueryEx`, `NtQuerySystemInformation`,
    `DuplicateHandle`, `EnumModules`.
-2. **Standard EDR containment** — `SafeKillProcessTree` + disk quarantine vault.
+2. **Standard EDR containment** - `SafeKillProcessTree` + disk quarantine vault.
 3. **LGPO.exe / GSecurity.inf** as plain files.
 4. **Observe-until-chain** responses.
-5. **Game / anti-cheat memory policy** — no `PROCESS_VM_READ` on those trees.
+5. **Game / anti-cheat memory policy** - no `PROCESS_VM_READ` on those trees.
 6. **Installer** uses `taskkill` + minimal `icacls` on upgrade.
 
 ## Local check before VT
@@ -148,9 +148,9 @@ Select-String -Path src\Sentinel.Core\NativeResolver.cs -Pattern 'GetProcAddress
 
 ## Path to 0/N detections
 
-1. Rebuild after v2.3.9 installer slim-down → re-upload to VirusTotal.
+1. Rebuild after v2.3.9 installer slim-down -> re-upload to VirusTotal.
 2. Submit false-positive reports to AhnLab / Alibaba with publisher info + source URL
    (Alyac ransom label was cleared on the first 2.3.9 upload).
-3. **Sign** when a cert is available — still the strongest prevalence/trust fix.
+3. **Sign** when a cert is available - still the strongest prevalence/trust fix.
    Until then: keep Setup free of `sc create` / Run / SafeBoot / `taskkill` / `icacls`
    strings (delegated to `Sentinel.Service.exe --install`).

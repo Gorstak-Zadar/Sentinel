@@ -60,7 +60,7 @@ namespace Sentinel.Agent
             }
             catch
             {
-                // Best-effort preference persistence — never break the UI.
+                // Best-effort preference persistence - never break the UI.
             }
         }
     }

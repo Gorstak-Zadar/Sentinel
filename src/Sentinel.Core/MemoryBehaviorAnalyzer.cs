@@ -10,11 +10,11 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// System-wide process integrity (permanent product law — do not disable):
+    /// System-wide process integrity (permanent product law - do not disable):
     /// 1. Every mapped module is identity-checked (path + Microsoft signature).
     ///    Foreign modules are unloaded immediately via <see cref="DllUnloadEngine"/>
     ///    (constraint: DLL unloaders may remediate without a chain; Tier1, never demoted).
-    /// 2. Missing image path → Tier2 LogOnly.
+    /// 2. Missing image path -> Tier2 LogOnly.
     /// Games skipped for handle safety only (Denuvo). Module *count* is not a signal.
     /// </summary>
     public sealed class MemoryBehaviorAnalyzer : IDisposable

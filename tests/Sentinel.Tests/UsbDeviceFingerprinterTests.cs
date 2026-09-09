@@ -5,7 +5,7 @@ namespace Sentinel.Tests
 {
     public class UsbDeviceFingerprinterTests
     {
-        // ── NormalizeVidPid ─────────────────────────────────────────────
+        //  NormalizeVidPid 
 
         [Theory]
         [InlineData("0951:1666", "0951:1666")]
@@ -30,7 +30,7 @@ namespace Sentinel.Tests
             Assert.Null(UsbDeviceFingerprinter.NormalizeVidPid(input));
         }
 
-        // ── IsFailedEnumerationDevice ───────────────────────────────────
+        //  IsFailedEnumerationDevice 
 
         [Fact]
         public void IsFailedEnumerationDevice_ReturnsTrue_ForFailedDevice()
@@ -60,7 +60,7 @@ namespace Sentinel.Tests
             Assert.False(UsbDeviceFingerprinter.IsFailedEnumerationDevice(device));
         }
 
-        // ── IsFailedEnumerationSignals ──────────────────────────────────
+        //  IsFailedEnumerationSignals 
 
         [Theory]
         [InlineData("0000", null)]

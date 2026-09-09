@@ -76,7 +76,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                // Absolute fail-soft — response path must never throw on Event Log
+                // Absolute fail-soft - response path must never throw on Event Log
             }
         }
 
@@ -265,7 +265,7 @@ namespace Sentinel.Core
             bool shouldRemoveRegistryEntry = false;
             string reason = "LogOnly";
 
-            // HARDENING v1.3.8: Absolute self-exclusion — never take action against our own processes.
+            // HARDENING v1.3.8: Absolute self-exclusion - never take action against our own processes.
             // The FileReputationEngine flags our unsigned dev builds as "Suspicious" (score ~43-48),
             // and the correlation engine can escalate these to kill responses. Force LogOnly.
             //
@@ -286,7 +286,7 @@ namespace Sentinel.Core
                         (SelfPathGuard.IsSentinelSelfBinary(detectedImagePath) ||
                          SelfPathGuard.IsUnderInstallDirectory(detectedImagePath)))
                     {
-                        // Only skip response for our own binaries under install — not arbitrary hardlinks
+                        // Only skip response for our own binaries under install - not arbitrary hardlinks
                         if (SelfPathGuard.IsSentinelSelfBinary(detectedImagePath))
                         {
                             reason = "LogOnly (Self-exclusion: verified Sentinel install path)";
@@ -305,10 +305,10 @@ namespace Sentinel.Core
                         }
                     }
                 }
-                catch { /* process may have exited — continue with normal handling */ }
+                catch { /* process may have exited - continue with normal handling */ }
             }
 
-            // Standing product default: ObserveUntilChain=true → enforce tier law here
+            // Standing product default: ObserveUntilChain=true -> enforce tier law here
             // (Tier1 only for kill-grade terminals / composites). When ObserveUntilChain is
             // explicitly false (lab / unit tests of response paths), preserve author tier.
             // Live DetectionEngine always applies ApplyTierLaw before this gate.
@@ -335,7 +335,7 @@ namespace Sentinel.Core
             }
             catch { }
 
-            // v1.6.9: IDE / development tool protection — Electron/V8 apps generate JIT code
+            // v1.6.9: IDE / development tool protection - Electron/V8 apps generate JIT code
             // that matches syscall-stub patterns, RWX memory patterns, and other heuristics.
             // Killing an IDE is an irreversible false positive that destroys the developer's
             // session. Demote to LogOnly unless this is a President's Law rule (actual confirmed
@@ -358,13 +358,13 @@ namespace Sentinel.Core
                 return;
             }
 
-            // v2.3.1 ALWAYS-ON: Game Protection Policy — checked BEFORE allowlist and
+            // v2.3.1 ALWAYS-ON: Game Protection Policy - checked BEFORE allowlist and
             // observe-until-chain. Game processes NEVER receive destructive actions.
             // This is a hard product invariant that cannot be overridden by config.
             if (!isPresidentsLaw && detection.ProcessId > 0 &&
                 AlwaysOnPolicies.ApplyGameProtection(detection, imagePath))
             {
-                reason = $"LogOnly (AlwaysOn: Game Protection — {detection.ProcessName} at '{imagePath}')";
+                reason = $"LogOnly (AlwaysOn: Game Protection - {detection.ProcessName} at '{imagePath}')";
                 stopwatch.Stop();
                 _metrics.RecordResponse(stopwatch.ElapsedMilliseconds);
                 var gameLog = new ResponseEvent
@@ -393,7 +393,7 @@ namespace Sentinel.Core
             // MitmDefense suite is also exempt: planted cert + ghost process + fake Chromecast /
             // FCM Send-Tab-to-Self is a confirmed post-incident chain that must act without waiting
             // for a second unrelated signal.
-            // When chain confirms → full nuke (quarantine+kill + isolate + chain tracer).
+            // When chain confirms -> full nuke (quarantine+kill + isolate + chain tracer).
             bool chainAuthorized = false;
             bool dllExempt = AlwaysOnPolicies.IsDllUnloadAlwaysOn(detection);
             bool mitmExempt = ResponsePolicy.IsMitmDefenseAction(detection, _config);
@@ -410,7 +410,7 @@ namespace Sentinel.Core
                 else if (mitmExempt && !chainAuthorized)
                 {
                     // Keep author response (RemoveCert / KillProcessTree / NetworkIsolate).
-                    // Do not promote to full QuarantineAndKill — MitM suite is surgical.
+                    // Do not promote to full QuarantineAndKill - MitM suite is surgical.
                     effectiveTier = DetectionTier.Tier1Behavioral;
                     if (detection.AuthorizedResponse is ResponseAction.KillProcess
                         or ResponseAction.KillProcessTree
@@ -442,7 +442,7 @@ namespace Sentinel.Core
                 effectiveTier = DetectionTier.Tier2Indicator;
                 effectiveResponse = ResponseAction.LogOnly;
                 effectiveKillAuthorized = false;
-                reason = "LogOnly (observe-first: weak user-activity heuristic — no confirmed attack)";
+                reason = "LogOnly (observe-first: weak user-activity heuristic - no confirmed attack)";
             }
 
             // MitmDefense: cert remove / kill ghost / isolate rogue Cast without full multi-signal chain.
@@ -569,7 +569,7 @@ namespace Sentinel.Core
                         ProcessId = detection.ProcessId,
                         ProcessName = detection.ProcessName,
                         ActionTaken = "LOG",
-                        Reason = $"Triggered by rule: {detection.RuleName}. Cert removal skipped — not MITM-related. CertThumbprint={certThumb}",
+                        Reason = $"Triggered by rule: {detection.RuleName}. Cert removal skipped - not MITM-related. CertThumbprint={certThumb}",
                         ExecutionTimeMs = stopwatch.ElapsedMilliseconds
                     });
                     return;
@@ -618,7 +618,7 @@ namespace Sentinel.Core
                     ActionTaken = isMitmCert ? "REMOVE_CERT" : "LOG",
                     Reason = isMitmCert
                         ? $"Triggered by rule: {detection.RuleName}. {reason}. CertThumbprint={certThumb}"
-                        : $"Triggered by rule: {detection.RuleName}. Cert removal skipped — not MITM-related. CertThumbprint={certThumb}",
+                        : $"Triggered by rule: {detection.RuleName}. Cert removal skipped - not MITM-related. CertThumbprint={certThumb}",
                     ExecutionTimeMs = stopwatch.ElapsedMilliseconds
                 };
                 await _eventLogger.LogEventAsync("response", responseLog);
@@ -666,7 +666,7 @@ namespace Sentinel.Core
                 try
                 {
                     using var proc = Process.GetProcessById(detection.ProcessId);
-                    // QUERY_LIMITED only — MainModule uses PROCESS_VM_READ (breaks anti-cheat)
+                    // QUERY_LIMITED only - MainModule uses PROCESS_VM_READ (breaks anti-cheat)
                     var quarantinePath = SecurityValidation.GetProcessImagePath(detection.ProcessId)
                                         ?? proc.MainModule?.FileName;
                     if (SecurityValidation.IsGameOrAntiCheatPath(quarantinePath))
@@ -676,7 +676,7 @@ namespace Sentinel.Core
                         // QuarantineManager refuses signed binaries by default (returns null).
                         var qPath = await _quarantineManager.QuarantineFileAtomicAsync(quarantinePath!);
                         injectorQuarantined = qPath != null;
-                        // signed binary — kill process tree but preserve the file on disk
+                        // signed binary - kill process tree but preserve the file on disk
                     }
                 }
                 catch { }
@@ -1036,7 +1036,7 @@ namespace Sentinel.Core
         {
             try
             {
-                // DnsFlushResolverCache is a documented public API — not a shell-out
+                // DnsFlushResolverCache is a documented public API - not a shell-out
                 DnsFlushResolverCache();
             }
             catch { }
@@ -1091,7 +1091,7 @@ namespace Sentinel.Core
         /// <summary>
         /// v1.6.1: Avoid firewall-blocking major public resolvers / well-known CDN anycast
         /// prefixes when decoy beaconing tries to force NetworkIsolate collateral damage.
-        /// Not exhaustive — best-effort guardrail.
+        /// Not exhaustive - best-effort guardrail.
         /// </summary>
         private static bool IsLikelyCdnOrPublicResolver(IPAddress ip)
         {

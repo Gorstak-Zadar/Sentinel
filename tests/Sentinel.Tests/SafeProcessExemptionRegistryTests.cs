@@ -58,16 +58,16 @@ namespace Sentinel.Tests
         {
             var registry = new SafeProcessExemptionRegistry();
 
-            // Register a PID that doesn't exist — GetProcessById will throw, 
+            // Register a PID that doesn't exist - GetProcessById will throw, 
             // meaning start time will be MinValue for registration AND check.
             // This actually demonstrates the pattern: if a PID doesn't exist,
-            // both registration and check use MinValue → matches → returns true.
+            // both registration and check use MinValue -> matches -> returns true.
             // But if PID was recycled with a different start time, it returns false.
             registry.RegisterSafeProcess(99998); // unlikely to exist
-            // The check for a non-existent PID gets MinValue both times → match
+            // The check for a non-existent PID gets MinValue both times -> match
             // This is acceptable because a non-existent PID can't do harm.
             var result = registry.IsSafeProcess(99998);
-            // Either true (both MinValue match) or false (stale entry removed) — both are safe
+            // Either true (both MinValue match) or false (stale entry removed) - both are safe
             Assert.True(result == true || result == false);
         }
     }

@@ -8,7 +8,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// v1.8.1 — remediations from the red/blue team security audit.
+    /// v1.8.1 - remediations from the red/blue team security audit.
     /// </summary>
     public class V181SecurityHardeningTests
     {

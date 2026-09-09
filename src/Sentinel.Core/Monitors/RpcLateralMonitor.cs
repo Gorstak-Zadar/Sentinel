@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v1.6.7: RPC Lateral Movement Monitor — detects outbound lateral movement via RPC/DCOM/WMI/WinRM.
+    /// v1.6.7: RPC Lateral Movement Monitor - detects outbound lateral movement via RPC/DCOM/WMI/WinRM.
     /// 
     /// Blind spot addressed: IPSec policy blocks inbound connections to dangerous ports, but doesn't
     /// detect OUTBOUND lateral movement from compromised user tools. An attacker with code execution
@@ -25,7 +25,7 @@ namespace Sentinel.Core
     /// - Detect command-line patterns: "wmic /node:", "Invoke-Command -ComputerName",
     ///   "winrs -r:", "sc \\\\host", "reg \\\\host", "schtasks /s host"
     /// - Flag script/office/LOLBin processes initiating lateral movement connections
-    /// - Cross-reference with process ancestry (shell → wmic, office → powershell → lateral)
+    /// - Cross-reference with process ancestry (shell -> wmic, office -> powershell -> lateral)
     /// 
     /// Response: Tier1 KillProcessTree for confirmed lateral movement command patterns.
     ///           Tier2 LogOnly for suspicious port connections from non-system processes.
@@ -50,7 +50,7 @@ namespace Sentinel.Core
             "winword", "excel", "powerpnt", "outlook", "msaccess",
             "rundll32", "regsvr32", "msbuild", "installutil", "csc",
             "wmic", "wmiprvse", "wmiadap",
-            "msg", // v2.1.5: Remote message delivery — RPC access probe / social engineering vector
+            "msg", // v2.1.5: Remote message delivery - RPC access probe / social engineering vector
         };
 
         // Command-line patterns indicating explicit lateral movement intent
@@ -70,7 +70,7 @@ namespace Sentinel.Core
             (@"psexec\s+.*\\\\", "PsExec lateral movement"),
             (@"copy\s+.*\\\\.*\$", "Copy to admin share (C$/ADMIN$)"),
             (@"xcopy\s+.*\\\\.*\$", "Xcopy to admin share"),
-            (@"msg\s+.*(/server:|/SERVER:)", "Remote message delivery (msg /server:) — RPC access probe"),
+            (@"msg\s+.*(/server:|/SERVER:)", "Remote message delivery (msg /server:) - RPC access probe"),
         };
 
         // P/Invoke for GetExtendedTcpTable
@@ -95,7 +95,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[RpcLateralMonitor] Started — monitoring outbound lateral movement ports");
+            _logger.LogInformation("[RpcLateralMonitor] Started - monitoring outbound lateral movement ports");
             await Task.Delay(8000, ct); // Startup grace
 
             while (!ct.IsCancellationRequested)

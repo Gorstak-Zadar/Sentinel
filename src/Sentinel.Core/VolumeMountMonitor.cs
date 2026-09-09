@@ -28,7 +28,7 @@ namespace Sentinel.Core
     ///
     /// v1.0.1: New monitor.
     /// v1.0.5: Auto-dismount attacker fallback drives correlated with phantom device blocks.
-    ///         Fix SUBST drives invisible to WMI — now enumerated via DriveInfo.GetDrives().
+    ///         Fix SUBST drives invisible to WMI - now enumerated via DriveInfo.GetDrives().
     /// </summary>
     public sealed class VolumeMountMonitor : BackgroundService
     {
@@ -49,7 +49,7 @@ namespace Sentinel.Core
         /// Grace period after service start during which new volumes are treated as
         /// late-initializing baseline volumes (slow USB mounts, delayed network drives,
         /// volumes whose WMI DeviceId changes during initialization). Volumes appearing
-        /// in this window are baselined silently — never treated as attacker fallback.
+        /// in this window are baselined silently - never treated as attacker fallback.
         /// </summary>
         private static readonly TimeSpan StartupGracePeriod = TimeSpan.FromSeconds(60);
 
@@ -116,25 +116,25 @@ namespace Sentinel.Core
 
             _startTime = DateTimeOffset.UtcNow;
 
-            // Strip any drive letters from EFI/System partitions — these should never be exposed.
+            // Strip any drive letters from EFI/System partitions - these should never be exposed.
             // Previous Sentinel versions or WMI enumeration side effects can cause Windows to
             // assign a letter to the ESP. Fix it on every startup.
             StripSystemPartitionDriveLetters();
 
             // Baseline current volumes (both DeviceId and drive letter for stable identification)
-            // NOTE: SUBST drives are NEVER baselined — they are illegitimate regardless of when
+            // NOTE: SUBST drives are NEVER baselined - they are illegitimate regardless of when
             // they appear. An attacker can create persistence (Run key, scheduled task) that
             // creates the SUBST drive before Sentinel starts to evade runtime-only detection.
             foreach (var vol in GetMountedVolumes())
             {
-                // Check if this is a SUBST drive — if so, kill it immediately at startup
+                // Check if this is a SUBST drive - if so, kill it immediately at startup
                 if (ResponsePolicy.MayPerformInlineHostMutation(_config) && !string.IsNullOrEmpty(vol.DriveLetter))
                 {
                     var startupClassification = ClassifyVolume(vol);
                     if (string.Equals(startupClassification, "SUBST"))
                     {
                         _logger.LogWarning(
-                            "[VolumeMountMonitor] SUBST drive {Drive} found at startup — dismounting (no legitimate SUBST drives exist)",
+                            "[VolumeMountMonitor] SUBST drive {Drive} found at startup - dismounting (no legitimate SUBST drives exist)",
                             vol.DriveLetter);
                         _ = Task.Run(async () =>
                         {
@@ -196,7 +196,7 @@ namespace Sentinel.Core
 
                         // Check if this volume's drive letter was already present at startup
                         // (WMI can report different DeviceId strings for the same volume as it
-                        // fully initializes — GUID paths resolve late, labels populate late, etc.)
+                        // fully initializes - GUID paths resolve late, labels populate late, etc.)
                         var normalizedLetter = vol.DriveLetter?.TrimEnd('\\').ToUpperInvariant();
                         bool driveLetterWasBaselined = !string.IsNullOrEmpty(normalizedLetter) &&
                             _baselineDriveLetters.Contains(normalizedLetter!);
@@ -207,14 +207,14 @@ namespace Sentinel.Core
                             _baselineDriveLetters.Add(normalizedLetter!);
 
                         // During startup grace period OR if the drive letter was already baselined,
-                        // this is a late-initializing volume — not attacker-created.
-                        // EXCEPTION: SUBST drives are NEVER given grace — they are always illegitimate.
+                        // this is a late-initializing volume - not attacker-created.
+                        // EXCEPTION: SUBST drives are NEVER given grace - they are always illegitimate.
                         if (inGracePeriod || driveLetterWasBaselined)
                         {
                             var graceClassification = ClassifyVolume(vol);
                             if (string.Equals(graceClassification, "SUBST"))
                             {
-                                // SUBST drives don't get grace period protection — fall through to dismount
+                                // SUBST drives don't get grace period protection - fall through to dismount
                             }
                             else
                             {
@@ -225,7 +225,7 @@ namespace Sentinel.Core
                             }
                         }
 
-                        // Check cooldown (skip for SUBST — attacker may keep recreating)
+                        // Check cooldown (skip for SUBST - attacker may keep recreating)
                         if (_alertedVolumes.TryGetValue(vol.DeviceId, out var lastAlert) &&
                             DateTimeOffset.UtcNow - lastAlert < AlertCooldown)
                         {
@@ -247,15 +247,15 @@ namespace Sentinel.Core
 
                         // v1.0.5: SUBST drives appearing at runtime are ALWAYS malicious.
                         // There is no legitimate reason for a SUBST drive to be created after
-                        // boot — these are the #1 attacker fallback technique for staging
+                        // boot - these are the #1 attacker fallback technique for staging
                         // payloads after their primary C2 relay is cut off.
-                        // No phantom device correlation required for SUBST — unconditional kill.
+                        // No phantom device correlation required for SUBST - unconditional kill.
                         if (ResponsePolicy.MayPerformInlineHostMutation(_config) &&
                             string.Equals(classification, "SUBST") &&
                             !string.IsNullOrEmpty(vol.DriveLetter))
                         {
                             _logger.LogWarning(
-                                "[VolumeMountMonitor] SUBST drive {Drive} created at runtime — unconditional dismount (attacker fallback)",
+                                "[VolumeMountMonitor] SUBST drive {Drive} created at runtime - unconditional dismount (attacker fallback)",
                                 vol.DriveLetter);
                             await EmitFallbackDriveDetection(vol, classification);
                             await DismountFallbackDrive(vol);
@@ -263,13 +263,13 @@ namespace Sentinel.Core
                             await RemoveSubstPersistence(vol.DriveLetter!);
 
                             // v1.4.1: If the drive keeps reappearing (recreated faster than our scan),
-                            // escalate — scan ALL non-system processes using DefineDosDevice API.
+                            // escalate - scan ALL non-system processes using DefineDosDevice API.
                             // This catches signed binaries from Program Files that Phase 4 skips.
                             if (_alertedVolumes.TryGetValue(vol.DeviceId, out var prevAlert) &&
                                 DateTimeOffset.UtcNow - prevAlert < TimeSpan.FromSeconds(30))
                             {
                                 _logger.LogWarning(
-                                    "[VolumeMountMonitor] SUBST drive {Drive} is being recreated rapidly — escalating to kill ALL DefineDosDevice callers",
+                                    "[VolumeMountMonitor] SUBST drive {Drive} is being recreated rapidly - escalating to kill ALL DefineDosDevice callers",
                                     vol.DriveLetter);
                                 await HuntRecentlySpawnedUnsignedProcesses(vol.DriveLetter!.TrimEnd('\\', ':').ToUpperInvariant(), new HashSet<int>());
                             }
@@ -295,7 +295,7 @@ namespace Sentinel.Core
                         await EmitVolumeDetection(vol, classification);
 
                         // Dynamically extend FileActivityMonitor coverage to new volume.
-                        // v1.3.10: Skip CDRom/ISO-type drives — these are DISM/NTLite WIM mounts.
+                        // v1.3.10: Skip CDRom/ISO-type drives - these are DISM/NTLite WIM mounts.
                         // Adding a FileSystemWatcher on a mounted WIM drive causes Restart Manager
                         // calls on every file event inside the image, which compete with the
                         // servicing tool's write locks and stall operations for minutes.
@@ -435,7 +435,7 @@ namespace Sentinel.Core
         /// 2. cmd.exe/powershell.exe with subst in command line
         /// 3. Any process that has a handle open to the SUBST target path (the creator likely still has it open)
         /// 4. Any non-system process that loaded kernel32 and was spawned recently (within 10s of detection)
-        ///    AND has a connection to an IP that PhantomDeviceMonitor blocked — this is the implant.
+        ///    AND has a connection to an IP that PhantomDeviceMonitor blocked - this is the implant.
         /// 5. Fallback: any process whose working directory is the SUBST target path
         /// </summary>
         private async Task HuntSubstCreatorProcess(string driveLetter, bool skipPhase4 = false)
@@ -468,7 +468,7 @@ namespace Sentinel.Core
                 }
 
                 // --- Phase 2: Any process connected to a PhantomDeviceMonitor-blocked IP ---
-                // This catches the implant itself — the process that receives commands from the
+                // This catches the implant itself - the process that receives commands from the
                 // rogue LAN device and translates them into local DefineDosDevice calls.
                 if (_phantomDeviceMonitor != null)
                 {
@@ -486,7 +486,7 @@ namespace Sentinel.Core
                 if (killed.Count == 0 && !skipPhase4)
                 {
                     _logger.LogWarning(
-                        "[VolumeMountMonitor] Could not identify SUBST creator for {Drive}: — implant may be using direct DefineDosDevice from custom binary. Scanning all non-system processes with recent start time.",
+                        "[VolumeMountMonitor] Could not identify SUBST creator for {Drive}: - implant may be using direct DefineDosDevice from custom binary. Scanning all non-system processes with recent start time.",
                         normalizedLetter);
 
                     // --- Phase 4: Kill any non-system, non-signed process started within last 30s ---
@@ -519,13 +519,13 @@ namespace Sentinel.Core
                     process.KillTree();
                     killed.Add(pid);
                     _logger.LogWarning(
-                        "[VolumeMountMonitor] KILLED {Name} (PID {Pid}) — reason: {Reason}, cmdline: {Cmd}",
+                        "[VolumeMountMonitor] KILLED {Name} (PID {Pid}) - reason: {Reason}, cmdline: {Cmd}",
                         name, pid, reason, cmdLine);
                 }
                 catch { }
             }
 
-            // Kill the parent — this is the implant that spawned the shell/subst.exe
+            // Kill the parent - this is the implant that spawned the shell/subst.exe
             if (parentPid > 4 && !killed.Contains(parentPid))
             {
                 try
@@ -539,7 +539,7 @@ namespace Sentinel.Core
                         parent.KillTree();
                         killed.Add(parentPid);
                         _logger.LogWarning(
-                            "[VolumeMountMonitor] KILLED PARENT implant: {Name} (PID {Pid}) — spawned SUBST creator",
+                            "[VolumeMountMonitor] KILLED PARENT implant: {Name} (PID {Pid}) - spawned SUBST creator",
                             parentName, parentPid);
 
                         await _detectionEngine.EmitAsync(new DetectionEvent
@@ -614,7 +614,7 @@ namespace Sentinel.Core
                             killed.Add(pid);
 
                             _logger.LogWarning(
-                                "[VolumeMountMonitor] KILLED IMPLANT: {Name} (PID {Pid}) — connected to blocked device {Ip}",
+                                "[VolumeMountMonitor] KILLED IMPLANT: {Name} (PID {Pid}) - connected to blocked device {Ip}",
                                 processName, pid, remoteIp);
 
                             await _detectionEngine.EmitAsync(new DetectionEvent
@@ -665,7 +665,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Finds processes whose executable path or command line references the SUBST target directory.
-        /// These are processes using the staging area — either the implant or its payloads.
+        /// These are processes using the staging area - either the implant or its payloads.
         /// </summary>
         private async Task HuntBySubstTarget(string substTarget, string driveLetter, HashSet<int> killed)
         {
@@ -748,7 +748,7 @@ namespace Sentinel.Core
                     // Parse WMI datetime format
                     if (!ManagementDateTimeConverter.ToDateTime(creationStr).ToUniversalTime().Equals(default) &&
                         ManagementDateTimeConverter.ToDateTime(creationStr).ToUniversalTime() < cutoff)
-                        continue; // Process started more than 30s ago — probably not the creator
+                        continue; // Process started more than 30s ago - probably not the creator
 
                     // Check if it's from a suspicious path (not Program Files, not System32, and not game directories)
                     // SECURITY: Also reject Temp/Downloads even if they contain "steam" in path
@@ -772,7 +772,7 @@ namespace Sentinel.Core
                         killed.Add(pid);
 
                         _logger.LogWarning(
-                            "[VolumeMountMonitor] KILLED suspected implant: {Name} (PID {Pid}) — recently spawned from {Path}",
+                            "[VolumeMountMonitor] KILLED suspected implant: {Name} (PID {Pid}) - recently spawned from {Path}",
                             name, pid, exePath);
 
                         await _detectionEngine.EmitAsync(new DetectionEvent
@@ -780,7 +780,7 @@ namespace Sentinel.Core
                             RuleName = "Suspected Implant Killed: Recent Non-System Process During SUBST Attack",
                             Evidence = $"Process {name} (PID {pid}) at {exePath} started within 30s of SUBST drive {driveLetter}: creation",
                             Reasoning = "No subst.exe or shell process was found creating the drive. " +
-                                        "This recently-spawned process from a non-standard path is the most likely candidate — " +
+                                        "This recently-spawned process from a non-standard path is the most likely candidate - " +
                                         "it called DefineDosDevice directly. Process tree killed.",
                             Confidence = 0.80,
                             Tier = DetectionTier.Tier1Behavioral,
@@ -878,7 +878,7 @@ namespace Sentinel.Core
                 }
             }
 
-            // Per-user Run keys — must iterate HKU\<SID>\ since HKCU in Session 0 is SYSTEM's hive
+            // Per-user Run keys - must iterate HKU\<SID>\ since HKCU in Session 0 is SYSTEM's hive
             var userRunPaths = new[]
             {
                 @"Software\Microsoft\Windows\CurrentVersion\Run",
@@ -1170,7 +1170,7 @@ namespace Sentinel.Core
                             SetNoDefaultDriveLetter(deviceId, driveLetter);
 
                             _logger.LogWarning(
-                                "[VolumeMountMonitor] Stripped drive letter {Letter}: from system partition (Label='{Label}', Size={Size}MB) — NoDefaultDriveLetter set",
+                                "[VolumeMountMonitor] Stripped drive letter {Letter}: from system partition (Label='{Label}', Size={Size}MB) - NoDefaultDriveLetter set",
                                 driveLetter, label, capacity / (1024 * 1024));
                         }
                     }
@@ -1214,7 +1214,7 @@ namespace Sentinel.Core
                 }
 
                 // Method 2: Set the MountMgr NoAutoMount registry key for this specific volume
-                // HKLM\SYSTEM\MountedDevices — remove the \DosDevices\X: entry
+                // HKLM\SYSTEM\MountedDevices - remove the \DosDevices\X: entry
                 try
                 {
                     using var mountedDevices = Registry.LocalMachine.OpenSubKey(@"SYSTEM\MountedDevices", writable: true);
@@ -1251,7 +1251,7 @@ namespace Sentinel.Core
                 !vol.FileSystem.Equals("FAT"))
                 return false;
 
-            // We don't have capacity in VolumeInfo from the scan loop — check by label only
+            // We don't have capacity in VolumeInfo from the scan loop - check by label only
             // for runtime detection. EFI partitions have distinctive labels.
             var label = vol.Label ?? "";
             return string.IsNullOrEmpty(label) ||
@@ -1282,7 +1282,7 @@ namespace Sentinel.Core
         /// mapped network drive, external HDD) to get nuked.
         ///
         /// Attacker fallback drives are typically: SUBST drives, VHD/VHDX mounts, RAM disks,
-        /// or encrypted containers — not standard removable/fixed volumes with NTFS/FAT/exFAT.
+        /// or encrypted containers - not standard removable/fixed volumes with NTFS/FAT/exFAT.
         /// </summary>
         private bool IsLikelyLegitimateVolume(VolumeInfo vol, string classification)
         {
@@ -1295,7 +1295,7 @@ namespace Sentinel.Core
                 classification.Contains("PMEM") ||
                 classification.Contains("ISO"))
             {
-                return false; // These are suspicious — allow fallback dismount
+                return false; // These are suspicious - allow fallback dismount
             }
 
             // Standard physical volumes (USB drives, external HDDs) with well-known filesystems
@@ -1307,7 +1307,7 @@ namespace Sentinel.Core
 
             if (!string.IsNullOrEmpty(vol.FileSystem) && knownFs.Contains(vol.FileSystem!))
             {
-                // Has a real filesystem — check if it's also a standard drive type
+                // Has a real filesystem - check if it's also a standard drive type
                 if (!string.IsNullOrEmpty(vol.DriveLetter))
                 {
                     try
@@ -1317,12 +1317,12 @@ namespace Sentinel.Core
                             driveInfo.DriveType == DriveType.Fixed ||
                             driveInfo.DriveType == DriveType.Network)
                         {
-                            return true; // Standard removable/fixed/network drive — don't dismount
+                            return true; // Standard removable/fixed/network drive - don't dismount
                         }
                     }
                     catch
                     {
-                        // Drive not accessible — fall through to suspicious
+                        // Drive not accessible - fall through to suspicious
                     }
                 }
             }
@@ -1509,7 +1509,7 @@ namespace Sentinel.Core
                 uint activeSession = WTSGetActiveConsoleSessionId();
                 if (activeSession != 0xFFFFFFFF && activeSession != 0)
                 {
-                    // There's an active user session — run 'subst' there to enumerate
+                    // There's an active user session - run 'subst' there to enumerate
                     var substOutput = RunInUserSession(activeSession, "subst.exe", "");
                     if (!string.IsNullOrEmpty(substOutput))
                     {
@@ -1687,7 +1687,7 @@ namespace Sentinel.Core
         /// Returns true when a drive letter looks like a DISM/NTLite WIM mount:
         ///   - DriveType is CDRom (how Windows exposes a mounted WIM image)
         ///   - OR a known servicing process (dism, dismhost, ntlite, tiworker) is currently
-        ///     running — the mount may have just appeared before DriveType updates.
+        ///     running - the mount may have just appeared before DriveType updates.
         ///
         /// v1.3.10: We skip extending FileActivityMonitor to these drives because every file
         /// event inside the mounted image triggers a Restart Manager handle scan that competes

@@ -13,7 +13,7 @@ namespace Sentinel.Core
         private readonly ConcurrentDictionary<int, List<TelemetryEvent>> _processChains = new();
         private readonly System.Threading.Timer _cleanupTimer;
 
-        // 500/chain resists FIFO erasure. Retention 2 min — BuildContext scores 60s only.
+        // 500/chain resists FIFO erasure. Retention 2 min - BuildContext scores 60s only.
         private const int MaxEventsPerChain = 500;
         private static readonly TimeSpan ChainRetention = TimeSpan.FromMinutes(2);
 

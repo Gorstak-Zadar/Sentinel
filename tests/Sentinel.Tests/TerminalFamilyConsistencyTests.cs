@@ -50,7 +50,7 @@ namespace Sentinel.Tests
             Assert.DoesNotContain(family.ToCanonicalString(), ResponsePolicy.KillGradeTerminalFamilies);
         }
 
-        // Canonical string round-trips through the enum for every family — proves the
+        // Canonical string round-trips through the enum for every family - proves the
         // name table has no typos and FromCanonicalString is the exact inverse.
         [Fact]
         public void Every_Family_Round_Trips_Through_Canonical_String()
@@ -196,7 +196,7 @@ namespace Sentinel.Tests
         }
 
         // A null Family (every legacy detection) must fall through to the substring path
-        // exactly as before — proves backward compatibility.
+        // exactly as before - proves backward compatibility.
         [Fact]
         public void Null_Family_Falls_Through_To_Substring_Classifier()
         {

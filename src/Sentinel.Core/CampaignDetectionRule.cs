@@ -35,7 +35,7 @@ namespace Sentinel.Core
             {
                 CampaignName = "QBot/QakBot",
                 Description = "QBot banking trojan",
-                // v3.8.0: Removed "regsvr32.exe" and "services.exe" — legitimate system binaries
+                // v3.8.0: Removed "regsvr32.exe" and "services.exe" - legitimate system binaries
                 FileNames = new[] { "chkdsks.exe", "disk.exe", "taskhost.exe" },
                 ProcessPatterns = new[] { "chkdsks", "disk" },
                 CommandLinePatterns = new[] { @"regsvr32.*-s.*[a-z0-9]{8}\.dat" },
@@ -47,7 +47,7 @@ namespace Sentinel.Core
             {
                 CampaignName = "Emotet",
                 Description = "Emotet malware",
-                // v3.8.0: Removed generic "update.exe" — false positives
+                // v3.8.0: Removed generic "update.exe" - false positives
                 FileNames = new[] { "sys.exe", "win.exe", "syswow.exe" },
                 ProcessPatterns = new[] { "sys", "syswow" },
                 CommandLinePatterns = new[] { @"-E\d+" },
@@ -58,7 +58,7 @@ namespace Sentinel.Core
             {
                 CampaignName = "TrickBot",
                 Description = "TrickBot banking trojan",
-                // v3.8.0: Removed "services.exe" and "client.exe" — too generic
+                // v3.8.0: Removed "services.exe" and "client.exe" - too generic
                 FileNames = new[] { "tab.exe", "inject.exe" },
                 ProcessPatterns = new[] { "tab", "inject" },
                 CommandLinePatterns = new[] { @"tab.exe.*-s", @"tab.exe.*-i" },
@@ -101,7 +101,7 @@ namespace Sentinel.Core
                 var confidence = 0.0;
                 var matches = new List<string>();
 
-                // Check file name — v3.8.0: exact filename match (Path.GetFileName)
+                // Check file name - v3.8.0: exact filename match (Path.GetFileName)
                 var imageFileName = !string.IsNullOrEmpty(proc.ImagePath)
                     ? Path.GetFileName(proc.ImagePath)
                     : null;

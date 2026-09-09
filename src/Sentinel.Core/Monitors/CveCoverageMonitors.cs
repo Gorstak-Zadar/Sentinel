@@ -43,7 +43,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[CveClassCoverageMonitor] Started — generic CVE-class userland sensors");
+            _logger.LogInformation("[CveClassCoverageMonitor] Started - generic CVE-class userland sensors");
             while (!ct.IsCancellationRequested)
             {
                 try
@@ -125,7 +125,7 @@ namespace Sentinel.Core
                                     "CVE Class: Kernel Exploit Loader",
                                     $"Process '{name}' (PID {pid}) matches kernel-EoP loader shape path='{path ?? "?"}' cmd='{Truncate(cmd, 160)}'",
                                     "Userland loader for kernel elevation-of-privilege (AFD/WinSock, isolation FS, HTTP.sys-class). " +
-                                    "Does not patch the kernel race — stops the exploit host. Kill-grade. " +
+                                    "Does not patch the kernel race - stops the exploit host. Kill-grade. " +
                                     $"Covers {CveCoverageHeuristics.CveAfdAlt1}/{CveCoverageHeuristics.CveAfdAlt2} class, not just named campaigns.",
                                     staging ? 0.90 : 0.86, name, pid, path, parentName, parentPid,
                                     SignalType.SecurityEvasion, killGrade: true,
@@ -156,7 +156,7 @@ namespace Sentinel.Core
                                 "CVE Class: Package Manager EoP",
                                 $"'{name}' (PID {pid}) AppInstaller/winget from untrusted source or staging cmd='{Truncate(cmd, 180)}'",
                                 "Windows Package Manager EoP (CVE-2026-68821): ms-appinstaller protocol, HTTP source add, or staging binary. " +
-                                "Work-first — Store/winget of signed apps is not this pattern.",
+                                "Work-first - Store/winget of signed apps is not this pattern.",
                                 0.82, name, pid, path, parentName, parentPid,
                                 SignalType.SuspiciousProcess).ConfigureAwait(false);
                         }
@@ -183,7 +183,7 @@ namespace Sentinel.Core
                                 "CVE Class: ClickFix Encoded Run",
                                 $"explorer spawned '{name}' (PID {pid}) with encoded PowerShell/IEX cmd='{Truncate(cmd, 160)}'",
                                 "ClickFix / fake-CAPTCHA social engineering: user is talked into Win+R / Run dialog paste of encoded PowerShell. " +
-                                "Parent explorer + encoded command is the host trace. Kill-grade — that process is the attack.",
+                                "Parent explorer + encoded command is the host trace. Kill-grade - that process is the attack.",
                                 0.90, name, pid, path, parentName, parentPid,
                                 SignalType.SuspiciousProcess, killGrade: true).ConfigureAwait(false);
                         }
@@ -317,7 +317,7 @@ namespace Sentinel.Core
     }
 
     /// <summary>
-    /// MOTW / disk-image / AppInstaller delivery. Gamers drop ISOs in Downloads —
+    /// MOTW / disk-image / AppInstaller delivery. Gamers drop ISOs in Downloads -
     /// LogOnly weak observe, never a kill seed.
     /// </summary>
     public sealed class MotwBypassMonitor : BackgroundService
@@ -336,7 +336,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[MotwBypassMonitor] Started — MOTW / ISO / AppInstaller delivery");
+            _logger.LogInformation("[MotwBypassMonitor] Started - MOTW / ISO / AppInstaller delivery");
             try { await Task.Delay(TimeSpan.FromSeconds(20), ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
 
@@ -561,7 +561,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[ContainerIsolationTamperMonitor] Started — unionfs/wcifs + AlwaysInstallElevated");
+            _logger.LogInformation("[ContainerIsolationTamperMonitor] Started - unionfs/wcifs + AlwaysInstallElevated");
             try { await Task.Delay(TimeSpan.FromSeconds(25), ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
 
@@ -649,7 +649,7 @@ namespace Sentinel.Core
                     RuleName = "CVE Class: AlwaysInstallElevated Enabled",
                     Evidence = $"AlwaysInstallElevated HKLM={machine} HKCU={user}",
                     Reasoning =
-                        "AlwaysInstallElevated lets any MSI run as SYSTEM — prerequisite for Windows Installer EoP " +
+                        "AlwaysInstallElevated lets any MSI run as SYSTEM - prerequisite for Windows Installer EoP " +
                         "(CVE-2026-61925 class, MITRE T1548.002). Sentinel hardening clears this; re-enablement is tamper. LogOnly.",
                     Confidence = 0.88,
                     Tier = DetectionTier.Tier2Indicator,
@@ -718,7 +718,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[WpadProxyMonitor] Started — WPAD / PAC auto-proxy (DHCP Option 252 vector)");
+            _logger.LogInformation("[WpadProxyMonitor] Started - WPAD / PAC auto-proxy (DHCP Option 252 vector)");
             try { await Task.Delay(TimeSpan.FromSeconds(15), ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
 
@@ -749,7 +749,7 @@ namespace Sentinel.Core
                         "WPAD Auto-Proxy PAC Configured",
                         $"AutoConfigURL present at startup: {Redact(autoConfigUrl)}",
                         "A Proxy Auto-Config (PAC) URL is set. PAC files are JavaScript the WinHTTP auto-proxy " +
-                        "resolver executes to route traffic — the host-side landing point for the DHCP Option 252 / " +
+                        "resolver executes to route traffic - the host-side landing point for the DHCP Option 252 / " +
                         "WPAD vector (CVE-2026-62755 DHCP client class). A remote or IP-literal PAC can MITM all " +
                         "browser traffic and leak visited hosts. Corporate PAC is legitimate; LogOnly.",
                         0.55, autoConfigUrl!);
@@ -764,7 +764,7 @@ namespace Sentinel.Core
                     "WPAD Auto-Proxy PAC Changed",
                     $"AutoConfigURL changed from '{Redact(_baselineAutoConfigUrl)}' to '{Redact(autoConfigUrl)}'",
                     "The Proxy Auto-Config URL was rewritten after Sentinel started. A rogue DHCP server (Option 252) " +
-                    "or malware can point the WinHTTP/WinINET auto-proxy resolver at an attacker-controlled PAC — " +
+                    "or malware can point the WinHTTP/WinINET auto-proxy resolver at an attacker-controlled PAC - " +
                     "JavaScript that reroutes every browser through a MITM proxy. Unexpected PAC changes are a strong " +
                     "network-hijack indicator. Does not revert the setting; LogOnly + chain fuel.",
                     conf, autoConfigUrl ?? "(cleared)");

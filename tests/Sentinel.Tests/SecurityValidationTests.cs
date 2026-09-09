@@ -5,7 +5,7 @@ namespace Sentinel.Tests
 {
     public class SecurityValidationTests
     {
-        // ── IsSafeFilename ──────────────────────────────────────────────────
+        //  IsSafeFilename 
 
         [Theory]
         [InlineData("report.pdf")]
@@ -61,7 +61,7 @@ namespace Sentinel.Tests
             Assert.False(SecurityValidation.IsSafeFilename(filename));
         }
 
-        // ── IsPathWithinDirectory ───────────────────────────────────────────
+        //  IsPathWithinDirectory 
 
         [Theory]
         [InlineData(@"C:\ProgramData\Sentinel\Quarantine\file.quarantined", @"C:\ProgramData\Sentinel\Quarantine")]
@@ -90,7 +90,7 @@ namespace Sentinel.Tests
             Assert.False(SecurityValidation.IsPathWithinDirectory(fullPath!, expectedDir!));
         }
 
-        // ── IsPrivateIpAddress ──────────────────────────────────────────────
+        //  IsPrivateIpAddress 
 
         [Theory]
         [InlineData("127.0.0.1")]
@@ -127,7 +127,7 @@ namespace Sentinel.Tests
             Assert.True(SecurityValidation.IsPrivateIpAddress(ip!));
         }
 
-        // ── IsValidProcessId ────────────────────────────────────────────────
+        //  IsValidProcessId 
 
         [Theory]
         [InlineData(1)]
@@ -152,7 +152,7 @@ namespace Sentinel.Tests
             Assert.False(SecurityValidation.IsValidProcessId(pid));
         }
 
-        // ── IsValidPort ─────────────────────────────────────────────────────
+        //  IsValidPort 
 
         [Theory]
         [InlineData(1)]
@@ -175,7 +175,7 @@ namespace Sentinel.Tests
             Assert.False(SecurityValidation.IsValidPort(port));
         }
 
-        // ── IsValidTimestamp ────────────────────────────────────────────────
+        //  IsValidTimestamp 
 
         [Fact]
         public void IsValidTimestamp_AcceptsRecentTimestamp()
@@ -198,7 +198,7 @@ namespace Sentinel.Tests
             Assert.False(SecurityValidation.IsValidTimestamp(System.DateTime.MaxValue));
         }
 
-        // ── SecureCompare ───────────────────────────────────────────────────
+        //  SecureCompare 
 
         [Fact]
         public void SecureCompare_ReturnsTrueForEqualArrays()
@@ -225,7 +225,7 @@ namespace Sentinel.Tests
             Assert.False(SecurityValidation.SecureCompare(null, null));
         }
 
-        // ── VerifyAuthenticodeSignature ─────────────────────────────────────
+        //  VerifyAuthenticodeSignature 
 
         [Fact]
         public void VerifyAuthenticodeSignature_ReturnsFalseForNullOrEmpty()

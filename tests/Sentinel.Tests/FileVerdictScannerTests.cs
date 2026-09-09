@@ -15,7 +15,7 @@ namespace Sentinel.Tests
         [Fact]
         public async Task HashReputationService_CirclFastPath_ReturnsSafe_BeforeMalwareBazaar()
         {
-            // Predefined safe hash bypasses both APIs — confirms the fast-path ordering
+            // Predefined safe hash bypasses both APIs - confirms the fast-path ordering
             var tempDir = Path.Combine(Path.GetTempPath(), "fvs_test_" + Guid.NewGuid().ToString("N")[..8]);
             Directory.CreateDirectory(tempDir);
             try
@@ -88,7 +88,7 @@ namespace Sentinel.Tests
         public void FileVerdictAds_UnsafeVerdict_IsLoggedOnly()
         {
             // v1.6.4: DenyExecution was removed. Sentinel is observe-only for file verdicts.
-            // This test verifies the old ACL-blocking behavior is gone — unsafe verdicts
+            // This test verifies the old ACL-blocking behavior is gone - unsafe verdicts
             // are logged but never modify file permissions.
             var tempDir = Path.Combine(Path.GetTempPath(), "fvs_deny_test_" + Guid.NewGuid().ToString("N")[..8]);
             Directory.CreateDirectory(tempDir);
@@ -112,7 +112,7 @@ namespace Sentinel.Tests
                         break;
                     }
                 }
-                Assert.False(hasDenyExecute, "No Deny Execute ACL should exist — Sentinel is observe-only");
+                Assert.False(hasDenyExecute, "No Deny Execute ACL should exist - Sentinel is observe-only");
             }
             finally
             {

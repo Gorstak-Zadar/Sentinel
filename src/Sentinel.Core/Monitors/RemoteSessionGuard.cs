@@ -1,4 +1,4 @@
-// Ported from Credentials/ES.ps1 — terminate unauthorized non-console remote sessions.
+// Ported from Credentials/ES.ps1 - terminate unauthorized non-console remote sessions.
 // AV-safe: WTS APIs only (no keyboard hooks, no shelling rwinsta/qwinsta when possible).
 
 using System;
@@ -28,7 +28,7 @@ namespace Sentinel.Core
         private readonly SentinelConfig _config;
         private readonly ILogger<RemoteSessionGuard> _logger;
 
-        // Dedup: SessionId → last alert time
+        // Dedup: SessionId -> last alert time
         private readonly ConcurrentDictionary<int, DateTime> _alertedSessions = new();
 
         private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(5);
@@ -45,9 +45,9 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            // v2.5.5: Hardening is always-on — always enforce remote session termination.
+            // v2.5.5: Hardening is always-on - always enforce remote session termination.
             _logger.LogInformation(
-                "[RemoteSessionGuard] Active — polling Terminal Services sessions every 5s");
+                "[RemoteSessionGuard] Active - polling Terminal Services sessions every 5s");
 
             try { await Task.Delay(TimeSpan.FromSeconds(10), ct); }
             catch (OperationCanceledException) { return; }

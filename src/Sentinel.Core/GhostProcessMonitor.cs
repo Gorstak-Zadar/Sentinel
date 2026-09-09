@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// Detects "ghost" processes — PIDs with active outbound network connections
+    /// Detects "ghost" processes - PIDs with active outbound network connections
     /// whose process name cannot be resolved or was recorded as empty/unknown.
     ///
     /// This is the exact blind spot exploited by PlugX and similar RATs:
@@ -21,15 +21,15 @@ namespace Sentinel.Core
     ///   2. The legitimate binary gets hollowed or the process exits quickly
     ///   3. TCP connections persist under the original PID (or re-spawned PID)
     ///   4. ProcessAncestryCache records empty name from hollowed ETW event
-    ///   5. BeaconingDetector fires but process name is empty — low forensic value
+    ///   5. BeaconingDetector fires but process name is empty - low forensic value
     ///
     /// This monitor catches the gap: any PID with established outbound connections
     /// that cannot be resolved to a valid, signed process image is immediately
     /// suspicious and investigated.
     ///
     /// MitM / fake-Chromecast chain (post-incident):
-    ///   Planted root cert → invisible/hollowed process → TCP to rogue Cast :8008/:8009.
-    /// When MitmDefense is on, ghost→Cast/rogue-IP is immediate kill + isolate (no 2-scan wait).
+    ///   Planted root cert -> invisible/hollowed process -> TCP to rogue Cast :8008/:8009.
+    /// When MitmDefense is on, ghost->Cast/rogue-IP is immediate kill + isolate (no 2-scan wait).
     ///
     /// Scan interval: 15 seconds (catches short-lived RAT processes between
     /// BeaconingDetector's 30s analysis cycle).
@@ -56,8 +56,8 @@ namespace Sentinel.Core
         // Ports commonly abused by RATs masquerading as legitimate traffic
         private static readonly HashSet<int> SuspiciousMasqueradePorts = new()
         {
-            5228, // Google FCM — PlugX favorite
-            8009, // Chromecast — lateral movement indicator
+            5228, // Google FCM - PlugX favorite
+            8009, // Chromecast - lateral movement indicator
             4443, // Common C2 alt-HTTPS
             8443, // Alt HTTPS
             8080, // Alt HTTP
@@ -164,7 +164,7 @@ namespace Sentinel.Core
                 }
                 else if (resolution.IsEmptyName)
                 {
-                    // Process exists but has empty name — ETW recorded it with blank ImageName
+                    // Process exists but has empty name - ETW recorded it with blank ImageName
                     // This is a strong indicator of process hollowing or image swap
                     var conns = group.ToList();
                     bool hasSuspiciousPort = conns.Any(c => SuspiciousMasqueradePorts.Contains(c.RemotePort));
@@ -218,7 +218,7 @@ namespace Sentinel.Core
                 confidence = 0.96;
                 response = ResponseAction.KillProcessTree;
                 if (mitmGhostCast)
-                    ruleName = "Ghost Process: Invisible Process → Fake Chromecast / Rogue Cast (MitM chain)";
+                    ruleName = "Ghost Process: Invisible Process -> Fake Chromecast / Rogue Cast (MitM chain)";
             }
             else if (connectsToPhantomDevice && hasSuspiciousPort)
             {
@@ -265,7 +265,7 @@ namespace Sentinel.Core
                            $"to [{destinations}] but cannot be resolved to a running process. " +
                            $"Observed in {state.SeenCount} consecutive scans." +
                            (connectsToBlockedDevice ? " TARGET IS A BLOCKED PHANTOM DEVICE." : "") +
-                           (mitmGhostCast ? " MITM CHAIN: invisible process ↔ Cast/rogue Chromecast." : ""),
+                           (mitmGhostCast ? " MITM CHAIN: invisible process <-> Cast/rogue Chromecast." : ""),
                 Reasoning = "A process ID owns active outbound TCP connections but the process " +
                             "cannot be resolved via Process.GetProcessById or the ancestry cache. " +
                             "This occurs when a process exits but its connections persist (orphaned sockets), " +
@@ -273,9 +273,9 @@ namespace Sentinel.Core
                             "to terminate while the injected code's network activity continues under the original PID. " +
                             (mitmGhostCast
                                 ? "Post-incident MitM pattern: planted root cert powers trust for an invisible process " +
-                                  "that C2s through a fake Chromecast (Cast :8008/:8009) on the LAN — kill + isolate."
+                                  "that C2s through a fake Chromecast (Cast :8008/:8009) on the LAN - kill + isolate."
                                 : connectsToBlockedDevice
-                                    ? "The target IP is a device already blocked by PhantomDeviceMonitor — confirmed C2 relay."
+                                    ? "The target IP is a device already blocked by PhantomDeviceMonitor - confirmed C2 relay."
                                     : "PlugX, ShadowPad, and Mustang Panda specifically exploit this technique."),
                 Confidence = confidence,
                 Tier = DetectionTier.Tier1Behavioral,
@@ -289,7 +289,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Invisible process talking to Cast ports or known rogue Cast IPs under MitmDefense.
-        /// Matches the planted-cert → ghost process → fake Chromecast C2 pattern.
+        /// Matches the planted-cert -> ghost process -> fake Chromecast C2 pattern.
         /// </summary>
         private bool IsMitmGhostCastRelay(IEnumerable<ConnectionInfo> connections)
         {
@@ -339,7 +339,7 @@ namespace Sentinel.Core
                 confidence = 0.96;
                 response = ResponseAction.KillProcessTree;
                 if (mitmGhostCast)
-                    ruleName = "Ghost Process: Empty-Name Process → Fake Chromecast (MitM chain)";
+                    ruleName = "Ghost Process: Empty-Name Process -> Fake Chromecast (MitM chain)";
             }
             else if (hasSuspiciousPort)
             {
@@ -376,15 +376,15 @@ namespace Sentinel.Core
                            $"to [{destinations}] but process name is empty/blank. " +
                            $"Image path: '{resolution.ImagePath ?? "unknown"}'" +
                            (connectsToBlockedDevice ? " TARGET IS A BLOCKED PHANTOM DEVICE." : "") +
-                           (mitmGhostCast ? " MITM CHAIN: hollowed process ↔ fake Chromecast." : ""),
+                           (mitmGhostCast ? " MITM CHAIN: hollowed process <-> fake Chromecast." : ""),
                 Reasoning = "A process with an empty/unresolvable name is maintaining active outbound " +
                             "network connections. Empty process names in ETW telemetry indicate the " +
-                            "ImageName field was blank at process creation — a hallmark of process hollowing " +
+                            "ImageName field was blank at process creation - a hallmark of process hollowing " +
                             "(T1055.012) where the original image is unmapped after spawn. " +
                             (mitmGhostCast
                                 ? "Planted cert + hollowed process + Cast :8009 = MitM fake-Chromecast C2; kill authorized."
                                 : connectsToBlockedDevice || connectsToPhantomOnCastPort
-                                    ? "The target is a confirmed rogue LAN device — kill authorized."
+                                    ? "The target is a confirmed rogue LAN device - kill authorized."
                                     : "RATs like PlugX use this to evade name-based allowlists in security tools."),
                 Confidence = confidence,
                 Tier = DetectionTier.Tier1Behavioral,
@@ -425,7 +425,7 @@ namespace Sentinel.Core
             }
             catch (ArgumentException)
             {
-                // Process doesn't exist — true ghost
+                // Process doesn't exist - true ghost
                 resolution.IsGhost = true;
                 resolution.Source = "none";
                 return resolution;
@@ -438,7 +438,7 @@ namespace Sentinel.Core
             }
             catch (System.ComponentModel.Win32Exception)
             {
-                // Access denied — process exists but we can't read it
+                // Access denied - process exists but we can't read it
                 // Still suspicious if ancestry cache has empty name
                 if (cachedName == "unknown" || string.IsNullOrEmpty(cachedName))
                 {

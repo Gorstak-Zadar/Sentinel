@@ -90,7 +90,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[PersistentConnectionMonitor] Started — tracking long-lived connections for webhook/pairing C2 patterns");
+            _logger.LogInformation("[PersistentConnectionMonitor] Started - tracking long-lived connections for webhook/pairing C2 patterns");
 
             // Wait for system to stabilize
             await Task.Delay(60000, ct);
@@ -150,7 +150,7 @@ namespace Sentinel.Core
                     var duration = state.LastSeen - state.FirstSeen;
                     if (duration >= PersistentThreshold && !IsLegitimate(state.ProcessName, state.Pid))
                     {
-                        // Long-lived connection just dropped — monitor for defensive behavior
+                        // Long-lived connection just dropped - monitor for defensive behavior
                         _droppedConnections[key] = new DroppedConnection
                         {
                             State = state,
@@ -159,7 +159,7 @@ namespace Sentinel.Core
                         };
 
                         _logger.LogInformation(
-                            "[PersistentConnectionMonitor] Long-lived connection dropped: {Process} (PID {Pid}) → {Ip}:{Port} (held {Dur:F0}s)",
+                            "[PersistentConnectionMonitor] Long-lived connection dropped: {Process} (PID {Pid}) -> {Ip}:{Port} (held {Dur:F0}s)",
                             state.ProcessName, state.Pid, state.RemoteIp, state.RemotePort, duration.TotalSeconds);
                     }
                 }
@@ -211,7 +211,7 @@ namespace Sentinel.Core
                                        $"and immediately connected to {newConnFromSamePid.Count} new endpoints: {targets}",
                             Reasoning = "A process maintained a long-lived connection (webhook/pairing pattern) to a remote host. " +
                                         "When that connection was severed, the process immediately initiated connections to multiple " +
-                                        "alternative endpoints. This is characteristic of C2 implants with failover logic — " +
+                                        "alternative endpoints. This is characteristic of C2 implants with failover logic - " +
                                         "when the primary relay dies, they cycle through backup servers." +
                                         (isSigned ? " Process is Authenticode-signed; demoted to log-only." : ""),
                             Confidence = effectiveConfidence,
@@ -241,7 +241,7 @@ namespace Sentinel.Core
                         {
                             try
                             {
-                                // Compare start time — children spawned after the drop
+                                // Compare start time - children spawned after the drop
                                 return p.StartTime.ToUniversalTime() > drop.DroppedAt &&
                                        p.Id != drop.State.Pid && p.Id > 4;
                             }
@@ -282,7 +282,7 @@ namespace Sentinel.Core
                                            $"{drop.State.RemoteIp}:{drop.State.RemotePort} and spawned {recentChildren.Count} " +
                                            $"child processes within 10s: {childNames}",
                                 Reasoning = "After losing a long-held C2 connection, the process immediately spawned multiple child " +
-                                            "processes. This is a defensive reaction — the implant is launching recovery routines, " +
+                                            "processes. This is a defensive reaction - the implant is launching recovery routines, " +
                                             "persistence re-establishment, or alternative communication channels." +
                                             (isSignedSpawn ? " Process is Authenticode-signed; demoted to log-only." : ""),
                                 Confidence = spawnConfidence,
@@ -314,7 +314,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Called by DnsQueryMonitor when a DNS query is observed.
-        /// Used to correlate: process loses connection → immediately floods DNS for same/similar domain.
+        /// Used to correlate: process loses connection -> immediately floods DNS for same/similar domain.
         /// </summary>
         public void RecordDnsQuery(int pid, string domain)
         {
@@ -352,7 +352,7 @@ namespace Sentinel.Core
                                    $"{tracker.QueryCount} DNS queries within {PostDropWindow.TotalSeconds}s. " +
                                    $"Top domains: {topDomains}",
                         Reasoning = "After a long-held connection was severed, the process immediately began flooding DNS " +
-                                    "queries — attempting to re-resolve the C2 host or find alternative relay domains. " +
+                                    "queries - attempting to re-resolve the C2 host or find alternative relay domains. " +
                                     "Legitimate software retries gracefully with backoff. Malware hammers DNS immediately.",
                         Confidence = _signerTrust != null ? _signerTrust.AdjustConfidence(0.88, pid) : 0.88,
                         Tier = DetectionTier.Tier1Behavioral,
@@ -545,7 +545,7 @@ namespace Sentinel.Core
             foreach (var k in staleDrops) _droppedConnections.TryRemove(k, out _);
         }
 
-        // ── Internal types ──
+        //  Internal types 
 
         private record struct ConnectionState
         {

@@ -4,14 +4,14 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for WslMonitor — verifies WSL/container detection logic,
+    /// Tests for WslMonitor - verifies WSL/container detection logic,
     /// lateral movement classification, and detection model behavior.
     /// </summary>
     public class WslMonitorTests
     {
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Detection model validation
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void WslProcessSpawn_DetectionModel()
@@ -65,9 +65,9 @@ namespace Sentinel.Tests
             Assert.Equal(0.90, detection.Confidence);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // WSL file access patterns
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData(@"\\wsl$\Ubuntu\etc\shadow")]
@@ -87,9 +87,9 @@ namespace Sentinel.Tests
             Assert.False(path.StartsWith(@"\\wsl"));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Distro detection validation
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("Ubuntu")]
@@ -103,9 +103,9 @@ namespace Sentinel.Tests
             Assert.DoesNotContain(" ", distro); // WSL distro names don't have spaces
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Container-to-host lateral movement
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void LateralMovement_HighConfidence_WhenToolchainsDetected()

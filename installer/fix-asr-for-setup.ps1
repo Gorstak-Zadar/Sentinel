@@ -1,6 +1,6 @@
 # Allow SentinelSetup / Inno temp extract past Defender ASR ransomware rule.
 # The Event Viewer block ID is: C1DB55AB-C21A-4637-BB3F-A12568109D35
-# ("Use advanced protection against ransomware") — action Block.
+# ("Use advanced protection against ransomware") - action Block.
 #
 # Run in elevated PowerShell, then re-run SentinelSetup-*.exe:
 #   powershell -ExecutionPolicy Bypass -File .\fix-asr-for-setup.ps1
@@ -51,4 +51,4 @@ foreach ($path in $paths) {
 
 Write-Host ""
 Write-Host "Done. Re-run SentinelSetup-1.9.6.exe as Administrator, or install-no-inno.ps1." -ForegroundColor Cyan
-Write-Host "Do NOT re-enable rule $RuleId in Block mode — it breaks Inno Setup." -ForegroundColor Yellow
+Write-Host "Do NOT re-enable rule $RuleId in Block mode - it breaks Inno Setup." -ForegroundColor Yellow

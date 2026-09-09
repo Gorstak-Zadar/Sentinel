@@ -19,11 +19,11 @@ namespace Sentinel.Core
     /// short-lived "ephemeral" processes that spawn and exit before WMI fires.
     ///
     /// Detection methods:
-    /// 1. Prefetch file monitoring — Windows creates .pf files for every executable
+    /// 1. Prefetch file monitoring - Windows creates .pf files for every executable
     ///    that runs, even if only for milliseconds. New .pf files = new process ran.
-    /// 2. Process audit log polling (Event ID 4688) — if enabled via policy.
-    /// 3. AppCompat shimcache — records every binary executed regardless of duration.
-    /// 4. AmCache delta — hive entries for new executables.
+    /// 2. Process audit log polling (Event ID 4688) - if enabled via policy.
+    /// 3. AppCompat shimcache - records every binary executed regardless of duration.
+    /// 4. AmCache delta - hive entries for new executables.
     ///
     /// This catches "flash" payloads that execute in &lt;500ms: droppers that unpack
     /// and delete themselves, exec-and-exit stagers, and fast credential dumpers.
@@ -48,7 +48,7 @@ namespace Sentinel.Core
             Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Prefetch");
 
         // Executables that commonly create short-lived processes.
-        // SECURITY: Name-only trust is verified by path check below — only system-directory
+        // SECURITY: Name-only trust is verified by path check below - only system-directory
         // binaries are auto-cleared. Non-system instances with these names still trigger detection.
         // Exception: tools commonly extracted temporarily by legitimate scripts (aria2c, 7z, etc.)
         // which are gone before we can verify their path. These produce ResponseAction.LogOnly
@@ -171,7 +171,7 @@ namespace Sentinel.Core
             var exeName = ExtractExeNameFromPrefetch(prefetchFileName);
             if (string.IsNullOrEmpty(exeName)) return;
 
-            // Skip known-good ephemeral processes — but ONLY if binary is in a system directory.
+            // Skip known-good ephemeral processes - but ONLY if binary is in a system directory.
             // HARDENING v1.3.0: Name-only checks allow attackers to name malware "runtimebroker.exe"
             // in a Temp folder and bypass ephemeral process detection entirely.
             var baseName = Path.GetFileNameWithoutExtension(exeName);
@@ -187,9 +187,9 @@ namespace Sentinel.Core
                 }
                 else
                 {
-                    return; // Binary not found — already gone, likely legitimate short-lived system process
+                    return; // Binary not found - already gone, likely legitimate short-lived system process
                 }
-                // Name matches but NOT in system directory — continue detection (possible masquerading)
+                // Name matches but NOT in system directory - continue detection (possible masquerading)
             }
 
             // Official installers / Inno extractors: short-lived + "missing path" is normal unpack, not a dropper.
@@ -203,7 +203,7 @@ namespace Sentinel.Core
 
             // Games (esp. Denuvo / Football Manager): crash or anti-cheat self-exit looks like
             // "self-deleted dropper" because FindExecutable does not walk Steam library roots.
-            // Name skip only suppresses this Prefetch false positive — not a trust grant.
+            // Name skip only suppresses this Prefetch false positive - not a trust grant.
             if (IsKnownGameEphemeralName(baseName) || IsKnownGameEphemeralName(exeName))
                 return;
 
@@ -217,14 +217,14 @@ namespace Sentinel.Core
             // Check if this process is still running (if not, it was ephemeral)
             var stillRunning = Process.GetProcessesByName(baseName).Length > 0;
 
-            // If still running, WMI will catch it — we only care about the gap
+            // If still running, WMI will catch it - we only care about the gap
             if (stillRunning) return;
 
             // This process ran and exited before WMI could report it
             // Try to find the executable on disk for reputation check
             var exePath = FindExecutable(exeName!);
 
-            // v2.3.1: Second-chance game-path check — if FindExecutable resolved the binary
+            // v2.3.1: Second-chance game-path check - if FindExecutable resolved the binary
             // to a known game directory, suppress detection. Covers the case where the
             // name-only check above didn't match (e.g. game-specific launcher binary).
             if (exePath != null && SecurityValidation.IsGameOrAntiCheatPath(exePath))
@@ -233,7 +233,7 @@ namespace Sentinel.Core
             bool isSuspiciousPath = exePath != null &&
                 SuspiciousStagingPaths.Any(p => exePath.Contains(p));
 
-            // If the executable no longer exists on disk — self-deletion pattern
+            // If the executable no longer exists on disk - self-deletion pattern
             bool selfDeleted = exePath == null || !File.Exists(exePath);
 
             double confidence;
@@ -265,7 +265,7 @@ namespace Sentinel.Core
                 Type = "EphemeralProcess",
                 ProcessName = exeName!,
                 ImagePath = exePath ?? "(deleted)",
-                CommandLine = "(ephemeral — captured via Prefetch)",
+                CommandLine = "(ephemeral - captured via Prefetch)",
                 ProcessId = 0, // Already exited
                 Timestamp = DateTime.UtcNow
             });
@@ -277,7 +277,7 @@ namespace Sentinel.Core
                     : "Ephemeral Process: Short-Lived Execution",
                 Evidence = $"Executable '{exeName}' ran and exited within WMI latency window. " +
                            $"Prefetch entry: {prefetchFileName}. " +
-                           $"Path: {exePath ?? "(binary not found — self-deleted)"}. " +
+                           $"Path: {exePath ?? "(binary not found - self-deleted)"}. " +
                            (selfDeleted ? "Binary no longer on disk (dropper pattern)." : ""),
                 Reasoning = selfDeleted
                     ? "A process executed and deleted its own binary before WMI could report the " +
@@ -353,7 +353,7 @@ namespace Sentinel.Core
                     // Check if still running
                     if (Process.GetProcessesByName(baseName).Length > 0) continue;
 
-                    // Already exited — ephemeral process caught by audit log
+                    // Already exited - ephemeral process caught by audit log
                     // Submit as telemetry but with lower confidence (audit log is better than prefetch)
                     _fusionEngine.FeedEvent(new ProcessTelemetry
                     {
@@ -420,7 +420,7 @@ namespace Sentinel.Core
                 if (File.Exists(candidate)) return candidate;
             }
 
-            // Steam libraries (fixed + libraryfolders.vdf) — games are not "self-deleted droppers"
+            // Steam libraries (fixed + libraryfolders.vdf) - games are not "self-deleted droppers"
             foreach (var steamRoot in EnumerateSteamLibraryRoots())
             {
                 try

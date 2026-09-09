@@ -1,11 +1,11 @@
-// GPU Process Anomaly Monitor — detects hardware acceleration exploitation and GPU sandbox escapes
+// GPU Process Anomaly Monitor - detects hardware acceleration exploitation and GPU sandbox escapes
 // v2.1.5: New monitor. SystemIntegrity Group.
 //
 // Threat model:
 //   Browser GPU processes (chrome --type=gpu-process, msedge --gpu-process, etc.) are sandboxed
 //   helpers that should NEVER: spawn child processes, open network connections, touch LSASS,
 //   write registry, or load unexpected DLLs. If they do, it means a WebGL/WebGPU exploit
-//   achieved sandbox escape — the most dangerous browser attack chain.
+//   achieved sandbox escape - the most dangerous browser attack chain.
 //
 //   Additionally, outdated GPU drivers with known privilege-escalation CVEs are flagged
 //   as Tier2 informational alerts so users know to update.
@@ -40,10 +40,10 @@ namespace Sentinel.Core
     ///   5. Periodic GPU driver version audit against known-vulnerable CVE ranges
     ///
     /// Response:
-    ///   - GPU helper spawning child process → KillProcessTree (Tier1, 0.95)
-    ///   - GPU helper with outbound network connections → KillProcessTree (Tier1, 0.92)
-    ///   - GPU helper with suspicious DLL → LogOnly (Tier1, 0.80) — needs corroboration
-    ///   - Vulnerable GPU driver version → LogOnly (Tier2, 0.70) — informational
+    ///   - GPU helper spawning child process -> KillProcessTree (Tier1, 0.95)
+    ///   - GPU helper with outbound network connections -> KillProcessTree (Tier1, 0.92)
+    ///   - GPU helper with suspicious DLL -> LogOnly (Tier1, 0.80) - needs corroboration
+    ///   - Vulnerable GPU driver version -> LogOnly (Tier2, 0.70) - informational
     ///
     /// Scans every 20s for process anomalies, every 6h for driver audit.
     /// Does NOT touch gaming, video playback, or GPU compute workloads.
@@ -62,7 +62,7 @@ namespace Sentinel.Core
 
         private DateTime _lastDriverAudit = DateTime.MinValue;
 
-        // Browser GPU process identifiers — these are the sandboxed GPU helpers
+        // Browser GPU process identifiers - these are the sandboxed GPU helpers
         private static readonly HashSet<string> BrowserProcessNames = new(StringComparer.OrdinalIgnoreCase)
         {
             "chrome", "msedge", "brave", "vivaldi", "opera", "chromium",
@@ -72,33 +72,33 @@ namespace Sentinel.Core
         // DLLs that should NEVER appear in a legitimate GPU helper process
         private static readonly HashSet<string> SuspiciousDllsInGpuProcess = new(StringComparer.OrdinalIgnoreCase)
         {
-            "amsi.dll",          // AMSI — why would GPU process need this? Indicates script eval
-            "clr.dll",           // .NET CLR — GPU process shouldn't load managed code
-            "clrjit.dll",        // .NET JIT — same
-            "mscorlib.ni.dll",   // .NET managed — same
+            "amsi.dll",          // AMSI - why would GPU process need this? Indicates script eval
+            "clr.dll",           // .NET CLR - GPU process shouldn't load managed code
+            "clrjit.dll",        // .NET JIT - same
+            "mscorlib.ni.dll",   // .NET managed - same
             "powershell.exe",    // Should not be loaded as DLL/module
             "vaultcli.dll",      // Credential vault access
             "samlib.dll",        // SAM database access
             "wdigest.dll",       // Credential harvesting
-            "dbghelp.dll",       // Debugging — post-exploitation indicator
+            "dbghelp.dll",       // Debugging - post-exploitation indicator
             "dbgcore.dll",       // Debugging
-            "winhttp.dll",       // HTTP client — GPU process uses raw sockets via driver, not WinHTTP
-            "urlmon.dll",        // URL moniker — shouldn't be in GPU sandbox
-            "jscript.dll",       // JavaScript engine — not in GPU process
-            "vbscript.dll",      // VBScript — definitely not
+            "winhttp.dll",       // HTTP client - GPU process uses raw sockets via driver, not WinHTTP
+            "urlmon.dll",        // URL moniker - shouldn't be in GPU sandbox
+            "jscript.dll",       // JavaScript engine - not in GPU process
+            "vbscript.dll",      // VBScript - definitely not
             "scrrun.dll",        // Scripting runtime
             "wbemdisp.dll",      // WMI scripting
-            "netapi32.dll",      // Network management APIs — not for GPU
+            "netapi32.dll",      // Network management APIs - not for GPU
         };
 
         // Known vulnerable GPU driver version ranges (NVIDIA)
         // Format: (minVersion, maxVersion, cveId, description)
         private static readonly List<VulnerableDriverRange> NvidiaVulnerableRanges = new()
         {
-            // GPUBreach — Rowhammer-based privilege escalation via CUDA
+            // GPUBreach - Rowhammer-based privilege escalation via CUDA
             new("535.0", "535.183", "CVE-2024-0126", "NVIDIA privilege escalation via kernel mode layer"),
             new("540.0", "546.32", "CVE-2024-0126", "NVIDIA privilege escalation via kernel mode layer"),
-            // CVE-2026-24190 — kernel mode driver improper GPU resource access
+            // CVE-2026-24190 - kernel mode driver improper GPU resource access
             new("550.0", "553.23", "CVE-2026-24190", "NVIDIA Display Driver kernel mode privilege escalation"),
             new("555.0", "556.11", "CVE-2026-24190", "NVIDIA Display Driver kernel mode privilege escalation"),
         };
@@ -118,7 +118,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[GpuProcessMonitor] Started — monitoring browser GPU processes for sandbox escape indicators");
+            _logger.LogInformation("[GpuProcessMonitor] Started - monitoring browser GPU processes for sandbox escape indicators");
 
             // Initial delay to let other monitors start
             await Task.Delay(15000, ct);
@@ -149,9 +149,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // DETECTION 1: GPU Process Anomaly Scan
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private async Task ScanGpuProcessesForAnomaliesAsync(CancellationToken ct)
         {
@@ -262,11 +262,11 @@ namespace Sentinel.Core
 
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
-                        RuleName = "GpuProcessMonitor: GPU Sandbox Escape — Child Process Spawned",
+                        RuleName = "GpuProcessMonitor: GPU Sandbox Escape - Child Process Spawned",
                         Evidence = $"Browser GPU helper '{browserName}' (PID {gpuPid}) spawned child processes: {childDesc}. " +
                                    $"GPU helpers are sandboxed and should never spawn processes.",
                         Reasoning = "A browser GPU helper process (--type=gpu-process) spawned one or more child processes. " +
-                                    "This is a definitive indicator of GPU sandbox escape — likely via a WebGL/WebGPU memory safety " +
+                                    "This is a definitive indicator of GPU sandbox escape - likely via a WebGL/WebGPU memory safety " +
                                     "vulnerability (use-after-free, heap overflow, or out-of-bounds write in the GPU command buffer). " +
                                     "The attacker has broken out of the GPU sandbox and achieved code execution.",
                         Confidence = 0.95,
@@ -303,7 +303,7 @@ namespace Sentinel.Core
             {
                 var connections = GetTcpConnectionsForPid(gpuPid);
 
-                // Filter out loopback connections (GPU ↔ browser IPC can use localhost sockets)
+                // Filter out loopback connections (GPU <-> browser IPC can use localhost sockets)
                 var externalConnections = connections
                     .Where(c => !IsLoopback(c.remoteIp) && c.state == TcpState.Established)
                     .ToList();
@@ -315,11 +315,11 @@ namespace Sentinel.Core
 
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
-                        RuleName = "GpuProcessMonitor: GPU Sandbox Escape — Outbound Network Connection",
+                        RuleName = "GpuProcessMonitor: GPU Sandbox Escape - Outbound Network Connection",
                         Evidence = $"Browser GPU helper '{browserName}' (PID {gpuPid}) has outbound TCP connections: {connDesc}. " +
                                    $"GPU helper processes should not make network connections directly.",
                         Reasoning = "A browser GPU helper process has established outbound TCP connections to external hosts. " +
-                                    "In Chromium's architecture, ALL network I/O routes through the browser (main) process — " +
+                                    "In Chromium's architecture, ALL network I/O routes through the browser (main) process - " +
                                     "the GPU process communicates only via IPC (Mojo/shared memory) with the browser process. " +
                                     "Direct outbound connections from the GPU helper indicate sandbox escape followed by " +
                                     "C2 channel establishment or data exfiltration.",
@@ -376,7 +376,7 @@ namespace Sentinel.Core
                 }
                 catch (System.ComponentModel.Win32Exception)
                 {
-                    // Access denied — common for SYSTEM inspecting sandboxed processes
+                    // Access denied - common for SYSTEM inspecting sandboxed processes
                     // This is expected and not an error
                     return;
                 }
@@ -401,7 +401,7 @@ namespace Sentinel.Core
                                     "following a GPU sandbox escape.",
                         Confidence = 0.80,
                         Tier = DetectionTier.Tier1Behavioral,
-                        AuthorizedResponse = ResponseAction.LogOnly, // Needs corroboration — DLL enum can have edge cases
+                        AuthorizedResponse = ResponseAction.LogOnly, // Needs corroboration - DLL enum can have edge cases
                         ProcessName = browserName,
                         ProcessId = gpuPid,
                         SignalType = SignalType.SuspiciousProcess,
@@ -418,7 +418,7 @@ namespace Sentinel.Core
             }
             catch (ArgumentException)
             {
-                // Process exited between enumeration and inspection — normal
+                // Process exited between enumeration and inspection - normal
             }
             catch (Exception ex)
             {
@@ -426,14 +426,14 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // DETECTION 2: GPU Driver Version Audit
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Queries installed GPU driver versions from registry and compares against
         /// known-vulnerable version ranges. Generates Tier2/LogOnly informational alerts.
-        /// Does NOT block anything — purely advisory for the user to update drivers.
+        /// Does NOT block anything - purely advisory for the user to update drivers.
         /// </summary>
         private async Task AuditGpuDriverVersionsAsync(CancellationToken ct)
         {
@@ -473,7 +473,7 @@ namespace Sentinel.Core
                     {
                         RuleName = "GpuProcessMonitor: Vulnerable NVIDIA Driver Detected",
                         Evidence = $"NVIDIA GPU driver version {version} is within vulnerable range " +
-                                   $"{range.MinVersion}–{range.MaxVersion}. Affected by {range.CveId}: {range.Description}.",
+                                   $"{range.MinVersion}-{range.MaxVersion}. Affected by {range.CveId}: {range.Description}.",
                         Reasoning = "The installed NVIDIA GPU driver version falls within a known-vulnerable range. " +
                                     "GPU driver vulnerabilities can be exploited for local privilege escalation to kernel level, " +
                                     "or chained with browser WebGL/WebGPU exploits for remote-to-kernel attack chains. " +
@@ -489,7 +489,7 @@ namespace Sentinel.Core
                             { "DriverVendor", "NVIDIA" },
                             { "DriverVersion", version! },
                             { "CVE", range.CveId },
-                            { "VulnerableRange", $"{range.MinVersion}–{range.MaxVersion}" },
+                            { "VulnerableRange", $"{range.MinVersion}-{range.MaxVersion}" },
                             { "Recommendation", "Update NVIDIA drivers via GeForce Experience or nvidia.com" },
                         }
                     });
@@ -514,7 +514,7 @@ namespace Sentinel.Core
                     {
                         RuleName = "GpuProcessMonitor: Vulnerable AMD Driver Detected",
                         Evidence = $"AMD GPU driver version {version} is within vulnerable range " +
-                                   $"{range.MinVersion}–{range.MaxVersion}. Affected by {range.CveId}: {range.Description}.",
+                                   $"{range.MinVersion}-{range.MaxVersion}. Affected by {range.CveId}: {range.Description}.",
                         Reasoning = "The installed AMD GPU driver version falls within a known-vulnerable range. " +
                                     "GPU driver vulnerabilities can be exploited for local privilege escalation or " +
                                     "chained with browser GPU exploits for remote code execution.",
@@ -529,7 +529,7 @@ namespace Sentinel.Core
                             { "DriverVendor", "AMD" },
                             { "DriverVersion", version! },
                             { "CVE", range.CveId },
-                            { "VulnerableRange", $"{range.MinVersion}–{range.MaxVersion}" },
+                            { "VulnerableRange", $"{range.MinVersion}-{range.MaxVersion}" },
                             { "Recommendation", "Update AMD drivers via AMD Software: Adrenalin Edition" },
                         }
                     });
@@ -574,9 +574,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // HELPER: Driver Version Queries
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private string? GetNvidiaDriverVersion()
         {
@@ -634,9 +634,9 @@ namespace Sentinel.Core
             return null;
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // HELPER: Network Connection Query (TCP table via iphlpapi)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [DllImport("iphlpapi.dll", SetLastError = true)]
         private static extern uint GetExtendedTcpTable(IntPtr pTcpTable, ref int pdwSize,
@@ -706,9 +706,9 @@ namespace Sentinel.Core
             return ip == "127.0.0.1" || ip == "0.0.0.0" || ip.StartsWith("127.");
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // HELPER: Version Comparison
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static bool IsVersionInRange(string version, string min, string max)
         {
@@ -759,9 +759,9 @@ namespace Sentinel.Core
             return null;
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // HELPER: Process Utilities
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static string GetCommandLine(int pid)
         {
@@ -800,9 +800,9 @@ namespace Sentinel.Core
             foreach (var pid in expired) _alertedPids.TryRemove(pid, out _);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // INNER TYPES
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private sealed class VulnerableDriverRange
         {

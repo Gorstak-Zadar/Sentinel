@@ -11,11 +11,11 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v1.6.7: Token Theft Monitor — detects token manipulation beyond integrity level changes.
+    /// v1.6.7: Token Theft Monitor - detects token manipulation beyond integrity level changes.
     /// v1.8.0: Suppress Windows built-in false positives (Memory Compression, Registry, empty
     /// image path). Longer per-PID/rule cooldown. Empty path is no longer treated as "suspicious".
     ///
-    /// Blind spot addressed: TokenIntegrityMonitor only catches Medium→High escalation without
+    /// Blind spot addressed: TokenIntegrityMonitor only catches Medium->High escalation without
     /// consent.exe. It misses: DuplicateToken/ImpersonateLoggedOnUser from winlogon, make_token,
     /// steal_token (Cobalt Strike), and Rubeus-style Kerberos ticket manipulation that don't
     /// necessarily change the integrity level.
@@ -38,7 +38,7 @@ namespace Sentinel.Core
         private readonly ContextBus? _contextBus;
         private readonly ILogger<TokenTheftMonitor> _logger;
 
-        /// <summary>Key: "pid|ruleShort" → last alert UTC. v1.8.0: 60-minute window (was 5).</summary>
+        /// <summary>Key: "pid|ruleShort" -> last alert UTC. v1.8.0: 60-minute window (was 5).</summary>
         private readonly ConcurrentDictionary<string, DateTime> _alertedKeys = new(StringComparer.OrdinalIgnoreCase);
 
         private const int AlertCooldownMinutes = 60;
@@ -113,7 +113,7 @@ namespace Sentinel.Core
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
             _logger.LogInformation(
-                "[TokenTheftMonitor] Started — scan every 20s; OS FP allowlist + {Cooldown}m alert cooldown (v1.8.0)",
+                "[TokenTheftMonitor] Started - scan every 20s; OS FP allowlist + {Cooldown}m alert cooldown (v1.8.0)",
                 AlertCooldownMinutes);
             await Task.Delay(15000, ct); // Startup grace
 
@@ -159,7 +159,7 @@ namespace Sentinel.Core
                     {
                         string imagePath = SecurityValidation.GetProcessImagePath(pid) ?? "";
 
-                        // v1.8.0: inaccessible image path on an OS-like name → ignore (Memory Compression, etc.)
+                        // v1.8.0: inaccessible image path on an OS-like name -> ignore (Memory Compression, etc.)
                         if (string.IsNullOrEmpty(imagePath) && IsLikelyProtectedOsProcess(processName))
                             continue;
 
@@ -174,7 +174,7 @@ namespace Sentinel.Core
 
                             if (string.IsNullOrEmpty(imagePath))
                             {
-                                // Empty path without a known OS name: weak signal only — never kill/pack-grade
+                                // Empty path without a known OS name: weak signal only - never kill/pack-grade
                                 confidence = 0.55;
                                 response = ResponseAction.LogOnly;
                             }
@@ -234,7 +234,7 @@ namespace Sentinel.Core
                     {
                         string imagePath = SecurityValidation.GetProcessImagePath(pid) ?? "";
 
-                        // v1.8.0: empty path is not a potato path — skip (was treating "" as suspicious)
+                        // v1.8.0: empty path is not a potato path - skip (was treating "" as suspicious)
                         if (string.IsNullOrEmpty(imagePath))
                             continue;
 
@@ -266,7 +266,7 @@ namespace Sentinel.Core
                             {
                                 RuleName = "Token Theft: SeImpersonatePrivilege from Suspicious Path",
                                 Evidence = $"Process '{processName}' (PID {pid}) at '{Truncate(imagePath, 120)}' has SeImpersonatePrivilege enabled. " +
-                                           $"Running from a user-writable path — weak potato-class indicator only.",
+                                           $"Running from a user-writable path - weak potato-class indicator only.",
                                 Reasoning = "SeImpersonatePrivilege from a user-writable path can indicate potato tools " +
                                             "(GodPotato, JuicyPotato, PrintSpoofer) but is also normal for many portable apps. " +
                                             "Observe-first: LogOnly until confirmed (SYSTEM token theft, token-theft modules, composite).",
@@ -278,7 +278,7 @@ namespace Sentinel.Core
                                 ProcessId = pid,
                             });
 
-                            // Still publish for correlation — multi-signal attack can escalate
+                            // Still publish for correlation - multi-signal attack can escalate
                             _contextBus?.Publish(new TokenTheftSignal
                             {
                                 ProcessId = pid,
@@ -404,7 +404,7 @@ namespace Sentinel.Core
             string? path = SecurityValidation.GetProcessImagePath(pid);
             if (string.IsNullOrEmpty(path))
             {
-                // v1.8.0: no path + OS-like name → expected; bare unknown empty path is not "expected"
+                // v1.8.0: no path + OS-like name -> expected; bare unknown empty path is not "expected"
                 return IsLikelyProtectedOsProcess(name);
             }
 

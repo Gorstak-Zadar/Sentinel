@@ -1,4 +1,4 @@
-// Peripheral Monitor Group — Bluetooth device monitoring, device driver installation, and MTP transfer control
+// Peripheral Monitor Group - Bluetooth device monitoring, device driver installation, and MTP transfer control
 
 using System;
 using System.Collections.Concurrent;
@@ -20,9 +20,9 @@ using Microsoft.Win32;
 
 namespace Sentinel.Core
 {
-    // ──────────────────────────────────────────────
-    // Bluetooth Monitor — detects new unknown BT devices
-    // ──────────────────────────────────────────────
+    // 
+    // Bluetooth Monitor - detects new unknown BT devices
+    // 
     public sealed class BluetoothMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -74,15 +74,15 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Device Install Monitor — new device class installs via SetupAPI
-    // ──────────────────────────────────────────────
+    // 
+    // Device Install Monitor - new device class installs via SetupAPI
+    // 
     public sealed class DeviceInstallMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
         private readonly ILogger<DeviceInstallMonitor> _logger;
         private DateTime _lastCheck;
-        // Baseline of driver service names present at startup — only alert on NEW entries
+        // Baseline of driver service names present at startup - only alert on NEW entries
         private readonly HashSet<string> _baselineDrivers = new(StringComparer.OrdinalIgnoreCase);
 
         public DeviceInstallMonitor(DetectionEngine de, ILogger<DeviceInstallMonitor> l) { _detectionEngine = de; _logger = l; }
@@ -203,9 +203,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // MTP Transfer Guard — blocks writing non-media files to portable devices (phones)
-    // ──────────────────────────────────────────────
+    // 
+    // MTP Transfer Guard - blocks writing non-media files to portable devices (phones)
+    // 
     public sealed class MtpTransferGuard : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -244,7 +244,7 @@ namespace Sentinel.Core
         // Track known MTP devices
         private readonly ConcurrentDictionary<string, string> _connectedDevices = new();
 
-        // Shell copy monitoring — watch temp staging paths
+        // Shell copy monitoring - watch temp staging paths
         private readonly ConcurrentDictionary<string, DateTime> _blockedTransfers = new();
 
         public MtpTransferGuard(DetectionEngine de, ILogger<MtpTransferGuard> l)
@@ -255,7 +255,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[MtpTransferGuard] Started — blocking non-media file transfers to MTP devices");
+            _logger.LogInformation("[MtpTransferGuard] Started - blocking non-media file transfers to MTP devices");
 
             await Task.Delay(15000, ct);
 
@@ -266,13 +266,13 @@ namespace Sentinel.Core
                     // 1. Enumerate connected MTP/WPD devices
                     EnumeratePortableDevices();
 
-                    // 2. Scan for processes actively transferring TO MTP devices (PC→Phone)
+                    // 2. Scan for processes actively transferring TO MTP devices (PC->Phone)
                     if (_connectedDevices.Count > 0)
                     {
                         await ScanForUnauthorizedTransfersAsync(ct);
                     }
 
-                    // 3. Scan for dangerous files arriving FROM MTP devices (Phone→PC)
+                    // 3. Scan for dangerous files arriving FROM MTP devices (Phone->PC)
                     await ScanForInboundThreatsAsync(ct);
                 }
                 catch (OperationCanceledException) { break; }
@@ -356,7 +356,7 @@ namespace Sentinel.Core
                         // Key indicator: process has loaded PortableDeviceApi.dll or wpdshext.dll
                         if (!IsWpdProcess(proc)) continue;
 
-                        // Check what files this process has open — look for non-media files
+                        // Check what files this process has open - look for non-media files
                         // being staged for transfer
                         var suspiciousFiles = GetStagedNonMediaFiles(proc);
                         foreach (var file in suspiciousFiles)
@@ -432,7 +432,7 @@ namespace Sentinel.Core
                     }
                 }
             }
-            catch { } // Access denied for system processes — fine
+            catch { } // Access denied for system processes - fine
             return false;
         }
 
@@ -459,7 +459,7 @@ namespace Sentinel.Core
                 var procPath = SecurityValidation.GetProcessImagePath(proc.Id);
                 if (procPath != null)
                 {
-                    // Explorer.exe doing drag-drop to MTP device — check clipboard/drag data
+                    // Explorer.exe doing drag-drop to MTP device - check clipboard/drag data
                     // This is handled by the WPD shell extension (wpdshext.dll)
                     if (proc.ProcessName.Equals("explorer"))
                     {
@@ -543,7 +543,7 @@ namespace Sentinel.Core
             return "";
         }
 
-        // ── Inbound threat detection (Phone → PC) ──
+        //  Inbound threat detection (Phone -> PC) 
 
         // Dangerous extensions that should NEVER arrive from MTP to PC
         private static readonly HashSet<string> DangerousExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -578,7 +578,7 @@ namespace Sentinel.Core
 
         private async Task ScanForInboundThreatsAsync(CancellationToken ct)
         {
-            // Monitor WPDNSE staging directories — files transiting FROM MTP device TO PC
+            // Monitor WPDNSE staging directories - files transiting FROM MTP device TO PC
             var tempPaths = new[]
             {
                 Path.Combine(Path.GetTempPath(), "WPDNSE"),
@@ -595,7 +595,7 @@ namespace Sentinel.Core
                 Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
             };
 
-            // Scan WPDNSE staging — anything dangerous here is in-transit from phone
+            // Scan WPDNSE staging - anything dangerous here is in-transit from phone
             foreach (var tempPath in tempPaths)
             {
                 if (!Directory.Exists(tempPath)) continue;
@@ -619,7 +619,7 @@ namespace Sentinel.Core
 
                         await _detectionEngine.EmitAsync(new DetectionEvent
                         {
-                            RuleName = "MTP Guard: Dangerous Inbound File Blocked (Phone→PC)",
+                            RuleName = "MTP Guard: Dangerous Inbound File Blocked (Phone->PC)",
                             Evidence = $"File '{Path.GetFileName(file)}' with dangerous extension '{Path.GetExtension(file)}' " +
                                        $"was being transferred from an MTP device to this PC via WPDNSE staging. " +
                                        $"File deleted to prevent execution.",
@@ -637,7 +637,7 @@ namespace Sentinel.Core
                             {
                                 { "File", Path.GetFileName(file) },
                                 { "Extension", Path.GetExtension(file) },
-                                { "Direction", "Inbound (Phone→PC)" },
+                                { "Direction", "Inbound (Phone->PC)" },
                                 { "StagingPath", tempPath },
                                 { "Action", "Deleted" }
                             }
@@ -678,7 +678,7 @@ namespace Sentinel.Core
 
                             await _detectionEngine.EmitAsync(new DetectionEvent
                             {
-                                RuleName = "MTP Guard: Dangerous Inbound File Blocked (Phone→PC)",
+                                RuleName = "MTP Guard: Dangerous Inbound File Blocked (Phone->PC)",
                                 Evidence = $"File '{Path.GetFileName(file)}' landed in {Path.GetFileName(dropDir)} " +
                                            $"from MTP device via process '{procName}' (PID {pid}). Deleted.",
                                 Reasoning = "A dangerous file type was transferred from a connected MTP device to a " +
@@ -694,7 +694,7 @@ namespace Sentinel.Core
                                     { "File", Path.GetFileName(file) },
                                     { "Extension", Path.GetExtension(file) },
                                     { "DropTarget", dropDir },
-                                    { "Direction", "Inbound (Phone→PC)" },
+                                    { "Direction", "Inbound (Phone->PC)" },
                                     { "Action", "Deleted" }
                                 }
                             });
@@ -732,7 +732,7 @@ namespace Sentinel.Core
             // sacrificial decoy process.  We now scan WPD/Explorer modules as a tighter
             // proxy: if a process has WPD transfer DLLs loaded AND was recently active,
             // that is the most likely candidate.  If we still cannot identify it, return
-            // (0, "Unknown") — the caller treats that as LogOnly, which is correct.
+            // (0, "Unknown") - the caller treats that as LogOnly, which is correct.
             try
             {
                 foreach (var proc in Process.GetProcesses())

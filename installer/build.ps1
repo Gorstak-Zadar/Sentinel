@@ -57,14 +57,14 @@ Get-ChildItem $PSScriptRoot -Filter "*.old" -ErrorAction SilentlyContinue |
 $Dotnet = "C:\Program Files\dotnet\dotnet.exe"
 if (-not (Test-Path $Dotnet)) { $Dotnet = "dotnet" }
 
-# 2. Publish Service — framework-dependent net48 (small; uses installed .NET 4.8)
+# 2. Publish Service - framework-dependent net48 (small; uses installed .NET 4.8)
 Write-Host "Publishing Sentinel Service (net48-windows, framework-dependent)..." -ForegroundColor Yellow
 $ServiceProj = Join-Path $PSScriptRoot "..\src\Sentinel.Service\Sentinel.Service.csproj"
 $ServiceOut = Join-Path $PublishDir "service"
 & $Dotnet publish $ServiceProj -c Release -f net48-windows -o $ServiceOut
 if ($LASTEXITCODE -ne 0) { throw "Service publish failed" }
 
-# 3. Publish Agent — framework-dependent net48
+# 3. Publish Agent - framework-dependent net48
 Write-Host "Publishing Sentinel Agent (net48-windows, framework-dependent)..." -ForegroundColor Yellow
 $AgentProj = Join-Path $PSScriptRoot "..\src\Sentinel.Agent\Sentinel.Agent.csproj"
 $AgentOut = Join-Path $PublishDir "agent"
@@ -97,7 +97,7 @@ foreach ($target in @("service", "agent")) {
     }
 }
 
-# 3c. LGPO.exe and GSecurity.inf — shipped as plain files, NOT embedded in the assembly.
+# 3c. LGPO.exe and GSecurity.inf - shipped as plain files, NOT embedded in the assembly.
 #     Embedding a PE inside a DLL triggers AV dropper heuristics. These files are
 #     placed beside the service/agent EXE and loaded at runtime from the install directory.
 $HardeningResourcesSrc = Join-Path $PSScriptRoot "..\src\Sentinel.Core\HardeningResources"

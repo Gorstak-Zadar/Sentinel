@@ -54,7 +54,7 @@ namespace Sentinel.Core
         private static readonly TimeSpan CrashWindow = TimeSpan.FromMinutes(30);
         private static readonly TimeSpan AlertCooldown = TimeSpan.FromMinutes(10);
 
-        // Crash thresholds — normal services might crash once; 3+ is suspicious
+        // Crash thresholds - normal services might crash once; 3+ is suspicious
         private const int SuspiciousCrashThreshold = 3;
         private const int HighConfidenceCrashThreshold = 5;
 
@@ -87,11 +87,11 @@ namespace Sentinel.Core
         /// </summary>
         private static readonly HashSet<string> BsodCriticalProcesses = new(StringComparer.OrdinalIgnoreCase)
         {
-            "csrss",      // Client/Server Runtime — instant BSOD if killed
-            "smss",       // Session Manager — instant BSOD
-            "wininit",    // Windows Initialization — instant BSOD
-            "services",   // Service Control Manager — instant BSOD
-            "lsass",      // LSA — delayed BSOD (60s)
+            "csrss",      // Client/Server Runtime - instant BSOD if killed
+            "smss",       // Session Manager - instant BSOD
+            "wininit",    // Windows Initialization - instant BSOD
+            "services",   // Service Control Manager - instant BSOD
+            "lsass",      // LSA - delayed BSOD (60s)
             "svchost",    // Some svchost groups are critical
         };
 
@@ -100,7 +100,7 @@ namespace Sentinel.Core
         /// </summary>
         private static readonly Dictionary<uint, string> ExploitationExceptionCodes = new()
         {
-            [0xC0000409] = "STATUS_STACK_BUFFER_OVERRUN (/GS cookie corruption — buffer overflow detected)",
+            [0xC0000409] = "STATUS_STACK_BUFFER_OVERRUN (/GS cookie corruption - buffer overflow detected)",
             [0xC0000005] = "STATUS_ACCESS_VIOLATION (memory corruption / use-after-free)",
             [0xC000001D] = "STATUS_ILLEGAL_INSTRUCTION (ROP/JOP gadget misfire)",
             [0xC0000096] = "STATUS_PRIVILEGED_INSTRUCTION (ring0 attempt from usermode)",
@@ -117,7 +117,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[CriticalServiceGuard] Started — monitoring {Count} critical services",
+            _logger.LogInformation("[CriticalServiceGuard] Started - monitoring {Count} critical services",
                 MonitoredServices.Count);
 
             _lastEventQueryTime = DateTime.UtcNow.Subtract(CrashWindow);
@@ -252,7 +252,7 @@ namespace Sentinel.Core
                     var processes = Process.GetProcessesByName(processName);
                     if (processes.Length == 0 && processName != "svchost")
                     {
-                        // Critical process is MISSING — this shouldn't happen unless BSOD is imminent
+                        // Critical process is MISSING - this shouldn't happen unless BSOD is imminent
                         // or we're running in a container/minimal environment
                         if (!_alertedServices.ContainsKey($"bsod_{processName}"))
                         {

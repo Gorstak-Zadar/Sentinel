@@ -6,13 +6,13 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for Net48Compat — polyfill helper classes that provide .NET 6+ APIs on .NET 4.8.
+    /// Tests for Net48Compat - polyfill helper classes that provide .NET 6+ APIs on .NET 4.8.
     /// </summary>
     public class Net48CompatTests
     {
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // ConvertHex
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void ConvertHex_ToHexString_EmptyArray_ReturnsEmpty()
@@ -51,9 +51,9 @@ namespace Sentinel.Tests
             Assert.Empty(bytes);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // MathNet48
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void MathNet48_Log2_KnownValues()
@@ -90,9 +90,9 @@ namespace Sentinel.Tests
             Assert.Equal(1.0f, System.MathNet48.Clamp(2.0f, 0.0f, 1.0f));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Sha256Net48
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void Sha256Net48_HashData_ProducesCorrectLength()
@@ -119,9 +119,9 @@ namespace Sentinel.Tests
             Assert.NotEqual(hash1, hash2);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // StringNet48
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void StringNet48_ReplaceIgnoreCase_Basic()
@@ -173,9 +173,9 @@ namespace Sentinel.Tests
             Assert.Equal("a,b,c", result);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // PathNet48
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData(@"C:\Windows\System32", true)]
@@ -188,9 +188,9 @@ namespace Sentinel.Tests
             Assert.Equal(expected, System.IO.PathNet48.IsPathFullyQualified(path));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // DictionaryNet48Extensions
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void DictionaryExtensions_GetValueOrDefault_KeyExists()
@@ -206,9 +206,9 @@ namespace Sentinel.Tests
             Assert.Equal("default", dict.GetValueOrDefault("key", "default"));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Net48Environment
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void Net48Environment_ProcessId_ReturnsPositive()

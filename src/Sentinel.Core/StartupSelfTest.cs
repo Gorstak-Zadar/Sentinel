@@ -64,7 +64,7 @@ namespace Sentinel.Core
             try
             {
                 // SECURITY v1.4.4: Use a random key for the self-test cache entry.
-                // Previously used a fixed key "_check" with fixed value "ok" — known plaintext
+                // Previously used a fixed key "_check" with fixed value "ok" - known plaintext
                 // that could theoretically aid cryptanalysis of the HMAC key when observed
                 // before/after boot in the DPAPI-encrypted file. Random key eliminates this.
                 var testKey = $"_selftest_{Guid.NewGuid():N}";
@@ -92,7 +92,7 @@ namespace Sentinel.Core
             }
             catch (Exception ex) { failed++; _logger.LogWarning(ex, "[StartupSelfTest] Event logger check FAILED"); }
 
-            // 6. v1.5.4: Entropy file ACL integrity — verify the HMAC key material is protected
+            // 6. v1.5.4: Entropy file ACL integrity - verify the HMAC key material is protected
             try
             {
                 var programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
@@ -122,7 +122,7 @@ namespace Sentinel.Core
 
                     if (hasUserAccess)
                     {
-                        // ACL is too permissive — standard users can read the entropy.
+                        // ACL is too permissive - standard users can read the entropy.
                         // Re-lock it and alert.
                         _logger.LogWarning("[StartupSelfTest] SECURITY: Entropy file ACL allows standard user access. Re-locking.");
                         var newAcl = new System.Security.AccessControl.FileSecurity();
@@ -148,7 +148,7 @@ namespace Sentinel.Core
                 }
                 else
                 {
-                    // Entropy file doesn't exist yet (first run) — it'll be created by SecureCacheStore
+                    // Entropy file doesn't exist yet (first run) - it'll be created by SecureCacheStore
                     passed++;
                 }
             }
@@ -158,7 +158,7 @@ namespace Sentinel.Core
 
             if (failed > 0)
             {
-                _logger.LogWarning("[StartupSelfTest] Some subsystems degraded — Sentinel running in reduced mode");
+                _logger.LogWarning("[StartupSelfTest] Some subsystems degraded - Sentinel running in reduced mode");
             }
 
             return Task.CompletedTask;

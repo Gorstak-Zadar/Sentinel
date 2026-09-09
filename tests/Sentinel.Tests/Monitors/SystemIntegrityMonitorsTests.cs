@@ -6,15 +6,15 @@ using Sentinel.Core;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for SystemIntegrityMonitors — focusing on TlsCertificateMonitor.AnalyzeCert
+    /// Tests for SystemIntegrityMonitors - focusing on TlsCertificateMonitor.AnalyzeCert
     /// helper logic (ExtractCN, IsHexLike, IsHostnameLike) and WmiProviderIntegrityMonitor
     /// path classification helpers.
     /// </summary>
     public class SystemIntegrityMonitorsTests
     {
-        // ═══════════════════════════════════════════════════════════════
-        // TlsCertificateMonitor.AnalyzeCert — static cert analysis
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // TlsCertificateMonitor.AnalyzeCert - static cert analysis
+        // 
 
         [Fact]
         public void AnalyzeCert_SelfSignedWithShortValidity_HighConfidence()
@@ -35,7 +35,7 @@ namespace Sentinel.Tests.Monitors
             using var cert = CreateTestCert("CN=DigiCert Global Root G2, O=DigiCert Inc", TimeSpan.FromDays(365 * 20));
             var result = TlsCertificateMonitor.AnalyzeCert(cert);
 
-            // Known public root CA — should be demoted to Tier2 and low confidence
+            // Known public root CA - should be demoted to Tier2 and low confidence
             Assert.Equal(DetectionTier.Tier2Indicator, result.Tier);
             Assert.True(result.Confidence <= 0.55,
                 $"Expected <=0.55 for known public CA, got {result.Confidence}");
@@ -59,9 +59,9 @@ namespace Sentinel.Tests.Monitors
             Assert.NotNull(result);
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // CertAnalysisResult — internal class, tested through AnalyzeCert
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // CertAnalysisResult - internal class, tested through AnalyzeCert
+        // 
 
         [Fact]
         public void AnalyzeCert_Result_HasExpectedFields()
@@ -74,9 +74,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(result.Tier == DetectionTier.Tier1Behavioral || result.Tier == DetectionTier.Tier2Indicator);
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // DriverLoadMonitor — IsValidServiceName
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // DriverLoadMonitor - IsValidServiceName
+        // 
 
         [Theory]
         [InlineData("MyDriver", true)]
@@ -122,9 +122,9 @@ namespace Sentinel.Tests.Monitors
             return true;
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helpers
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static X509Certificate2 CreateTestCert(string subject, TimeSpan validity)
         {

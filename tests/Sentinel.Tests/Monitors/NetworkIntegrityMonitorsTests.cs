@@ -5,14 +5,14 @@ using Sentinel.Core;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for NetworkIntegrityMonitors — verifies PhantomDeviceMonitor
+    /// Tests for NetworkIntegrityMonitors - verifies PhantomDeviceMonitor
     /// classification logic, manufacturer lookup, and detection model behavior.
     /// </summary>
     public class NetworkIntegrityMonitorsTests
     {
-        // ═══════════════════════════════════════════════════════════════
-        // NetworkDevice — internal class, test via detection model instead
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // NetworkDevice - internal class, test via detection model instead
+        // 
 
         [Fact]
         public void PhantomDevice_DetectionModel()
@@ -30,9 +30,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(ResponseAction.NetworkIsolate, detection.AuthorizedResponse);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // ARP spoofing detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void ArpSpoof_DetectionEvent_Model()
@@ -52,9 +52,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(ResponseAction.NetworkIsolate, detection.AuthorizedResponse);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // DNS response validation model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void DnsResponseValidation_SubnetExtraction()
@@ -83,9 +83,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(DetectionCategory.DnsAnomaly, category);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // WiFi security detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void WifiSecurity_OpenNetwork_HighRisk()
@@ -104,9 +104,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(detection.Confidence >= 0.80);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Remote access detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void RemoteAccess_UnexpectedRdp_Detection()
@@ -126,9 +126,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(DetectionTier.Tier1Behavioral, detection.Tier);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Security validation helpers used by network monitors
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("192.168.1.1", true)]

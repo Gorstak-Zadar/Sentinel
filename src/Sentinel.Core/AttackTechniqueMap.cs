@@ -5,9 +5,9 @@ using System.Linq;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v2.0 — Structured MITRE ATT&amp;CK technique mapping for detections.
+    /// v2.0 - Structured MITRE ATT&amp;CK technique mapping for detections.
     /// Rule-name fragments map to technique IDs for explainability and reporting.
-    /// Not a substitute for behavioral proof — metadata only.
+    /// Not a substitute for behavioral proof - metadata only.
     /// </summary>
     public static class AttackTechniqueMap
     {

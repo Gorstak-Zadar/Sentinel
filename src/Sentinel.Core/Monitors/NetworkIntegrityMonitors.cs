@@ -1,4 +1,4 @@
-// Network Integrity Monitor Group — ARP spoof detection, DNS validation, public IP monitoring, WiFi security, and phantom device detection
+// Network Integrity Monitor Group - ARP spoof detection, DNS validation, public IP monitoring, WiFi security, and phantom device detection
 
 using System;
 using System.Collections.Concurrent;
@@ -20,16 +20,16 @@ using Microsoft.Win32;
 
 namespace Sentinel.Core
 {
-    // ──────────────────────────────────────────────
-    // ARP Spoof Monitor — detects duplicate MAC for gateway IP
-    // ──────────────────────────────────────────────
+    // 
+    // ARP Spoof Monitor - detects duplicate MAC for gateway IP
+    // 
     public sealed class ArpSpoofMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
         private readonly ILogger<ArpSpoofMonitor> _logger;
         private string? _baselineGatewayMac;
         private string? _gatewayIp;
-        private readonly ConcurrentDictionary<string, string> _arpBaseline = new(); // IP → MAC
+        private readonly ConcurrentDictionary<string, string> _arpBaseline = new(); // IP -> MAC
 
         public ArpSpoofMonitor(DetectionEngine de, ILogger<ArpSpoofMonitor> l) { _detectionEngine = de; _logger = l; }
 
@@ -240,7 +240,7 @@ namespace Sentinel.Core
                             Reasoning = "Multiple IP addresses resolve to the same MAC address in the ARP table. " +
                                         "This is a strong indicator of ARP table poisoning, where an attacker responds " +
                                         "to ARP requests for multiple IPs with their own MAC to intercept traffic. " +
-                                        (includesGateway ? "The gateway IP is affected — all outbound traffic may be intercepted." : ""),
+                                        (includesGateway ? "The gateway IP is affected - all outbound traffic may be intercepted." : ""),
                             Confidence = includesGateway ? 0.92 : 0.80,
                             Tier = DetectionTier.Tier1Behavioral,
                             AuthorizedResponse = includesGateway ? ResponseAction.NetworkIsolate : ResponseAction.LogOnly,
@@ -265,7 +265,7 @@ namespace Sentinel.Core
                             // Skip gateway (handled above with higher confidence)
                             if (ip == _gatewayIp) continue;
 
-                            // MAC changed for a known host — possible targeted spoof
+                            // MAC changed for a known host - possible targeted spoof
                             await _detectionEngine.EmitAsync(new DetectionEvent
                             {
                                 RuleName = "ARP Spoof: Host MAC Changed",
@@ -349,9 +349,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // DNS Response Validation Monitor — detects DNS poisoning via TTL anomalies
-    // ──────────────────────────────────────────────
+    // 
+    // DNS Response Validation Monitor - detects DNS poisoning via TTL anomalies
+    // 
     public sealed class DnsResponseValidationMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -382,7 +382,7 @@ namespace Sentinel.Core
                 githubSubnets.Add(net);
 
             // Resolve each domain multiple times over 2 minutes to build a robust baseline
-            // CDN/anycast services rotate IPs frequently — single-shot baselines cause false positives
+            // CDN/anycast services rotate IPs frequently - single-shot baselines cause false positives
             for (int round = 0; round < 3; round++)
             {
                 foreach (var d in watchDomains)
@@ -420,27 +420,27 @@ namespace Sentinel.Core
                                 // Phase 1: Check exact IP overlap (normal case)
                                 if (currentSet.Overlaps(baselineSet))
                                 {
-                                    // IPs overlap — normal CDN rotation, update baseline
+                                    // IPs overlap - normal CDN rotation, update baseline
                                     _baselineResolutions[domain] = current;
                                     var subnets = _knownSubnets.GetOrAdd(domain, _ => new HashSet<string>(StringComparer.OrdinalIgnoreCase));
                                     foreach (var a in current) subnets.Add(GetSubnet(a.ToString()));
                                     continue;
                                 }
 
-                                // Phase 2: No exact overlap — check if new IPs are in known subnets
+                                // Phase 2: No exact overlap - check if new IPs are in known subnets
                                 var knownNets = _knownSubnets.GetOrAdd(domain, _ => new HashSet<string>(StringComparer.OrdinalIgnoreCase));
                                 var newSubnets = current.Select(a => GetSubnet(a.ToString())).ToHashSet();
                                 bool allInKnownSubnets = newSubnets.All(s => knownNets.Contains(s));
 
                                 if (allInKnownSubnets)
                                 {
-                                    // Same /16 or /32 subnets — CDN rotation, not poisoning
+                                    // Same /16 or /32 subnets - CDN rotation, not poisoning
                                     _baselineResolutions[domain] = current;
                                     foreach (var a in current) knownNets.Add(GetSubnet(a.ToString()));
                                     continue;
                                 }
 
-                                // Phase 3: IPs moved to a completely different subnet — likely poisoning
+                                // Phase 3: IPs moved to a completely different subnet - likely poisoning
                                 var suspiciousIps = currentSet.Except(baselineSet).ToList();
                                 var metadata = new Dictionary<string, string>
                                 {
@@ -487,9 +487,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Public IP Monitor — detects VPN/proxy changes
-    // ──────────────────────────────────────────────
+    // 
+    // Public IP Monitor - detects VPN/proxy changes
+    // 
     public sealed class PublicIpMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -545,9 +545,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // WiFi Security Monitor — detects open/WEP networks
-    // ──────────────────────────────────────────────
+    // 
+    // WiFi Security Monitor - detects open/WEP networks
+    // 
     public sealed class WifiSecurityMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -803,9 +803,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Remote Access Monitor — detects RAT indicators (RDP, VNC, etc.)
-    // ──────────────────────────────────────────────
+    // 
+    // Remote Access Monitor - detects RAT indicators (RDP, VNC, etc.)
+    // 
     public sealed class RemoteAccessMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -813,7 +813,7 @@ namespace Sentinel.Core
         // Per-PID dedup: once we alert on a PID, don't alert again until the process exits
         private readonly ConcurrentDictionary<int, DateTime> _alertedPids = new();
 
-        // 35+ known remote access tools — both legitimate and commonly abused.
+        // 35+ known remote access tools - both legitimate and commonly abused.
         // TeamViewer / AnyDesk / mstsc / cloudflared stay LogOnly (the 90).
         // ngrok / chisel / frpc / tailcat-class tunnels are kill-grade (v2.5.3).
         private static readonly string[] RemoteAccessProcessNames =
@@ -840,7 +840,7 @@ namespace Sentinel.Core
             "tightvnc", "tigervnc", "realvnc",
             // RDP-related (non-standard)
             "rdpwrap", "rdpcheck", "rdpclip",
-            // Potentially unwanted — often deployed by attackers
+            // Potentially unwanted - often deployed by attackers
             "ngrok", "frpc", "frps", "cloudflared", // Tunneling
             "chisel", "rathole", "bore", // Reverse tunnels
             "tailcat", "derper", "wireproxy", "onetun", "boringtun", // userspace WG / magicsock
@@ -852,7 +852,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[RemoteAccessMonitor] Started — monitoring {Count} known remote access tools", RemoteAccessProcessNames.Length);
+            _logger.LogInformation("[RemoteAccessMonitor] Started - monitoring {Count} known remote access tools", RemoteAccessProcessNames.Length);
 
             while (!ct.IsCancellationRequested)
             {
@@ -878,7 +878,7 @@ namespace Sentinel.Core
                                 if (_alertedPids.ContainsKey(proc.Id)) continue;
                                 _alertedPids[proc.Id] = DateTime.UtcNow;
                                 // Tunneling tools (ngrok, frpc, chisel, tailcat) ARE the attack.
-                                // cloudflared is a homelab civilian — log only, like TeamViewer.
+                                // cloudflared is a homelab civilian - log only, like TeamViewer.
                                 bool isTunnel = name.Contains("ngrok") || name.Contains("frpc") ||
                                                 name.Contains("chisel") || name.Contains("rathole") ||
                                                 name.Contains("bore") ||
@@ -908,7 +908,7 @@ namespace Sentinel.Core
                                     Reasoning = isTunnel
                                         ? "A reverse tunneling tool was detected (ngrok/chisel/frpc/tailcat-class). " +
                                           "Official Tailscale and cloudflared are not this rule. Kill-grade C2."
-                                        : "A remote access tool process was detected. TeamViewer/AnyDesk/RDP are civilians — log only.",
+                                        : "A remote access tool process was detected. TeamViewer/AnyDesk/RDP are civilians - log only.",
                                     Confidence = confidence, Tier = tier,
                                     AuthorizedResponse = isTunnel
                                         ? ResponseAction.KillProcessTree
@@ -929,9 +929,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Phantom Device Monitor — detects & blocks unauthorized network devices
-    // ──────────────────────────────────────────────
+    // 
+    // Phantom Device Monitor - detects & blocks unauthorized network devices
+    // 
     public sealed class PhantomDeviceMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -952,7 +952,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Returns true if any phantom device was blocked within the specified time window.
         /// Used by VolumeMountMonitor to correlate new volume mounts with recent phantom device
-        /// blocks — the attacker's fallback pattern creates a staging drive after their C2 relay
+        /// blocks - the attacker's fallback pattern creates a staging drive after their C2 relay
         /// gets cut off.
         /// </summary>
         public bool HasRecentBlock(TimeSpan window)
@@ -971,7 +971,7 @@ namespace Sentinel.Core
 
         private static readonly Dictionary<string, string> OuiLookup = new(StringComparer.OrdinalIgnoreCase)
         {
-            // B0-B3-69 is Shenzhen SDMC (set-top / OTT) — NOT Google. In-incident it was
+            // B0-B3-69 is Shenzhen SDMC (set-top / OTT) - NOT Google. In-incident it was
             // spoofed as "Google Chromecast" to pass naive OUI trust. Treat as cast-spoof OUI.
             { "B0-B3-69", "Shenzhen SDMC (cast-spoof OUI)" },
             { "F4-F5-D8", "Google" }, { "54-60-09", "Google" },
@@ -1000,7 +1000,7 @@ namespace Sentinel.Core
             // (service restart leaves Sentinel-Block-PhantomDevice-* rules behind)
             CleanupOrphanedFirewallRules();
 
-            // Always trust the default gateway and local machine IPs — never alert on them
+            // Always trust the default gateway and local machine IPs - never alert on them
             foreach (var gw in GetDefaultGatewayIps())
                 _trustedIps.Add(gw);
             foreach (var localIp in GetLocalIps())
@@ -1051,7 +1051,7 @@ namespace Sentinel.Core
 
                                 // Cast ports (8008/8009) on a new device: check if any ghost/empty-name
                                 // process is actively connecting to this device IP. If yes, this isn't a
-                                // Chromecast — it's a C2 relay masquerading as one (PlugX technique).
+                                // Chromecast - it's a C2 relay masquerading as one (PlugX technique).
                                 // MitmDefense: also promote cast-spoof OUI (B0-B3-69 / known rogue) without ghost wait.
                                 if (!isHighRisk && 
                                     (suspiciousService.Contains("Cast") ||
@@ -1061,7 +1061,7 @@ namespace Sentinel.Core
                                     {
                                         confidence = 0.95;
                                         reasoning += " CORRELATED: Invisible/empty-name process talking to this Cast endpoint " +
-                                                     "(planted-cert → ghost → fake Chromecast MitM chain).";
+                                                     "(planted-cert -> ghost -> fake Chromecast MitM chain).";
                                     }
                                     else if (IsMitmRogueCastDevice(dev.Ip, dev.Mac, manufacturer))
                                     {
@@ -1392,7 +1392,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Checks if any unresolvable/empty-name process has active TCP connections to the given IP.
-        /// This correlates phantom device detection with ghost process behavior — if a process we
+        /// This correlates phantom device detection with ghost process behavior - if a process we
         /// can't identify is talking to the new device, it's likely C2, not a Chromecast.
         /// </summary>
         private static bool HasGhostConnectionTo(string targetIp)
@@ -1426,7 +1426,7 @@ namespace Sentinel.Core
                         var remoteIp = new IPAddress(BitConverter.GetBytes(remoteAddr)).ToString();
                         if (!remoteIp.Equals(targetIp)) continue;
 
-                        // Found a connection to the target IP — check if the owning process is resolvable
+                        // Found a connection to the target IP - check if the owning process is resolvable
                         try
                         {
                             using var proc = Process.GetProcessById((int)owningPid);

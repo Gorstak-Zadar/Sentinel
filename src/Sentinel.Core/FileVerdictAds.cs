@@ -96,7 +96,7 @@ namespace Sentinel.Core
 
                 var adminsSid = new System.Security.Principal.SecurityIdentifier(
                     System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, null);
-                // v2.2.0: Admins ReadAndExecute — do not reopen Secure for admin rewrite of HMAC keys.
+                // v2.2.0: Admins ReadAndExecute - do not reopen Secure for admin rewrite of HMAC keys.
                 security.AddAccessRule(new System.Security.AccessControl.FileSystemAccessRule(
                     adminsSid,
                     System.Security.AccessControl.FileSystemRights.ReadAndExecute,
@@ -470,7 +470,7 @@ namespace Sentinel.Core
                     }
                     catch
                     {
-                        // locked / ACL — best effort
+                        // locked / ACL - best effort
                     }
                 }
             }
@@ -510,7 +510,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                // continue — try ADS if path available
+                // continue - try ADS if path available
             }
 
             // 2) Optional NTFS ADS on the target (invisible; not a separate visible file)
@@ -529,7 +529,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                // ADS unavailable (FAT, some network shares, path validation) — central cache is enough
+                // ADS unavailable (FAT, some network shares, path validation) - central cache is enough
             }
 
             // 3) NEVER write adjacent .sentinel_verdict sidecars (legacy pollution)
@@ -578,7 +578,7 @@ namespace Sentinel.Core
                     // fall through
                 }
 
-                // 3) Legacy sidecar — migrate into central cache, then delete
+                // 3) Legacy sidecar - migrate into central cache, then delete
                 try
                 {
                     var side = LegacySidecarPath(filePath);

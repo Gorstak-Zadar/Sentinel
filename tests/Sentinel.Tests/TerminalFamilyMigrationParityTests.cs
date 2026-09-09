@@ -5,13 +5,13 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// v2.5.7 — parity / safety guards for the typed terminal-family migration.
+    /// v2.5.7 - parity / safety guards for the typed terminal-family migration.
     ///
     /// The migration lets a monitor declare its terminal outcome via the typed
     /// <see cref="DetectionEvent.Family"/> field, which <see cref="ResponsePolicy.ClassifyTerminalOutcome"/>
     /// trusts ahead of the legacy substring/SignalType inference. Every tag must preserve
     /// the EXACT classification the emit site produced BEFORE the tag was added, otherwise
-    /// the migration silently changes kill authority — the highest-consequence bug class here.
+    /// the migration silently changes kill authority - the highest-consequence bug class here.
     ///
     /// <see cref="TerminalFamilyConsistencyTests"/> proves the typed path WORKS. These tests
     /// prove each real tagged site's typed result MATCHES its legacy result (byte-for-byte),
@@ -32,7 +32,7 @@ namespace Sentinel.Tests
             ResponsePolicy.ResetForTests();
         }
 
-        // ── Production emit shapes actually tagged this migration ────────────────────
+        //  Production emit shapes actually tagged this migration 
         // Each row is (label, DetectionEvent factory, expected terminal family). The
         // factory sets Family exactly as the monitor does; the parity test then also
         // evaluates the same shape with Family cleared.
@@ -219,7 +219,7 @@ namespace Sentinel.Tests
 
         // GAP 1 + GAP 2 combined: for every tagged production shape, the typed path and
         // the legacy (Family-cleared) path must classify to the SAME family. This is the
-        // byte-for-byte invariant the whole migration rests on — previously verified only
+        // byte-for-byte invariant the whole migration rests on - previously verified only
         // by hand-tracing in code review.
         [Theory]
         [MemberData(nameof(TaggedTerminalShapes))]
@@ -234,7 +234,7 @@ namespace Sentinel.Tests
             var typedOutcome = ResponsePolicy.ClassifyTerminalOutcome(typed);
             Assert.Equal(expected.ToCanonicalString(), typedOutcome);
 
-            // Legacy path (Family cleared) — must return the SAME family via SignalType/substring.
+            // Legacy path (Family cleared) - must return the SAME family via SignalType/substring.
             var legacy = factory();
             legacy.Family = null;
             var legacyOutcome = ResponsePolicy.ClassifyTerminalOutcome(legacy);
@@ -255,7 +255,7 @@ namespace Sentinel.Tests
             var d = factory();
             var switchFamily = SwitchMappedFamily(d.SignalType);
             if (switchFamily == null)
-                return; // SignalType not handled by the switch — substring path, nothing to assert.
+                return; // SignalType not handled by the switch - substring path, nothing to assert.
 
             Assert.True(expected == switchFamily.Value,
                 $"{label}: tag {expected} disagrees with SignalType-mapped family {switchFamily.Value}");
@@ -327,7 +327,7 @@ namespace Sentinel.Tests
             Assert.True(ResponsePolicy.ClassifyTerminalOutcome(detection) == null,
                 $"{label}: expected null before tagging");
 
-            // Now hostilely tag every kill-grade family — the safety demotion must still win.
+            // Now hostilely tag every kill-grade family - the safety demotion must still win.
             foreach (TerminalFamily fam in System.Enum.GetValues(typeof(TerminalFamily)))
             {
                 if (!TerminalFamilies.IsKillGrade(fam)) continue;
@@ -344,7 +344,7 @@ namespace Sentinel.Tests
         // sets Family = null there today).
         public static IEnumerable<object[]> ConditionalNonTerminalSiblings()
         {
-            // ScriptExecutionMonitor: systemHost branch — "AMSI Not Loaded" observe.
+            // ScriptExecutionMonitor: systemHost branch - "AMSI Not Loaded" observe.
             yield return new object[]
             {
                 "ScriptExecution.AmsiNotLoaded (systemHost)",
@@ -377,7 +377,7 @@ namespace Sentinel.Tests
                     ProcessId = 3103, ProcessName = "wmiprvse", Confidence = 0.55,
                 },
             };
-            // FileActivityMonitor: cloud reparse branch (!hive) — SecurityEvasion observe.
+            // FileActivityMonitor: cloud reparse branch (!hive) - SecurityEvasion observe.
             yield return new object[]
             {
                 "FileActivity.CloudReparse (!hive)",

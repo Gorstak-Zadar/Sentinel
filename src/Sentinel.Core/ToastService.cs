@@ -46,7 +46,7 @@ namespace Sentinel.Core
         {
             if (CriticalOnly)
             {
-                _logger.LogDebug("ToastService: Suppressed non-critical toast — {Title}", title);
+                _logger.LogDebug("ToastService: Suppressed non-critical toast - {Title}", title);
                 return;
             }
             ShowToastInternal(title, message);
@@ -128,7 +128,7 @@ namespace Sentinel.Core
                 }
 
                 showMethod.Invoke(notifier, new[] { toast });
-                _logger.LogDebug("ToastService: Shown toast — {Title}", title);
+                _logger.LogDebug("ToastService: Shown toast - {Title}", title);
             }
             catch (Exception ex)
             {

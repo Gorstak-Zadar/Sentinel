@@ -4,14 +4,14 @@ using Sentinel.Core;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for NamedPipeMonitor — verifies named pipe signal model,
+    /// Tests for NamedPipeMonitor - verifies named pipe signal model,
     /// entropy calculation for pipe name analysis, and detection categorization.
     /// </summary>
     public class NamedPipeMonitorTests
     {
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Named pipe signal model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void NamedPipeSignal_KnownBadPattern_Model()
@@ -47,9 +47,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(signal.Entropy >= 4.0);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Pipe name entropy validation (concept matching monitor logic)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("a8f3k2d9x7b1m4c6", true)]  // Random hex-like = high entropy
@@ -80,9 +80,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(result > 3.5, $"Expected > 3.5, got {result}");
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Known C2 pipe patterns
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData(@"\\.\pipe\MSSE-1234-server")]     // CobaltStrike default
@@ -94,9 +94,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Contains("pipe", pipePath);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helpers (mirror private methods)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static bool IsHighEntropy(string name)
         {

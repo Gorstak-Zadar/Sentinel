@@ -10,7 +10,7 @@ namespace Sentinel.Core
     /// <summary>
     /// Plants multiple dummy credentials in Windows Credential Manager and monitors them.
     /// Any unauthorized access/modification indicates active credential harvesting.
-    /// Purely behavioral honeypot — no tool names or signatures.
+    /// Purely behavioral honeypot - no tool names or signatures.
     /// 
     /// HARDENING: Uses randomized target names from a pool of realistic-looking templates.
     /// A credential dumping tool cannot trivially filter these by name since the names
@@ -156,14 +156,14 @@ namespace Sentinel.Core
                 {
                     if (!CredRead(target, CRED_TYPE_GENERIC, 0, out var credPtr))
                     {
-                        // Canary was deleted — credential harvester detected
+                        // Canary was deleted - credential harvester detected
                         _ = _detectionEngine.EmitAsync(new DetectionEvent
                         {
                             RuleName = "Credential Theft: Canary Credential Deleted",
                             Evidence = $"Honeypot credential '{target}' was removed from Windows Credential Manager",
                             Reasoning = "A canary credential planted by Sentinel was deleted, indicating active " +
                                         "credential harvesting. Legitimate tools do not interact with this credential. " +
-                                        "Multiple canaries with randomized names are planted — deletion of any one " +
+                                        "Multiple canaries with randomized names are planted - deletion of any one " +
                                         "indicates bulk credential enumeration/deletion by a harvesting tool.",
                             Confidence = 0.88, Tier = DetectionTier.Tier1Behavioral,
                             AuthorizedResponse = ResponseAction.LogOnly,

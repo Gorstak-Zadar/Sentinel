@@ -1,4 +1,4 @@
-# Durable Evidence Survival (B1) — Tasks
+# Durable Evidence Survival (B1) - Tasks
 
 Implementation plan for `./design.md`. Each task is scoped, references the code it touches, and
 maps back to requirements. Do them in order; the post-task test hook runs the suite after each.
@@ -22,7 +22,7 @@ policy and builds/commits/pushes/publishes.
 
 - [ ] 3. Classify stop in the exit hook + durable record
   - Extend `AntiTamperGuard.WriteLastGasp` to branch on `ShutdownContext`:
-    expected → lifecycle record; unexpected → `SERVICE_STOP_SUSPECTED` append-only audit entry
+    expected -> lifecycle record; unexpected -> `SERVICE_STOP_SUSPECTED` append-only audit entry
     via `JsonlEventLogger` + a Tier1 `AntiTamper` `LogOnly` detection if the engine is reachable.
   - Keep it best-effort, non-blocking, never-throw; no network here.
   - _Requirements: R1, R3_
@@ -50,23 +50,23 @@ policy and builds/commits/pushes/publishes.
     and call `ReportEvidenceAsync`. Keep the local pack write independent of mirror success.
   - _Requirements: R2, R4_
 
-- [ ] 8. Tests — stop classification
-  - Expected reason → lifecycle only (no tamper detection). No reason → `SERVICE_STOP_SUSPECTED`
+- [ ] 8. Tests - stop classification
+  - Expected reason -> lifecycle only (no tamper detection). No reason -> `SERVICE_STOP_SUSPECTED`
     audit record + Tier1 `AntiTamper` LogOnly. Exit-hook never throws when logger disposed.
   - _Requirements: R1, R3; NFR-2, NFR-5_
 
-- [ ] 9. Tests — off-host mirror contract
-  - Missing/short secret → no request, local pack still written (fail-closed).
-  - Valid secret → request has `X-Sentinel-Timestamp`/`-Nonce`/`-Signature`, no secret header.
-  - Tier2 detection → mirror never fires. `EvidenceSummary` carries no file contents/secrets.
+- [ ] 9. Tests - off-host mirror contract
+  - Missing/short secret -> no request, local pack still written (fail-closed).
+  - Valid secret -> request has `X-Sentinel-Timestamp`/`-Nonce`/`-Signature`, no secret header.
+  - Tier2 detection -> mirror never fires. `EvidenceSummary` carries no file contents/secrets.
   - `MirrorEvidenceOffHost` defaults to false.
   - _Requirements: R2, R4, R5; FR-11_
 
-- [ ] 10. Docs — honest ceiling + Worker contract
+- [ ] 10. Docs - honest ceiling + Worker contract
   - Update `docs/THREAT_MODEL.md` B1 with the new durable-record + off-host-mirror mitigation and
     keep residual risk HIGH (local admin can still delete local files / disable mirror).
   - Document the `/report/evidence` Worker route contract (verifies client HMAC, stores summary,
-    optional signed receipt) — Worker itself is deployed out-of-band, not in this repo.
+    optional signed receipt) - Worker itself is deployed out-of-band, not in this repo.
   - Add a CHANGELOG entry.
   - _Requirements: R3 (honesty), R4_
 

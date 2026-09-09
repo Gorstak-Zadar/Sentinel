@@ -86,7 +86,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[NetworkReinfectionDetector] Started — monitoring NIC state changes");
+            _logger.LogInformation("[NetworkReinfectionDetector] Started - monitoring NIC state changes");
 
             // Register for network change events
             NetworkChange.NetworkAvailabilityChanged += OnNetworkAvailabilityChanged;
@@ -162,7 +162,7 @@ namespace Sentinel.Core
         {
             if (e.IsAvailable)
             {
-                // Network became available — record as a NIC-up event
+                // Network became available - record as a NIC-up event
                 _nicUpEvents["availability_event"] = DateTime.UtcNow;
                 _logger.LogInformation("[NetworkReinfectionDetector] Network availability changed: UP");
             }
@@ -207,7 +207,7 @@ namespace Sentinel.Core
                     if (_signerTrust != null && _signerTrust.IsSignedFile(imagePath!))
                         continue;
 
-                    // Check parent chain — if parent is user-interactive, skip
+                    // Check parent chain - if parent is user-interactive, skip
                     if (HasUserInteractiveParent(proc.Id)) continue;
 
                     // This is suspicious: new process from suspicious path, started within

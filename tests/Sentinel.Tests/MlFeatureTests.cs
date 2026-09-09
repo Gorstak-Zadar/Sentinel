@@ -46,7 +46,7 @@ namespace Sentinel.Tests
             var pePath = typeof(PeFeatureExtractor).Assembly.Location;
             if (string.IsNullOrEmpty(pePath) || !File.Exists(pePath))
             {
-                // Single-file / empty location — skip
+                // Single-file / empty location - skip
                 return;
             }
 
@@ -61,7 +61,7 @@ namespace Sentinel.Tests
         {
             using var scorer = new MlThreatScorer();
             // Without models present, scores are null (graceful degrade)
-            // May load models if they exist in output dir — either way must not throw
+            // May load models if they exist in output dir - either way must not throw
             var pe = scorer.ScorePeFile(typeof(PeFeatureExtractor).Assembly.Location);
             var url = scorer.ScoreUrlOrHost("http://example.com/test");
             // Just ensure API is callable; null or value both OK

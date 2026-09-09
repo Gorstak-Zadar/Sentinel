@@ -2,7 +2,7 @@ name = "sentinel-threat-proxy"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 
-# Free plan — no account_id needed for local dev
+# Free plan - no account_id needed for local dev
 # Set account_id after creating your Cloudflare account:
 # account_id = "your-account-id-here"
 

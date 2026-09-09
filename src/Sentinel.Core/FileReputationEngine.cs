@@ -13,12 +13,12 @@ using Sentinel.Core.Ml;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// Multi-signal file reputation engine — produces a composite trust score (0-100)
+    /// Multi-signal file reputation engine - produces a composite trust score (0-100)
     /// by aggregating independent signals:
     ///
-    ///   1. Hash reputation (CIRCL, MalwareBazaar, VirusTotal) — weighted consensus
+    ///   1. Hash reputation (CIRCL, MalwareBazaar, VirusTotal) - weighted consensus
     ///   2. Static PE analysis (entropy, suspicious imports, packer indicators)
-    ///   3. Offline PE ML model (FastTree) — soft prior when models are present
+    ///   3. Offline PE ML model (FastTree) - soft prior when models are present
     ///   4. Signer trust (Authenticode verification + publisher reputation)
     ///   5. Contextual risk (file origin path, age on disk, prevalence)
     ///
@@ -46,23 +46,23 @@ namespace Sentinel.Core
         // SECURITY v1.4.4: Shared static HttpClient instances to prevent socket exhaustion.
         // Each has appropriate timeout for its target API. Thread-safe, reuses connections.
         // v2.3.8: CIRCL / MalwareBazaar use the same SPKI pin helper as VirusTotal/report.
-        // Pin mismatch or TLS failure → Error (never Safe).
+        // Pin mismatch or TLS failure -> Error (never Safe).
         private static readonly HttpClient _circlHttpClient = ProxyAuthHelper.CreatePinnedHttpClient(4, ProxyAuthHelper.CirclHashlookupPins);
         private static readonly HttpClient _mbHttpClient = ProxyAuthHelper.CreatePinnedHttpClient(3, ProxyAuthHelper.MalwareBazaarPins);
         // v2.0.4 HIGH-3: VT proxy uses certificate-pinned HttpClient
         private static readonly HttpClient _vtProxyHttpClient = ProxyAuthHelper.CreatePinnedHttpClient(5);
 
-        // v2.0.4 LOW-1: Proxy health monitoring — track consecutive failures to alert on degradation
+        // v2.0.4 LOW-1: Proxy health monitoring - track consecutive failures to alert on degradation
 #pragma warning disable CS0169
         private int _proxyConsecutiveFailures;
 #pragma warning restore CS0169
         private DateTimeOffset _lastProxyHealthAlert = DateTimeOffset.MinValue;
         private const int ProxyHealthAlertThreshold = 10; // Alert after 10 consecutive failures
 
-        // Composite score cache: SHA256 → (score, timestamp)
+        // Composite score cache: SHA256 -> (score, timestamp)
         private readonly ConcurrentDictionary<string, (FileReputationResult Result, DateTimeOffset CachedAt)> _resultCache = new();
 
-        // Prevalence tracking: SHA256 → number of distinct paths seen
+        // Prevalence tracking: SHA256 -> number of distinct paths seen
         private readonly ConcurrentDictionary<string, HashSet<string>> _prevalenceMap = new();
 
         // Rate limiters per API source
@@ -73,7 +73,7 @@ namespace Sentinel.Core
         private readonly ConcurrentDictionary<string, Task<FileReputationResult>> _inFlight = new();
 
         // Import names compared against target PE import tables (not invoked by Sentinel).
-        // Plain literals — split-string Concat is an ML evasion heuristic (Kaspersky/Defender).
+        // Plain literals - split-string Concat is an ML evasion heuristic (Kaspersky/Defender).
         private static readonly HashSet<string> SuspiciousImports = new(StringComparer.OrdinalIgnoreCase)
         {
             "VirtualAllocEx",
@@ -135,7 +135,7 @@ namespace Sentinel.Core
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
                 return FileReputationResult.Unknown(filePath);
 
-            // Compute SHA-256 — FileShare.Delete ensures we never block user file operations
+            // Compute SHA-256 - FileShare.Delete ensures we never block user file operations
             string hash;
             long fileSize;
             try
@@ -217,7 +217,7 @@ namespace Sentinel.Core
             PersistResult(hash, result);
 
             _logger.LogDebug(
-                "[FileReputationEngine] {Path} → Score={Score}, Verdict={Verdict}, Hash={Hash}, Signed={Signed}",
+                "[FileReputationEngine] {Path} -> Score={Score}, Verdict={Verdict}, Hash={Hash}, Signed={Signed}",
                 filePath, result.CompositeScore, result.Verdict, hash[..12], isSigned);
 
             _contextBus?.Publish(new FileVerdictSignal

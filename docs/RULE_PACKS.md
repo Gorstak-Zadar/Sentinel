@@ -45,9 +45,9 @@ The private key never ships to endpoints.
 
 ```powershell
 # Offline signing tool (private key never on endpoints)
-# Example conceptual flow — use your HSM / secure signer in production:
+# Example conceptual flow - use your HSM / secure signer in production:
 $payload = [IO.File]::ReadAllText("pack.unsigned.json")
-# Sign with offline RSA private key → base64 → write pack with signature field
+# Sign with offline RSA private key -> base64 -> write pack with signature field
 ```
 
 ### Trust root (v2.0.8)
@@ -68,4 +68,4 @@ $payload = [IO.File]::ReadAllText("pack.unsigned.json")
 
 - SYSTEM on the endpoint **cannot** forge packs without the offline private key.
 - Packs never disable ActiveResponse or product posture.
-- Fail-closed: missing/invalid signature → pack rejected and logged.
+- Fail-closed: missing/invalid signature -> pack rejected and logged.

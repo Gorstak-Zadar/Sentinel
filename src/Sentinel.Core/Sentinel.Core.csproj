@@ -43,7 +43,7 @@
 
   <ItemGroup>
     <!-- LGPO.exe and GSecurity.inf are shipped as plain files in the install directory.
-         They are NOT embedded in the assembly — embedding a PE inside a DLL triggers
+         They are NOT embedded in the assembly - embedding a PE inside a DLL triggers
          AV heuristics (dropper pattern). The build script copies them to publish output. -->
     <None Include="HardeningResources\LGPO.exe" Condition="Exists('HardeningResources\LGPO.exe')" CopyToOutputDirectory="PreserveNewest" />
     <None Include="HardeningResources\GSecurity.inf" Condition="Exists('HardeningResources\GSecurity.inf')" CopyToOutputDirectory="PreserveNewest" />

@@ -86,13 +86,13 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// v2.0 — Diversity score for weighted correlation.
+        /// v2.0 - Diversity score for weighted correlation.
         /// Counts distinct relation types and endpoint/file fan-out for a process key.
         /// </summary>
         public GraphDiversityScore GetProcessDiversity(int processId, string? processName = null)
         {
             var score = new GraphDiversityScore { ProcessId = processId };
-            // Edges are stored under keys like PID_{id}_{name} — match by PID prefix.
+            // Edges are stored under keys like PID_{id}_{name} - match by PID prefix.
             var prefix = $"PID_{processId}_";
             var relations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var endpoints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -124,7 +124,7 @@ namespace Sentinel.Core
             score.DistinctRelations = relations.Count;
             score.DistinctEndpoints = endpoints.Count;
             score.DistinctFiles = files.Count;
-            // Bounded boost 0–25 used by WeightedCorrelationEngine
+            // Bounded boost 0-25 used by WeightedCorrelationEngine
             score.WeightBoost =
                 Math.Min(8, score.DistinctRelations * 3) +
                 Math.Min(10, score.DistinctEndpoints) +

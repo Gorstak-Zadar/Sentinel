@@ -17,7 +17,7 @@ namespace Sentinel.Core
         private bool _diskSpaceDegraded;
         private bool _disposed;
 
-        // ── Pre-action audit log (Improvement #5 from GorstaksProtection) ─────────
+        //  Pre-action audit log (Improvement #5 from GorstaksProtection) 
         // Separate append-only file guaranteed to be written BEFORE any kill/block
         // action fires. Daily rotation, 90 days retained.  ACLs: SYSTEM + Admins only.
         private string _auditLogFilePath = null!;
@@ -58,7 +58,7 @@ namespace Sentinel.Core
                     if (directory.StartsWith(prodDir))
                     {
                         // v2.0.8: SYSTEM + Admins full; Interactive Users read (tray Agent UI).
-                        // Not Builtin\Users — service accounts / non-interactive malware must not
+                        // Not Builtin\Users - service accounts / non-interactive malware must not
                         // harvest detection history for recon of what Sentinel is watching.
                         var dirInfo = new DirectoryInfo(directory);
                         var security = dirInfo.GetAccessControl();
@@ -80,7 +80,7 @@ namespace Sentinel.Core
 
             TryOpenFileInternal();
 
-            // ── Audit log setup (Improvement #5 from GorstaksProtection) ─────────
+            //  Audit log setup (Improvement #5 from GorstaksProtection) 
             // Daily-rotated, SYSTEM+Admins-only append file written BEFORE any kill/block.
             // Lives in the same directory as the events log (ProgramData\Sentinel in production,
             // or a custom directory when one is supplied) so the audit trail travels with the log.
@@ -228,7 +228,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// B1 (durable evidence survival): records that the Sentinel process is exiting under
-        /// circumstances that were NOT marked as an expected/cooperative stop — i.e. a possible
+        /// circumstances that were NOT marked as an expected/cooperative stop - i.e. a possible
         /// tamper suppression. Written to the append-only audit trail (SYSTEM+Admins ACL) so the
         /// coverage gap is itself evidence.
         ///
@@ -261,14 +261,14 @@ namespace Sentinel.Core
 
                 var json = JsonSerializer.Serialize(entry);
 
-                // Best-effort synchronous write — cannot await on a dying process. The audit
+                // Best-effort synchronous write - cannot await on a dying process. The audit
                 // writer is AutoFlush, so the line hits disk immediately.
                 _auditWriter.WriteLine(json);
                 _auditWriter.Flush();
             }
             catch
             {
-                // Best-effort — we're dying. Never throw out of the exit path (NFR-2).
+                // Best-effort - we're dying. Never throw out of the exit path (NFR-2).
             }
         }
 
@@ -390,7 +390,7 @@ namespace Sentinel.Core
                     }
                 }
 
-                // Check file size for rotation (20 MB — keep I/O and dashboard reads lighter)
+                // Check file size for rotation (20 MB - keep I/O and dashboard reads lighter)
                 try
                 {
                     if (_fileStream != null && _fileStream.Length > 20L * 1024 * 1024)
@@ -403,7 +403,7 @@ namespace Sentinel.Core
                     // Ignore rotation failure, continue writing
                 }
 
-                // v2.0.3: Disk space guard — degrade gracefully if volume is critically low.
+                // v2.0.3: Disk space guard - degrade gracefully if volume is critically low.
                 // Prevents Sentinel from filling the last remaining disk space with event logs.
                 if (!CheckDiskSpaceInternal())
                 {
@@ -460,7 +460,7 @@ namespace Sentinel.Core
 
                 long freeBytes = driveInfo.AvailableFreeSpace;
                 const long MinFreeBytes = 100L * 1024 * 1024; // 100 MB floor
-                const long WarnFreeBytes = 200L * 1024 * 1024; // 200 MB → prune old logs
+                const long WarnFreeBytes = 200L * 1024 * 1024; // 200 MB -> prune old logs
 
                 if (freeBytes < WarnFreeBytes)
                 {
@@ -493,7 +493,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                // Cannot determine disk space — allow write (fail-open for logging)
+                // Cannot determine disk space - allow write (fail-open for logging)
                 return true;
             }
         }

@@ -12,11 +12,11 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v1.6.7: Named Pipe Monitor — IPC C2 / lateral movement detection.
+    /// v1.6.7: Named Pipe Monitor - IPC C2 / lateral movement detection.
     /// 
     /// Blind spot addressed: Cobalt Strike, PsExec, Impacket, Metasploit, and many privilege-escalation
     /// tools communicate via named pipes (\\.\pipe\*). Previous campaign rules had weak regex matching
-    /// only against process command lines — never actually enumerated system pipes.
+    /// only against process command lines - never actually enumerated system pipes.
     /// 
     /// Detection approach:
     /// - Periodically enumerate all named pipes via Directory.GetFiles(@"\\.\pipe\")
@@ -26,7 +26,7 @@ namespace Sentinel.Core
     /// - Owner PID attribution via GetNamedPipeServerProcessId
     /// - Correlate pipe server PID with beaconing/network signals via ContextBus
     /// 
-    /// Response: LogOnly by default → KillProcessTree on pipe+beacon composite corroboration.
+    /// Response: LogOnly by default -> KillProcessTree on pipe+beacon composite corroboration.
     /// Scans every 15s. No elevation required.
     /// </summary>
     public sealed class NamedPipeMonitor : BackgroundService
@@ -117,7 +117,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[NamedPipeMonitor] Started — polling \\\\.\\.\\pipe\\ every 15s");
+            _logger.LogInformation("[NamedPipeMonitor] Started - polling \\\\.\\.\\pipe\\ every 15s");
 
             // Baseline existing pipes at startup (don't alert on pre-existing ones)
             await Task.Delay(5000, ct); // Brief startup grace

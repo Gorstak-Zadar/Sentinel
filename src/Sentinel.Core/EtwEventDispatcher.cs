@@ -10,7 +10,7 @@ namespace Sentinel.Core
 {
     /// <summary>
     /// Converts raw ETW events from UnifiedEtwSession into typed telemetry objects
-    /// and feeds them into the TelemetryFusionEngine → DetectionEngine pipeline.
+    /// and feeds them into the TelemetryFusionEngine -> DetectionEngine pipeline.
     /// 
     /// Each provider has a dedicated handler method registered with UnifiedEtwSession.
     /// Handlers parse the provider-specific event payload and emit the appropriate
@@ -111,9 +111,9 @@ namespace Sentinel.Core
             session.RegisterHandler(UnifiedEtwSession.Providers.WmiActivity, OnWmiActivityEvent);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Process Events (Microsoft-Windows-Kernel-Process)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void OnKernelProcessEvent(EtwRawEvent evt)
         {
@@ -231,9 +231,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // File Events (Microsoft-Windows-Kernel-File)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void OnKernelFileEvent(EtwRawEvent evt)
         {
@@ -288,9 +288,9 @@ namespace Sentinel.Core
             _detectionEngine.SubmitTelemetry(context);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Registry Events (Microsoft-Windows-Kernel-Registry)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void OnKernelRegistryEvent(EtwRawEvent evt)
         {
@@ -313,9 +313,9 @@ namespace Sentinel.Core
             // filled fusion and paged the service. RegistryMonitor still has paths.
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // DNS Events (Microsoft-Windows-DNS-Client)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void OnDnsClientEvent(EtwRawEvent evt)
         {
@@ -349,9 +349,9 @@ namespace Sentinel.Core
             _detectionEngine.SubmitTelemetry(context);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Threat Intelligence Events
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void OnThreatIntelEvent(EtwRawEvent evt)
         {
@@ -384,9 +384,9 @@ namespace Sentinel.Core
             _detectionEngine.SubmitTelemetry(context);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // PowerShell Events (Script Block Logging)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void OnPowerShellEvent(EtwRawEvent evt)
         {
@@ -418,9 +418,9 @@ namespace Sentinel.Core
             _detectionEngine.SubmitTelemetry(context);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Firewall Events
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void OnFirewallEvent(EtwRawEvent evt)
         {
@@ -428,7 +428,7 @@ namespace Sentinel.Core
                 evt.EventId != FirewallRuleDeleted)
                 return;
 
-            // Firewall rule changes — emit a detection signal for monitors to correlate
+            // Firewall rule changes - emit a detection signal for monitors to correlate
             string action = evt.EventId switch
             {
                 FirewallRuleAdded => "RULE_ADDED",
@@ -449,9 +449,9 @@ namespace Sentinel.Core
             });
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Task Scheduler Events
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void OnTaskSchedulerEvent(EtwRawEvent evt)
         {
@@ -478,9 +478,9 @@ namespace Sentinel.Core
             });
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Network Events (Microsoft-Windows-Kernel-Network / TCPIP)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void OnKernelNetworkEvent(EtwRawEvent evt)
         {
@@ -533,7 +533,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// UdpIp_TypeGroup1: PID(4) size(4) daddr(4) saddr(4) dport(2) sport(2) …
+        /// UdpIp_TypeGroup1: PID(4) size(4) daddr(4) saddr(4) dport(2) sport(2) ...
         /// Kernel-Network often reports session PID 0; the payload PID is then the
         /// only attribution. Never clobber a real evt.ProcessId with offset-0 garbage.
         /// </summary>
@@ -598,10 +598,10 @@ namespace Sentinel.Core
             return processName ?? "";
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // WMI-Activity (Microsoft-Windows-WMI-Activity) — v2.2.8
+        // 
+        // WMI-Activity (Microsoft-Windows-WMI-Activity) - v2.2.8
         // Event 5859 temporary consumer, 5860/5861 permanent consumer / binding.
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private const ushort WmiTempConsumer = 5859;
         private const ushort WmiPermConsumer = 5860;
@@ -667,9 +667,9 @@ namespace Sentinel.Core
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helpers
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static string TryExtractFilePath(EtwRawEvent evt)
         {
@@ -707,9 +707,9 @@ namespace Sentinel.Core
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // New Telemetry Types for ETW-sourced events
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     /// <summary>Registry operation telemetry from Kernel-Registry ETW provider.</summary>
     public class RegistryTelemetry : TelemetryEvent

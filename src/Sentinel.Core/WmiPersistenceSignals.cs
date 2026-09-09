@@ -5,7 +5,7 @@ using System.Threading;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v2.2.8 — shared WMI persistence / policy-rewrite classifiers.
+    /// v2.2.8 - shared WMI persistence / policy-rewrite classifiers.
     /// Permanent WMI persistence is the filter + consumer + binding triple (T1546.003),
     /// not a consumer name count. Hostile consumers execute from WmiPrvSE / wmiadap / scrcons.
     /// </summary>

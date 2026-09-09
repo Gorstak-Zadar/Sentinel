@@ -51,7 +51,7 @@ namespace Sentinel.Core
             ref DATA_BLOB pDataOut);
 
         private const int CRYPTPROTECT_UI_FORBIDDEN = 0x1;
-        // v1.6.0: Machine-scope DPAPI — service runs as SYSTEM; bind ciphertext to host.
+        // v1.6.0: Machine-scope DPAPI - service runs as SYSTEM; bind ciphertext to host.
         private const int CRYPTPROTECT_LOCAL_MACHINE = 0x4;
 
         public SecureCacheStore(string? customPath = null)
@@ -93,7 +93,7 @@ namespace Sentinel.Core
         {
             // SECURITY v1.4.4: Removed predictable components (boot time from PID 4, process ID).
             // Boot time is publicly readable by any standard user. Process ID is visible in task
-            // manager. Previously these were 2 of 4 key derivation inputs — an attacker with
+            // manager. Previously these were 2 of 4 key derivation inputs - an attacker with
             // standard user access could observe both, reducing the key strength to the 2
             // protected components. Now the key derives from ONLY protected/unpredictable sources:
             //   1. Machine GUID (readable by standard users via registry, but unique per machine)
@@ -102,7 +102,7 @@ namespace Sentinel.Core
 
             using var ms = new MemoryStream();
 
-            // 1. Machine GUID — unique per Windows installation, survives reboots.
+            // 1. Machine GUID - unique per Windows installation, survives reboots.
             // Readable by standard users but combined with entropy below provides
             // machine-binding (key is invalid on a different machine).
             try
@@ -179,7 +179,7 @@ namespace Sentinel.Core
                 // Fail-soft: older installs without secret still derive from entropy+GUID
             }
 
-            // 4. v2.0.4 HIGH-1: Process-specific entropy — SHA-256 of our own executable.
+            // 4. v2.0.4 HIGH-1: Process-specific entropy - SHA-256 of our own executable.
             // Even if an attacker achieves SYSTEM, they cannot forge cache entries without
             // also having access to the exact Sentinel binary that generated the key.
             // This binds the HMAC key to the specific Sentinel build/version.
@@ -475,7 +475,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                // Best effort — may fail if process is not elevated
+                // Best effort - may fail if process is not elevated
             }
         }
 
@@ -508,7 +508,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                // Best effort — requires SYSTEM or equivalent to set
+                // Best effort - requires SYSTEM or equivalent to set
             }
         }
     }

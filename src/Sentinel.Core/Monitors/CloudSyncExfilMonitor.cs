@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v1.6.7: Cloud Sync Exfiltration Monitor — detects data staging via cloud sync folders.
+    /// v1.6.7: Cloud Sync Exfiltration Monitor - detects data staging via cloud sync folders.
     /// 
     /// Blind spot addressed: Mass copy into OneDrive/Dropbox/Google Drive/rclone/mega folders
     /// bypasses DataExfiltrationMonitor's "large TCP upload" threshold if the sync client throttles
@@ -74,7 +74,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[CloudSyncExfilMonitor] Started — monitoring cloud sync directories");
+            _logger.LogInformation("[CloudSyncExfilMonitor] Started - monitoring cloud sync directories");
             await Task.Delay(20000, ct); // Let system settle
 
             // Discover sync directories
@@ -179,7 +179,7 @@ namespace Sentinel.Core
                     string imagePath = SecurityValidation.GetProcessImagePath(pid) ?? "";
 
                     // v1.8.3: rclone/megasync/etc. are also legitimate backup/sync tools.
-                    // Observe-only — kill only if a composite/confirmed exfil attack rule fires.
+                    // Observe-only - kill only if a composite/confirmed exfil attack rule fires.
                     bool fromSuspiciousPath = IsSuspiciousPath(imagePath);
                     double confidence = fromSuspiciousPath ? 0.55 : 0.40;
 

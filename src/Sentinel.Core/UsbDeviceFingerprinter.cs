@@ -70,7 +70,7 @@ namespace Sentinel.Core
             }
 
             // v1.6.9 / v1.7.2: Scan baseline for failed-enumeration zombies and fully remove them.
-            // Disable alone leaves ConfigFlags=1 nodes present → sticky Windows tray icon.
+            // Disable alone leaves ConfigFlags=1 nodes present -> sticky Windows tray icon.
             if (_config.AutoDisableFailedUsbEnumeration)
                 SweepAndRemoveFailedEnumerationDevices(devices, isBaseline: true);
 
@@ -120,7 +120,7 @@ namespace Sentinel.Core
                     if (!_baseline.Contains(dev.DeviceId))
                     {
                         ProcessNewDevice(dev);
-                        // Only baseline if still present — successful failed-enum removal
+                        // Only baseline if still present - successful failed-enum removal
                         // clears the node; re-adding would hide future re-plugs incorrectly
                         // and would undo ProcessNewDevice's _baseline.Remove on success.
                         if (DeviceNodePresent(dev.DeviceId))
@@ -150,7 +150,7 @@ namespace Sentinel.Core
                 if (!IsFailedEnumerationDevice(d)) continue;
 
                 _logger?.LogWarning(
-                    "[UsbDeviceFingerprinter] {Phase} failed-enumeration device — removing: {Id} ({Name})",
+                    "[UsbDeviceFingerprinter] {Phase} failed-enumeration device - removing: {Id} ({Name})",
                     isBaseline ? "Baseline" : "Periodic",
                     d.DeviceId, d.Name);
 
@@ -162,7 +162,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// v1.6.9 / v1.7.2: True failed-enumeration only — VID_0000 or real Windows failure
+        /// v1.6.9 / v1.7.2: True failed-enumeration only - VID_0000 or real Windows failure
         /// descriptions. Never treats blank friendly names as failed (that caused disable FPs).
         /// </summary>
         internal static bool IsFailedEnumerationDevice(UsbDevice dev)
@@ -212,13 +212,13 @@ namespace Sentinel.Core
             bool disabled = false;
             var vidPid = $"{dev.Vid}:{dev.Pid}";
 
-            // v1.6.3: Failed enumeration / VID_0000 — high interest, auto-disable
+            // v1.6.3: Failed enumeration / VID_0000 - high interest, auto-disable
             if (IsFailedEnumerationDevice(dev))
             {
                 ruleName = "USB: Failed Device Enumeration";
                 evidence = $"USB device failed descriptor enumeration: '{dev.Name}' " +
                            $"(VID {dev.Vid} PID {dev.Pid}, InstanceId={dev.DeviceId}). " +
-                           "Windows could not read the device identity — flaky port/cable, " +
+                           "Windows could not read the device identity - flaky port/cable, " +
                            "or hostile hardware that refuses to identify.";
                 confidence = 0.82;
                 tier = DetectionTier.Tier1Behavioral;
@@ -231,7 +231,7 @@ namespace Sentinel.Core
                         ? " Device disabled via registry ConfigFlags."
                         : " Auto-disable attempted but registry write failed.";
 
-                    // v1.6.4 / v1.7.2: Full PnP removal — verify node gone (not just eject CR_SUCCESS)
+                    // v1.6.4 / v1.7.2: Full PnP removal - verify node gone (not just eject CR_SUCCESS)
                     bool ejected = EjectUsbDevice(dev.DeviceId);
                     evidence += ejected
                         ? " Device removed from PnP tree."
@@ -243,7 +243,7 @@ namespace Sentinel.Core
             else if (_trustedVidPid.Contains(vidPid))
             {
                 ruleName = "USB: Trusted Device Connected";
-                evidence = $"Trusted USB device '{dev.Name}' (VID {dev.Vid} PID {dev.Pid}) connected — allowlisted.";
+                evidence = $"Trusted USB device '{dev.Name}' (VID {dev.Vid} PID {dev.Pid}) connected - allowlisted.";
                 confidence = 0.15;
                 tier = DetectionTier.Tier2Indicator;
                 response = ResponseAction.LogOnly;
@@ -322,7 +322,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Disables a PnP device by setting ConfigFlags=CONFIGFLAG_DISABLED (1) under Enum.
-        /// Same technique as UsbHidWhitelist — requires service to run as SYSTEM/admin.
+        /// Same technique as UsbHidWhitelist - requires service to run as SYSTEM/admin.
         /// </summary>
         internal bool DisableUsbDevice(string deviceInstanceId)
         {
@@ -388,7 +388,7 @@ namespace Sentinel.Core
                 return true;
             }
 
-            // Strategy 3: pnputil /remove-device — required for ConfigFlags=1 disabled zombies
+            // Strategy 3: pnputil /remove-device - required for ConfigFlags=1 disabled zombies
             if (TryEjectViaPnputil(deviceInstanceId))
             {
                 Thread.Sleep(200);
@@ -423,7 +423,7 @@ namespace Sentinel.Core
                 }
             }
 
-            _logger?.LogWarning("[UsbDeviceFingerprinter] All removal strategies failed — node still present: {Id}", deviceInstanceId);
+            _logger?.LogWarning("[UsbDeviceFingerprinter] All removal strategies failed - node still present: {Id}", deviceInstanceId);
             return false;
         }
 
@@ -437,7 +437,7 @@ namespace Sentinel.Core
             {
                 int result = CM_Locate_DevNode(out _, deviceInstanceId, CM_LOCATE_DEVNODE_NORMAL);
                 if (result == CR_SUCCESS) return true;
-                // Phantom: still in the enum tree after disable — tray icon can remain
+                // Phantom: still in the enum tree after disable - tray icon can remain
                 result = CM_Locate_DevNode(out _, deviceInstanceId, CM_LOCATE_DEVNODE_PHANTOM);
                 return result == CR_SUCCESS;
             }
@@ -454,7 +454,7 @@ namespace Sentinel.Core
                 int result = CM_Locate_DevNode(out int devInst, deviceInstanceId, CM_LOCATE_DEVNODE_NORMAL);
                 if (result != CR_SUCCESS)
                 {
-                    // Device may already be in phantom state after disable — try phantom flag
+                    // Device may already be in phantom state after disable - try phantom flag
                     result = CM_Locate_DevNode(out devInst, deviceInstanceId, CM_LOCATE_DEVNODE_PHANTOM);
                     if (result != CR_SUCCESS)
                     {
@@ -467,7 +467,7 @@ namespace Sentinel.Core
                 if (result == CR_SUCCESS)
                 {
                     // v1.7.1 / v1.7.2: If stuck in HELD_FOR_EJECT, disable the device node itself
-                    // (not the whole parent hub — that can break healthy siblings). Parent disable
+                    // (not the whole parent hub - that can break healthy siblings). Parent disable
                     // is deferred to the last-resort path in EjectUsbDevice.
                     Thread.Sleep(200);
                     int relocResult = CM_Locate_DevNode(out int checkInst, deviceInstanceId, CM_LOCATE_DEVNODE_NORMAL);
@@ -477,12 +477,12 @@ namespace Sentinel.Core
                         if (problemNumber == CM_PROB_HELD_FOR_EJECT)
                         {
                             _logger?.LogWarning(
-                                "[UsbDeviceFingerprinter] Device stuck in HELD_FOR_EJECT — disabling device node: {Id}",
+                                "[UsbDeviceFingerprinter] Device stuck in HELD_FOR_EJECT - disabling device node: {Id}",
                                 deviceInstanceId);
                             CM_Disable_DevNode(checkInst, 0);
                         }
                     }
-                    // CR_SUCCESS does NOT mean the node is gone — caller must verify.
+                    // CR_SUCCESS does NOT mean the node is gone - caller must verify.
                     return true;
                 }
 
@@ -661,7 +661,7 @@ namespace Sentinel.Core
         [DllImport("setupapi.dll", SetLastError = true)]
         private static extern bool SetupDiDestroyDeviceInfoList(IntPtr DeviceInfoSet);
 
-        // ── CfgMgr32 P/Invoke — full PnP device ejection (v1.6.4) ──
+        //  CfgMgr32 P/Invoke - full PnP device ejection (v1.6.4) 
 
         [DllImport("cfgmgr32.dll", CharSet = CharSet.Auto)]
         private static extern int CM_Locate_DevNode(
@@ -752,7 +752,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                return list; // USB enumeration facility unavailable — skip gracefully.
+                return list; // USB enumeration facility unavailable - skip gracefully.
             }
             if (deviceInfoSet == (IntPtr)(-1))
             {

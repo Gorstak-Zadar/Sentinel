@@ -116,7 +116,7 @@ namespace Sentinel.Core
                 var plainBytes = UnwrapAndUnprotect(cipherBytes);
                 if (plainBytes == null || plainBytes.Length == 0)
                 {
-                    _logger?.LogWarning("[EncryptedConfigStore] Failed to decrypt config.enc — using compiled defaults");
+                    _logger?.LogWarning("[EncryptedConfigStore] Failed to decrypt config.enc - using compiled defaults");
                     return;
                 }
 
@@ -127,7 +127,7 @@ namespace Sentinel.Core
             }
             catch (Exception ex)
             {
-                _logger?.LogWarning(ex, "[EncryptedConfigStore] Error loading config.enc — using compiled defaults");
+                _logger?.LogWarning(ex, "[EncryptedConfigStore] Error loading config.enc - using compiled defaults");
             }
         }
 
@@ -145,12 +145,12 @@ namespace Sentinel.Core
                 var cipherBytes = ProtectAndWrap(plainBytes);
                 if (cipherBytes == null)
                 {
-                    _logger?.LogError("[EncryptedConfigStore] DPAPI encryption failed — config not saved");
+                    _logger?.LogError("[EncryptedConfigStore] DPAPI encryption failed - config not saved");
                     return false;
                 }
 
                 File.WriteAllBytes(_configPath, cipherBytes);
-                // Production Secure\config.enc only — unit-test temp paths must stay readable.
+                // Production Secure\config.enc only - unit-test temp paths must stay readable.
                 try
                 {
                     if (string.Equals(
@@ -194,7 +194,7 @@ namespace Sentinel.Core
                         config.WatchPath = kvp.Value;
                         break;
                     case "RestrictivePortHardening":
-                        // v2.5.5: Hardening is always-on — disk cannot disable it. Silent no-op.
+                        // v2.5.5: Hardening is always-on - disk cannot disable it. Silent no-op.
                         break;
 
                     // Incident reporting identity

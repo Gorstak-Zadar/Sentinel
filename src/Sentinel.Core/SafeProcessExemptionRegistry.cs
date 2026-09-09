@@ -26,7 +26,7 @@ namespace Sentinel.Core
             var currentStartTime = GetProcessStartTime(pid);
             if (currentStartTime != registeredStartTime)
             {
-                // PID was recycled — remove stale entry
+                // PID was recycled - remove stale entry
                 _safePids.TryRemove(pid, out _);
                 return false;
             }

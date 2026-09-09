@@ -1,4 +1,4 @@
-// ThreatFoxFeedService — ported from GorstaksProtection (ThreatIntelService.cs)
+// ThreatFoxFeedService - ported from GorstaksProtection (ThreatIntelService.cs)
 //
 // Augments the existing IP-only ThreatIntelFeedBlocker with ThreatFox coverage:
 //   - SHA-256 hashes (fed into IoCScanner)
@@ -65,7 +65,7 @@ namespace Sentinel.Core
         private readonly ILogger<ThreatFoxFeedService> _logger;
         private readonly JsonlEventLogger _eventLogger;
 
-        // Unified IOC store: normalised indicator → metadata
+        // Unified IOC store: normalised indicator -> metadata
         private readonly ConcurrentDictionary<string, ThreatFoxIoc> _store =
             new(StringComparer.OrdinalIgnoreCase);
 
@@ -104,7 +104,7 @@ namespace Sentinel.Core
             PropagateHashesToScanner();
 
             _logger.LogInformation(
-                "[ThreatFoxFeedService] Started — {Count} IOCs from bundle. Live refresh in {Delay}s.",
+                "[ThreatFoxFeedService] Started - {Count} IOCs from bundle. Live refresh in {Delay}s.",
                 _store.Count, InitialDelay.TotalSeconds);
 
             try { await Task.Delay(InitialDelay, ct); }
@@ -119,7 +119,7 @@ namespace Sentinel.Core
             }
         }
 
-        // ── Public API ────────────────────────────────────────────────────────────
+        //  Public API 
 
         /// <summary>Query any indicator (hash, IP, domain) against the store.</summary>
         public ThreatFoxVerdict Query(string indicator)
@@ -163,14 +163,14 @@ namespace Sentinel.Core
             return false;
         }
 
-        // ── Bundle loading ────────────────────────────────────────────────────────
+        //  Bundle loading 
 
         private async Task LoadBundleAsync()
         {
             if (!File.Exists(BundlePath))
             {
                 _logger.LogInformation(
-                    "[ThreatFoxFeedService] No offline bundle at {Path} — starting empty until live refresh.",
+                    "[ThreatFoxFeedService] No offline bundle at {Path} - starting empty until live refresh.",
                     BundlePath);
                 return;
             }
@@ -197,11 +197,11 @@ namespace Sentinel.Core
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[ThreatFoxFeedService] Failed to load bundle — live refresh will seed the store.");
+                _logger.LogWarning(ex, "[ThreatFoxFeedService] Failed to load bundle - live refresh will seed the store.");
             }
         }
 
-        // ── Live feed refresh ─────────────────────────────────────────────────────
+        //  Live feed refresh 
 
         private async Task RefreshFromThreatFoxAsync(CancellationToken ct)
         {
@@ -219,7 +219,7 @@ namespace Sentinel.Core
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning(
-                        "[ThreatFoxFeedService] ThreatFox returned HTTP {Status} — keeping existing store.",
+                        "[ThreatFoxFeedService] ThreatFox returned HTTP {Status} - keeping existing store.",
                         (int)response.StatusCode);
                     return;
                 }
@@ -269,7 +269,7 @@ namespace Sentinel.Core
                 PropagateHashesToScanner();
 
                 _logger.LogInformation(
-                    "[ThreatFoxFeedService] Refresh complete — added/updated {Added} IOCs. Total: {Total}.",
+                    "[ThreatFoxFeedService] Refresh complete - added/updated {Added} IOCs. Total: {Total}.",
                     added, _store.Count);
 
                 await _eventLogger.LogEventAsync("threatfox_feed_refresh", new
@@ -285,12 +285,12 @@ namespace Sentinel.Core
             {
                 IsLiveFeedActive = false;
                 _logger.LogWarning(ex,
-                    "[ThreatFoxFeedService] Live refresh failed — continuing with {Count} cached IOCs.",
+                    "[ThreatFoxFeedService] Live refresh failed - continuing with {Count} cached IOCs.",
                     _store.Count);
             }
         }
 
-        // ── Helpers ───────────────────────────────────────────────────────────────
+        //  Helpers 
 
         private void IngestIoc(ThreatFoxIoc ioc, string source)
         {

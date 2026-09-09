@@ -11,7 +11,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Unit tests for AntiTamperGuard — the self-protection component that detects
+    /// Unit tests for AntiTamperGuard - the self-protection component that detects
     /// process suspension, binary deletion, and service de-registration.
     /// 
     /// NOTE: We can't easily test the BackgroundService ExecuteAsync loop directly,

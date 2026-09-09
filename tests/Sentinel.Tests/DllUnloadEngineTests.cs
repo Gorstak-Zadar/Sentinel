@@ -12,9 +12,9 @@ namespace Sentinel.Tests
     /// </summary>
     public class DllUnloadEngineTests
     {
-        // ═══════════════════════════════════════════════════════════════
-        // IsSideloadTargetFileName — positive cases (all known targets)
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // IsSideloadTargetFileName - positive cases (all known targets)
+        // 
 
         [Theory]
         [InlineData("version.dll")]
@@ -42,7 +42,7 @@ namespace Sentinel.Tests
             Assert.True(DllUnloadEngine.IsSideloadTargetFileName(fileName));
         }
 
-        // ── Full path extraction (Path.GetFileName is used internally) ──
+        //  Full path extraction (Path.GetFileName is used internally) 
 
         [Theory]
         [InlineData(@"C:\evil\version.dll")]
@@ -54,7 +54,7 @@ namespace Sentinel.Tests
             Assert.True(DllUnloadEngine.IsSideloadTargetFileName(fullPath));
         }
 
-        // ── Case insensitivity ──────────────────────────────────────────
+        //  Case insensitivity 
 
         [Theory]
         [InlineData("VERSION.DLL")]
@@ -66,9 +66,9 @@ namespace Sentinel.Tests
             Assert.True(DllUnloadEngine.IsSideloadTargetFileName(fileName));
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // IsSideloadTargetFileName — negative cases
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // IsSideloadTargetFileName - negative cases
+        // 
 
         [Theory]
         [InlineData("DismCorePS.dll")]
@@ -116,9 +116,9 @@ namespace Sentinel.Tests
             Assert.False(DllUnloadEngine.IsSideloadTargetFileName(fileName));
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // SideloadTargets collection — completeness
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // SideloadTargets collection - completeness
+        // 
 
         [Fact]
         public void SideloadTargets_HasExpectedCount()
@@ -143,9 +143,9 @@ namespace Sentinel.Tests
             Assert.Equal(lower.Count, lower.Distinct().Count());
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Boundary values for IsSideloadTargetFileName
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void IsSideloadTargetFileName_DirectoryOnly_ReturnsFalse()
@@ -166,13 +166,13 @@ namespace Sentinel.Tests
         [Fact]
         public void IsSideloadTargetFileName_PathTraversalAttack_StillExtractsCorrectFileName()
         {
-            // Path traversal in directory portion — file name should still resolve correctly
+            // Path traversal in directory portion - file name should still resolve correctly
             Assert.True(DllUnloadEngine.IsSideloadTargetFileName(@"C:\app\..\temp\version.dll"));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // DllUnloadResult model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData(@"C:\Program Files\App\dbghelp.dll")]
@@ -216,9 +216,9 @@ namespace Sentinel.Tests
                 @"C:\Program Files\Google\Chrome\Application\chrome_elf.dll"));
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // IsLoadableModuleFileName — full module-extension coverage
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // IsLoadableModuleFileName - full module-extension coverage
+        // 
 
         [Theory]
         [InlineData("foo.dll")]

@@ -18,7 +18,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// v2.2.0: Interactive user profile roots (LocalAppData, Roaming, Temp, Downloads, Desktop).
-        /// SYSTEM services must not scan Environment.SpecialFolder.LocalApplicationData — that is
+        /// SYSTEM services must not scan Environment.SpecialFolder.LocalApplicationData - that is
         /// the SYSTEM profile, not the logged-on user.
         /// </summary>
         public static List<string> EnumerateInteractiveUserWritableRoots()
@@ -301,10 +301,10 @@ namespace Sentinel.Core
         [DllImport("wintrust.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern int WinVerifyTrust(IntPtr hwnd, ref Guid pgActionID, ref WINTRUST_DATA pWVTData);
 
-        // ── CryptCATAdmin P/Invoke for catalog signature verification ──
+        //  CryptCATAdmin P/Invoke for catalog signature verification 
         // Used as fallback when WinVerifyTrust fails for catalog-signed system files
         // (explorer.exe, powershell.exe, cmd.exe, etc.). These binaries don't have
-        // embedded Authenticode signatures — they're signed via the Windows catalog
+        // embedded Authenticode signatures - they're signed via the Windows catalog
         // store and require explicit catalog lookup.
 
         [DllImport("wintrust.dll", CharSet = CharSet.Unicode, SetLastError = true)]
@@ -389,7 +389,7 @@ namespace Sentinel.Core
         /// Verifies the Authenticode signature of a PE file using WinVerifyTrust.
         /// Falls back to Windows Catalog Store verification for catalog-signed system
         /// binaries (explorer.exe, powershell.exe, cmd.exe, etc.) using native
-        /// CryptCATAdmin APIs — no PowerShell dependency, no PATH poisoning risk.
+        /// CryptCATAdmin APIs - no PowerShell dependency, no PATH poisoning risk.
         ///
         /// Returns the Authenticode simple name (CN) or null if unsigned / unreadable.
         /// </summary>
@@ -428,10 +428,10 @@ namespace Sentinel.Core
         // file-watcher and module scan were the remaining hard pagefaults after WS pin.
         //
         // Tuple field meanings:
-        //   Write    — file LastWriteTimeUtc (cache invalidation key)
-        //   Length   — file Length           (cache invalidation key)
-        //   Signed   — WinVerifyTrust result
-        //   Cached   — wall-clock time this entry was inserted (for LRU trim)
+        //   Write    - file LastWriteTimeUtc (cache invalidation key)
+        //   Length   - file Length           (cache invalidation key)
+        //   Signed   - WinVerifyTrust result
+        //   Cached   - wall-clock time this entry was inserted (for LRU trim)
         private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (DateTime Write, long Length, bool Signed, DateTime Cached)> AuthenticodeCache =
             new(StringComparer.OrdinalIgnoreCase);
 
@@ -455,7 +455,7 @@ namespace Sentinel.Core
                 return;
             try
             {
-                // Re-check inside the lock — another thread may have already trimmed.
+                // Re-check inside the lock - another thread may have already trimmed.
                 if (AuthenticodeCache.Count <= AuthenticodeCacheMax)
                     return;
 
@@ -534,14 +534,14 @@ namespace Sentinel.Core
                     return true;
                 }
 
-                // FIX v1.5.6: Embedded Authenticode check failed — try catalog signature verification.
+                // FIX v1.5.6: Embedded Authenticode check failed - try catalog signature verification.
                 // Many Windows system binaries (explorer.exe, powershell.exe, cmd.exe, conhost.exe,
                 // svchost.exe, etc.) use catalog signatures rather than embedded Authenticode.
                 // WinVerifyTrust with WTD_CHOICE_FILE only checks embedded signatures.
                 // We now use the native CryptCATAdmin APIs to look up the file's hash in the
                 // Windows catalog store and verify via WinVerifyTrust with WTD_CHOICE_CATALOG.
                 //
-                // SECURITY: This is a pure native P/Invoke path — no shell commands, no PATH
+                // SECURITY: This is a pure native P/Invoke path - no shell commands, no PATH
                 // dependency, no risk of poisoning. The catalog store is protected by Windows
                 // and only writable by TrustedInstaller.
                 bool catalog = VerifyCatalogSignature(filePath, logger);
@@ -574,7 +574,7 @@ namespace Sentinel.Core
         ///
         /// SECURITY: Pure native API path. The catalog store (%SystemRoot%\System32\catroot2)
         /// is ACL-protected and only writable by TrustedInstaller. An attacker cannot inject
-        /// a fake catalog without kernel-level access or TrustedInstaller token — at which
+        /// a fake catalog without kernel-level access or TrustedInstaller token - at which
         /// point they have full control anyway.
         /// </summary>
         private static bool VerifyCatalogSignature(string filePath, Microsoft.Extensions.Logging.ILogger? logger)
@@ -631,7 +631,7 @@ namespace Sentinel.Core
 
                 if (hCatInfo == IntPtr.Zero)
                 {
-                    // File hash not found in any catalog — genuinely unsigned
+                    // File hash not found in any catalog - genuinely unsigned
                     return false;
                 }
 
@@ -740,7 +740,7 @@ namespace Sentinel.Core
             }
         }
 
-        // ── File access P/Invoke for catalog hash calculation ──
+        //  File access P/Invoke for catalog hash calculation 
 
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern IntPtr CreateFileW(
@@ -791,7 +791,7 @@ namespace Sentinel.Core
         /// Whether remote process-memory inspection is allowed for this PID.
         ///
         /// Workaround (not a disable): Denuvo/anti-cheat games self-terminate on
-        /// PROCESS_VM_READ — skip those paths only. All other processes remain fully scannable.
+        /// PROCESS_VM_READ - skip those paths only. All other processes remain fully scannable.
         /// Prefer <see cref="NativeProcessMemory"/> for VM_READ so APIs are not PE imports.
         /// </summary>
         public static bool MayInspectProcessMemory(int pid, string? imagePath = null)
@@ -813,7 +813,7 @@ namespace Sentinel.Core
             if (string.IsNullOrEmpty(path)) return false;
             var lower = path!.ToLowerInvariant().Replace('/', '\\');
 
-            // Windows Store / Xbox packages are under Program Files\WindowsApps — not a user profile.
+            // Windows Store / Xbox packages are under Program Files\WindowsApps - not a user profile.
             if (lower.Contains(@"\windowsapps\"))
                 return false;
 
@@ -854,7 +854,7 @@ namespace Sentinel.Core
         /// Identifies game / launcher / anti-cheat install trees so scanners can skip
         /// even QUERY-level work when unnecessary, and so response code can avoid
         /// collateral on interactive entertainment workloads.
-        /// Path-substring only — never a sole basis for trust of unknown binaries.
+        /// Path-substring only - never a sole basis for trust of unknown binaries.
         /// v2.2.0: still rejects Temp/Downloads; reputation skip uses
         /// <see cref="ShouldSkipReputationForGamePath"/> which also rejects user profiles.
         /// </summary>
@@ -931,7 +931,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// True when the image is the real System32/SysWOW64 copy — not svchost.exe in Temp.
+        /// True when the image is the real System32/SysWOW64 copy - not svchost.exe in Temp.
         /// </summary>
         public static bool IsWindowsSystemImage(string? path)
         {
@@ -946,7 +946,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Process basenames that commonly host Denuvo / anti-cheat and self-terminate
         /// on PROCESS_VM_READ. Used when image path is not yet resolvable (startup race).
-        /// Name-only — not trust; only skips memory inspection, never authorizes allow.
+        /// Name-only - not trust; only skips memory inspection, never authorizes allow.
         /// </summary>
         private static readonly HashSet<string> GameOrAntiCheatProcessNames = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -994,7 +994,7 @@ namespace Sentinel.Core
         /// Name-only check against the known game/anti-cheat process name set.
         /// Used by EphemeralProcessMonitor to suppress Prefetch false positives
         /// on games that exit quickly (Denuvo crash, anti-cheat self-exit).
-        /// NOT a trust grant — only suppresses "ephemeral process" alerts.
+        /// NOT a trust grant - only suppresses "ephemeral process" alerts.
         /// </summary>
         public static bool IsKnownGameProcessName(string? processName)
         {

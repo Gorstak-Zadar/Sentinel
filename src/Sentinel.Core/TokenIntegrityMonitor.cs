@@ -14,7 +14,7 @@ namespace Sentinel.Core
     /// - Processes with duplicated tokens from higher-integrity processes
     /// - Unexpected SYSTEM tokens in user-context processes
     /// - SeDebugPrivilege enabled in non-administrative processes
-    /// Purely behavioral — detects anomalous privilege states.
+    /// Purely behavioral - detects anomalous privilege states.
     /// </summary>
     public sealed class TokenIntegrityMonitor : IDisposable
     {
@@ -74,7 +74,7 @@ namespace Sentinel.Core
                                     int elevated = Marshal.ReadInt32(elevBuffer);
                                     if (elevated != 0)
                                     {
-                                        // Elevated process — check if it's from a user-writable path
+                                        // Elevated process - check if it's from a user-writable path
                                          string? imagePath = null;
                                          try { imagePath = SecurityValidation.GetProcessImagePath(proc.Id); } catch { }
 

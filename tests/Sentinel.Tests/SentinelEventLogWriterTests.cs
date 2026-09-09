@@ -80,7 +80,7 @@ namespace Sentinel.Tests
         [Fact]
         public void Enabled_Writer_Either_Available_Or_Permanently_Disabled_Gracefully()
         {
-            // On CI / locked-down / stripped images CreateEventSource may fail — both outcomes OK.
+            // On CI / locked-down / stripped images CreateEventSource may fail - both outcomes OK.
             using var writer = new SentinelEventLogWriter(
                 new WindowsEventLogConfig
                 {
@@ -128,7 +128,7 @@ namespace Sentinel.Tests
 
             if (!writer.IsAvailable)
             {
-                // Stripped host — still a pass for degradation
+                // Stripped host - still a pass for degradation
                 Assert.True(writer.IsPermanentlyDisabled);
                 return;
             }

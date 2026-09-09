@@ -109,7 +109,7 @@ namespace Sentinel.Core.Ml
             catch { }
 
             host = host.TrimEnd('.');
-            // Suffix match for common platforms (not a security boundary — ML dampening only)
+            // Suffix match for common platforms (not a security boundary - ML dampening only)
             string[] suffixes =
             {
                 "microsoft.com", "windows.com", "windowsupdate.com", "office.com", "office365.com",
@@ -128,14 +128,14 @@ namespace Sentinel.Core.Ml
             return false;
         }
 
-        /// <summary>0–100 risk contribution from PE model (null → caller ignores).</summary>
+        /// <summary>0-100 risk contribution from PE model (null -> caller ignores).</summary>
         public int? PeRiskScore100(string filePath)
         {
             var p = ScorePeFile(filePath);
             return p.HasValue ? (int)Math.Round(p.Value * 100.0) : null;
         }
 
-        /// <summary>0–100 risk contribution from URL model.</summary>
+        /// <summary>0-100 risk contribution from URL model.</summary>
         public int? UrlRiskScore100(string urlOrHost)
         {
             var p = ScoreUrlOrHost(urlOrHost);
@@ -160,7 +160,7 @@ namespace Sentinel.Core.Ml
                 }
                 catch (Exception ex)
                 {
-                    _logger?.LogWarning(ex, "[MlThreatScorer] Model init failed — ML scoring disabled");
+                    _logger?.LogWarning(ex, "[MlThreatScorer] Model init failed - ML scoring disabled");
                     _peReady = false;
                     _urlReady = false;
                 }

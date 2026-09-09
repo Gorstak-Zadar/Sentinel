@@ -37,26 +37,26 @@ namespace Sentinel.Core
             }
 
             // Only create the directory if we have access (Service runs as SYSTEM, Agent as user).
-            // The Agent doesn't write to quarantine — the Service handles all quarantine operations.
+            // The Agent doesn't write to quarantine - the Service handles all quarantine operations.
             try
             {
                 if (!Directory.Exists(_quarantineDir))
                 {
                     Directory.CreateDirectory(_quarantineDir);
                 }
-                // v1.8.1 RT-NEW-4: lock production quarantine only (not unit-test temp dirs —
+                // v1.8.1 RT-NEW-4: lock production quarantine only (not unit-test temp dirs -
                 // SYSTEM+Admins-only ACLs break non-elevated Admin tests under UAC).
                 if (IsProductionQuarantinePath(_quarantineDir!))
                     SecureQuarantineDirectory(_quarantineDir);
             }
             catch (UnauthorizedAccessException)
             {
-                // Running as user-session Agent — quarantine dir is owned by SYSTEM.
+                // Running as user-session Agent - quarantine dir is owned by SYSTEM.
                 // This is expected; the Agent only reads quarantine metadata for display.
             }
             catch
             {
-                // ACL lock may fail as non-elevated agent — ignore
+                // ACL lock may fail as non-elevated agent - ignore
             }
         }
 
@@ -76,9 +76,9 @@ namespace Sentinel.Core
         /// <summary>
         /// SYSTEM + Admins full control on the folder and blobs.
         /// Interactive users: this-folder-only List/Traverse so Explorer and the tray Agent
-        /// can open the directory. No ObjectInherit — sample bytes stay unreadable (UAC-filtered
+        /// can open the directory. No ObjectInherit - sample bytes stay unreadable (UAC-filtered
         /// Admin tokens are not BUILTIN\Administrators, which is why SYSTEM+Admins-only
-        /// made Settings → Open Folder say "insufficient permissions").
+        /// made Settings -> Open Folder say "insufficient permissions").
         /// Only applied to production %ProgramData%\Sentinel\Quarantine.
         /// </summary>
         public static void SecureQuarantineDirectory(string dirPath)
@@ -130,7 +130,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Quarantines a file (DPAPI-encrypt, move to quarantine, delete original).
         ///
-        /// By default, <b>refuses Authenticode-signed binaries</b> — official installers
+        /// By default, <b>refuses Authenticode-signed binaries</b> - official installers
         /// (Git for Windows, ChromeSetup, VS Code, etc.) must not be destroyed on disk
         /// by chain-trace FPs. Kill-process is still allowed by callers; only quarantine
         /// is blocked. Pass <paramref name="forceQuarantineSigned"/> only for deliberate
@@ -146,7 +146,7 @@ namespace Sentinel.Core
                 throw new FileNotFoundException("File not found for quarantine", filePath);
             }
 
-            // v1.6.3 CRITICAL: Never quarantine OS / WRP paths — production FP quarantined
+            // v1.6.3 CRITICAL: Never quarantine OS / WRP paths - production FP quarantined
             // C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe after an AMSI false positive,
             // removing the host binary and breaking PowerShell / shell integrations system-wide.
             // forceQuarantineSigned cannot override this gate.
@@ -169,7 +169,7 @@ namespace Sentinel.Core
                 catch
                 {
                     // v1.6.3: Fail CLOSED for Program Files / Windows-adjacent paths when
-                    // signature verification throws — never treat "check failed" as unsigned.
+                    // signature verification throws - never treat "check failed" as unsigned.
                     var lower = filePath.ToLowerInvariant();
                     if (lower.Contains(@"\program files") || lower.Contains(@"\windows\"))
                         return null;
@@ -177,7 +177,7 @@ namespace Sentinel.Core
                 }
             }
 
-            // Read with FileShare.Delete — never block user from deleting files
+            // Read with FileShare.Delete - never block user from deleting files
             byte[] fileBytes;
             using (var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete))

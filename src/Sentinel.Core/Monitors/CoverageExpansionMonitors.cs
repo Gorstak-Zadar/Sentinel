@@ -1,4 +1,4 @@
-// Phase A coverage expansion (v2.1.0) — LPE scaffolding, initial-access paths,
+// Phase A coverage expansion (v2.1.0) - LPE scaffolding, initial-access paths,
 // persistence surfaces (COM/IFEO/accessibility/Winlogon).
 // v2.5.3: named LPE tools (potato / PrintSpoofer / winPEAS) are kill-grade.
 // Elevated-from-staging and persistence surfaces stay observe-until-chain.
@@ -55,7 +55,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[LpeScaffoldMonitor] Started — LPE tool / elevation scaffolding");
+            _logger.LogInformation("[LpeScaffoldMonitor] Started - LPE tool / elevation scaffolding");
             while (!ct.IsCancellationRequested)
             {
                 try
@@ -124,8 +124,8 @@ namespace Sentinel.Core
                                 Evidence = $"Process '{name}' (PID {pid}) matches LPE toolkit pattern '{matched}' path='{path ?? "?"}'",
                                 Reasoning =
                                     "Binary name/path matches known local privilege-escalation tooling " +
-                                    "(potato-class, PrintSpoofer, winPEAS, etc.). That process is the attack — " +
-                                    "kill-grade. Does not patch kernel races (e.g. afd.sys) — stops userland scaffolding.",
+                                    "(potato-class, PrintSpoofer, winPEAS, etc.). That process is the attack - " +
+                                    "kill-grade. Does not patch kernel races (e.g. afd.sys) - stops userland scaffolding.",
                                 Confidence = staging ? 0.90 : 0.86,
                                 Tier = DetectionTier.Tier1Behavioral,
                                 AuthorizedResponse = ResponseAction.KillProcessTree,
@@ -145,7 +145,7 @@ namespace Sentinel.Core
                         }
                         else if (staging)
                         {
-                            // Unsigned PE from staging with high entropy / no signature — weak observe
+                            // Unsigned PE from staging with high entropy / no signature - weak observe
                             if (string.IsNullOrEmpty(path) || !File.Exists(path)) continue;
                             if (SecurityValidation.VerifyAuthenticodeSignature(path!)) continue;
                             if (InstallerHeuristics.LooksLikeInstallerName(name) ||
@@ -289,7 +289,7 @@ namespace Sentinel.Core
         private static readonly string[] ComHijackClsidHints =
         {
             // fodhelper / eventvwr / sdclt related often use ms-settings
-            @"{0A29FF9E-7F9C-4437-8B11-F424491E3931}", // example placeholder — we scan broadly under CLSID below
+            @"{0A29FF9E-7F9C-4437-8B11-F424491E3931}", // example placeholder - we scan broadly under CLSID below
         };
 
         public PersistenceSurfaceMonitor(DetectionEngine detectionEngine, ILogger<PersistenceSurfaceMonitor> logger)
@@ -300,7 +300,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[PersistenceSurfaceMonitor] Started — IFEO / accessibility / Winlogon / COM");
+            _logger.LogInformation("[PersistenceSurfaceMonitor] Started - IFEO / accessibility / Winlogon / COM");
             await Task.Delay(TimeSpan.FromSeconds(15), ct).ConfigureAwait(false); // stagger
             SnapshotBaseline();
             _baselined = true;
@@ -389,7 +389,7 @@ namespace Sentinel.Core
                     {
                         _baseline[label] = v;
                         if (string.IsNullOrEmpty(v) && string.IsNullOrEmpty(old)) continue;
-                        // Ignore empty→empty; fire on new debugger or Winlogon change away from defaults
+                        // Ignore empty->empty; fire on new debugger or Winlogon change away from defaults
                         if (IsBenignWinlogon(label, v)) continue;
 
                         await _detectionEngine.EmitAsync(new DetectionEvent
@@ -443,7 +443,7 @@ namespace Sentinel.Core
             }
             catch { }
 
-            // COM / protocol handler hijacks (HKCU preferred by attackers — no admin)
+            // COM / protocol handler hijacks (HKCU preferred by attackers - no admin)
             string[] comPaths =
             {
                 @"SOFTWARE\Classes\ms-settings\Shell\Open\command",
@@ -464,15 +464,15 @@ namespace Sentinel.Core
                             !string.IsNullOrEmpty(def))
                         {
                             _baseline[id + ":default"] = def;
-                            // Empty→empty skip; system defaults often empty or DelegateExecute
+                            // Empty->empty skip; system defaults often empty or DelegateExecute
                             if (IsLikelyComHijack(def))
                             {
                                 await _detectionEngine.EmitAsync(new DetectionEvent
                                 {
                                     RuleName = "Persistence: COM/Protocol Handler Hijack",
-                                    Evidence = $"{id} default → '{Truncate(def, 160)}'",
+                                    Evidence = $"{id} default -> '{Truncate(def, 160)}'",
                                     Reasoning =
-                                        "ms-settings/mscfile open command modified — classic fodhelper/eventvwr UAC bypass " +
+                                        "ms-settings/mscfile open command modified - classic fodhelper/eventvwr UAC bypass " +
                                         "and persistence technique. Correlate with auto-elevate binary launch.",
                                     Confidence = 0.88,
                                     Tier = DetectionTier.Tier2Indicator,
@@ -518,11 +518,11 @@ namespace Sentinel.Core
         }
 
         private static string Truncate(string s, int n) =>
-            string.IsNullOrEmpty(s) ? "" : (s.Length <= n ? s : s.Substring(0, n) + "…");
+            string.IsNullOrEmpty(s) ? "" : (s.Length <= n ? s : s.Substring(0, n) + "...");
     }
 
     /// <summary>
-    /// Initial-access style process patterns: browser/Office parent → LOLBin or staging child;
+    /// Initial-access style process patterns: browser/Office parent -> LOLBin or staging child;
     /// ISO/IMG-related mount tooling; MotW-adjacent execution heuristics via path+parent.
     /// Implemented as a BackgroundService scanning recent process ancestry (lightweight).
     /// </summary>
@@ -567,7 +567,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[InitialAccessMonitor] Started — browser/Office → LOLBin / staging");
+            _logger.LogInformation("[InitialAccessMonitor] Started - browser/Office -> LOLBin / staging");
             while (!ct.IsCancellationRequested)
             {
                 try
@@ -631,7 +631,7 @@ namespace Sentinel.Core
                             continue;
 
                         // Skip signed system LOLBins spawned by Office for legitimate print/export? 
-                        // Office → powershell is rarely legit without macros; keep as Tier2 observe.
+                        // Office -> powershell is rarely legit without macros; keep as Tier2 observe.
                         if (fromOffice && name == "outlook") continue;
 
                         _alertedPids.Add(pid);
@@ -673,7 +673,7 @@ namespace Sentinel.Core
                             Reasoning =
                                 "Initial-access pattern: browser or Office document chain spawning a LOLBin, " +
                                 "or LOLBin executing from Downloads/Temp (ISO/smuggling/MotW bypass path). " +
-                                "Observe fuel — chain with C2/script/network for destructive response.",
+                                "Observe fuel - chain with C2/script/network for destructive response.",
                             Confidence = conf,
                             Tier = DetectionTier.Tier2Indicator,
                             AuthorizedResponse = ResponseAction.LogOnly,

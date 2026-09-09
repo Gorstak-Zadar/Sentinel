@@ -4,7 +4,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for PseudoSandbox — verifies sandbox artifact presence detection,
+    /// Tests for PseudoSandbox - verifies sandbox artifact presence detection,
     /// detection model for evasion-aware malware, and classification.
     /// </summary>
     public class PseudoSandboxTests

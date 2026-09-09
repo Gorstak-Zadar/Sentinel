@@ -25,7 +25,7 @@ namespace Sentinel.Core
     ///   2. Detects explorer.exe process termination/absence
     ///   3. Auto-restarts explorer.exe if it dies (user shell recovery)
     ///   4. Detects sustained unresponsiveness and emits high-confidence alerts
-    ///   5. Tracks crash frequency — repeated crashes suggest active attack
+    ///   5. Tracks crash frequency - repeated crashes suggest active attack
     ///
     /// Scan interval: 5 seconds (fast response to shell death).
     /// </summary>
@@ -44,7 +44,7 @@ namespace Sentinel.Core
         private bool _shellAbsent;
 
         private static readonly TimeSpan ScanInterval = TimeSpan.FromSeconds(5);
-        // Short timeout — SMTO_BLOCK freezes *this* thread for the full timeout when the shell is busy.
+        // Short timeout - SMTO_BLOCK freezes *this* thread for the full timeout when the shell is busy.
         // Under CPU storms, a 3s block every 5s made the agent (and tray) feel dead.
         private static readonly TimeSpan HangTimeout = TimeSpan.FromMilliseconds(800);
         private static readonly TimeSpan RestartCooldown = TimeSpan.FromSeconds(15);
@@ -68,12 +68,12 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[ShellWatchdog] Started — waiting for shell initialization");
+            _logger.LogInformation("[ShellWatchdog] Started - waiting for shell initialization");
 
             // Wait for the shell to fully initialize before monitoring.
             // Explorer's shell window may not exist immediately at logon or agent startup.
             // Without this delay, the watchdog falsely concludes explorer is dead and
-            // launches a new instance — which opens a File Explorer window instead of the shell.
+            // launches a new instance - which opens a File Explorer window instead of the shell.
             await Task.Delay(TimeSpan.FromSeconds(30), ct);
 
             // Initial baseline
@@ -81,7 +81,7 @@ namespace Sentinel.Core
             if (_explorerPid > 0)
                 _logger.LogInformation("[ShellWatchdog] Monitoring explorer.exe PID {Pid}", _explorerPid);
             else
-                _logger.LogWarning("[ShellWatchdog] Explorer not found after startup delay — will monitor for appearance");
+                _logger.LogWarning("[ShellWatchdog] Explorer not found after startup delay - will monitor for appearance");
 
             while (!ct.IsCancellationRequested)
             {
@@ -108,7 +108,7 @@ namespace Sentinel.Core
                     _crashCount++;
                     _lastCrashTime = DateTimeOffset.UtcNow;
 
-                    _logger.LogWarning("[ShellWatchdog] Explorer.exe not found — shell is dead");
+                    _logger.LogWarning("[ShellWatchdog] Explorer.exe not found - shell is dead");
 
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
@@ -154,7 +154,7 @@ namespace Sentinel.Core
             {
                 _crashCount++;
                 _lastCrashTime = DateTimeOffset.UtcNow;
-                _logger.LogWarning("[ShellWatchdog] Explorer PID changed {Old} → {New} (crash #{Count})",
+                _logger.LogWarning("[ShellWatchdog] Explorer PID changed {Old} -> {New} (crash #{Count})",
                     _explorerPid, currentPid, _crashCount);
 
                 if (_crashCount >= CrashThresholdForAlert)
@@ -163,7 +163,7 @@ namespace Sentinel.Core
                     {
                         RuleName = "Shell Watchdog: Repeated Explorer Crashes",
                         Evidence = $"Explorer.exe has crashed {_crashCount} times in the last " +
-                                   $"{CrashWindowReset.TotalMinutes} minutes. PIDs: {_explorerPid} → {currentPid}",
+                                   $"{CrashWindowReset.TotalMinutes} minutes. PIDs: {_explorerPid} -> {currentPid}",
                         Reasoning = "Repeated explorer.exe crashes indicate possible DLL injection failure, " +
                                     "cross-process manipulation, or malware actively targeting the shell. " +
                                     "PlugX and similar RATs can cause cascading failures in shell-dependent " +
@@ -198,7 +198,7 @@ namespace Sentinel.Core
                 if (_consecutiveHangs >= HangThresholdForAlert)
                 {
                     // Rate-limit: under load SendMessageTimeout fails often; do not flood events.jsonl
-                    // (flood → agent log watcher → tray STA pressure → worse shell lag).
+                    // (flood -> agent log watcher -> tray STA pressure -> worse shell lag).
                     if (DateTimeOffset.UtcNow - _lastHangEmitUtc >= HangEmitCooldown)
                     {
                         _lastHangEmitUtc = DateTimeOffset.UtcNow;
@@ -252,11 +252,11 @@ namespace Sentinel.Core
 
             _lastRestartTime = DateTimeOffset.UtcNow;
 
-            // Do NOT launch explorer.exe directly — launching it from a background service
+            // Do NOT launch explorer.exe directly - launching it from a background service
             // context without arguments opens a File Explorer window instead of restarting
             // the shell. Windows has its own shell restart mechanism (Winlogon will restart
             // the shell if it detects the user's shell process has died). We just log and wait.
-            _logger.LogWarning("[ShellWatchdog] Explorer.exe is dead — waiting for Windows shell auto-recovery");
+            _logger.LogWarning("[ShellWatchdog] Explorer.exe is dead - waiting for Windows shell auto-recovery");
 
             await _eventLogger.LogEventAsync("shell_death", new
             {
@@ -268,7 +268,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Only the shell-window owner counts as the desktop shell.
-        /// Never fall back to a random File Explorer window — that caused dual-explorer
+        /// Never fall back to a random File Explorer window - that caused dual-explorer
         /// PID thrash (false "crashes") and bad hang targeting.
         /// </summary>
         private static int GetExplorerPid()
@@ -295,7 +295,7 @@ namespace Sentinel.Core
                 var shellWindow = GetShellWindow();
                 if (shellWindow == IntPtr.Zero)
                 {
-                    // No shell window — explorer might be starting up
+                    // No shell window - explorer might be starting up
                     return true;
                 }
 
@@ -303,7 +303,7 @@ namespace Sentinel.Core
                 if (ownerPid != (uint)pid)
                     return true; // Different process, skip check
 
-                // SMTO_ABORTIFHUNG only — avoid SMTO_BLOCK so a sluggish shell does not
+                // SMTO_ABORTIFHUNG only - avoid SMTO_BLOCK so a sluggish shell does not
                 // freeze the agent thread for the full timeout (tray freeze under load).
                 IntPtr result;
                 var success = SendMessageTimeout(

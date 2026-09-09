@@ -69,7 +69,7 @@ namespace Sentinel.Tests
             // Act
             await hardener.RunShieldingCycleAsync(CancellationToken.None);
 
-            // Assert — rules are named CVE-Shield-{cve}-{parent}-{interpreter}.json
+            // Assert - rules are named CVE-Shield-{cve}-{parent}-{interpreter}.json
             var cmdRuleFile = Path.Combine(_rulesDir, "CVE-Shield-CVE-2026-9999-dotnet-cmd.exe.json");
             var psRuleFile = Path.Combine(_rulesDir, "CVE-Shield-CVE-2026-9999-dotnet-powershell.json");
 

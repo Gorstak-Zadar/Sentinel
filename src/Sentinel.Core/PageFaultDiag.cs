@@ -12,7 +12,7 @@ namespace Sentinel.Core
 {
     /// <summary>
     /// Isolated hard-fault attribution. Invoked as
-    /// <c>Sentinel.Service.exe --pagefault-diag</c> — does not start monitors
+    /// <c>Sentinel.Service.exe --pagefault-diag</c> - does not start monitors
     /// or take response actions. Replays the service's real scan kernels and
     /// records LatencyMon-equivalent <see cref="HardFaultProbe"/> deltas.
     /// </summary>
@@ -83,7 +83,7 @@ namespace Sentinel.Core
             var baseline = HardFaultProbe.ReadCurrent();
             if (!baseline.HardFaultsValid)
             {
-                Line("WARNING: HardFaultCount parse failed — reporting total PageFaultCount only.");
+                Line("WARNING: HardFaultCount parse failed - reporting total PageFaultCount only.");
                 Line("Fix the probe before trusting these numbers against LatencyMon.");
             }
             else
@@ -92,7 +92,7 @@ namespace Sentinel.Core
             }
 
             Line("");
-            Line(FormatRow("Phase", "HardΔ", "PageΔ", "WS_MB", "Detail"));
+            Line(FormatRow("Phase", "Hard", "Page", "WS_MB", "Detail"));
             Line(new string('-', 100));
 
             // JIT the probe + Process APIs so first-call faults are not blamed on a phase.
@@ -241,7 +241,7 @@ namespace Sentinel.Core
 
             Line("");
             Line("Historical MBA shape (GetProcesses + EnumModules + identity), 6 cycles @ 5s.");
-            Line("Pre-2.4.6 poll — live MBA is one baseline then ImageLoad. No DllUnload / no kill.");
+            Line("Pre-2.4.6 poll - live MBA is one baseline then ImageLoad. No DllUnload / no kill.");
             for (int cycle = 1; cycle <= 6; cycle++)
             {
                 int cycleCapture = cycle;
@@ -305,11 +305,11 @@ namespace Sentinel.Core
             var end = HardFaultProbe.ReadCurrent();
             var total = HardFaultProbe.Snapshot.Delta(baseline, end);
             Line("");
-            Line($"TOTAL  HardΔ={FmtHard(total)}  PageΔ={total.PageFaults}  end WS={Mb(end.WorkingSetBytes)}");
+            Line($"TOTAL  Hard={FmtHard(total)}  Page={total.PageFaults}  end WS={Mb(end.WorkingSetBytes)}");
             Line("");
             Line("How to read this:");
-            Line("- HardΔ is what LatencyMon counts. 300 in <1 min is ~5/s.");
-            Line("- If MBA-like cycles are already tens of HardΔ each, that loop is the production leak.");
+            Line("- Hard is what LatencyMon counts. 300 in <1 min is ~5/s.");
+            Line("- If MBA-like cycles are already tens of Hard each, that loop is the production leak.");
             Line("- If only EmptyWorkingSet + after-trim is huge, lock/pin the service working set.");
             Line("- Authenticode cold vs warm isolates WinVerifyTrust file maps.");
             Line("- Hell's Gate replica isolates ReadProcessMemory of other processes.");

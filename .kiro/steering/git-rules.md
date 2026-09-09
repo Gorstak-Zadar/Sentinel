@@ -11,7 +11,7 @@ inclusion: auto
 This rule exists because a previous force push destroyed 183 commits of project history. The history was recovered, but this must never happen again.
 
 ### What to do instead:
-- If a push is rejected, investigate why — do NOT force it through
+- If a push is rejected, investigate why - do NOT force it through
 - If commits need to be reverted, use `git revert` (creates new commits, preserves history)
 - If a branch is behind remote, use `git pull --rebase` or `git merge`
 - If you accidentally committed large files that GitHub rejects, remove them with a new commit (not by rewriting history)

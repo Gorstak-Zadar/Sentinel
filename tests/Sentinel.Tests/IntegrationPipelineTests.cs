@@ -14,12 +14,12 @@ namespace Sentinel.Tests
 {
     /// <summary>
     /// End-to-end integration tests that exercise the full Sentinel detection pipeline:
-    ///   Telemetry → TelemetryFusionEngine → DetectionEngine → ScoringEngine →
-    ///   BehavioralCorrelationEngine → SentinelOrchestrator → ResponseCoordinator → ResponseEngine
+    ///   Telemetry -> TelemetryFusionEngine -> DetectionEngine -> ScoringEngine ->
+    ///   BehavioralCorrelationEngine -> SentinelOrchestrator -> ResponseCoordinator -> ResponseEngine
     ///
     /// These tests verify that a synthetic threat event flows through the entire pipeline
     /// and produces the correct detection, score, and response action. No mocking of internal
-    /// components — only the final kill action is intercepted to prevent actual process termination.
+    /// components - only the final kill action is intercepted to prevent actual process termination.
     /// </summary>
     public class IntegrationPipelineTests : IDisposable
     {
@@ -162,7 +162,7 @@ namespace Sentinel.Tests
                 Timestamp = DateTime.UtcNow
             };
 
-            // Act: feed through fusion engine → detection engine (production flow)
+            // Act: feed through fusion engine -> detection engine (production flow)
             var fusedContext = _fusionEngine.FeedEvent(telemetry);
             _detectionEngine.SubmitTelemetry(fusedContext);
 
@@ -384,13 +384,13 @@ namespace Sentinel.Tests
         }
 
         /// <summary>
-        /// Verifies incident grouping — multiple detections on the same PID
+        /// Verifies incident grouping - multiple detections on the same PID
         /// are grouped into a single incident.
         /// </summary>
         [Fact]
         public async Task Pipeline_MultipleDetectionsSamePid_GroupedIntoSingleIncident()
         {
-            // Two distinct attacks on same PID — use different rule categories to avoid dedup
+            // Two distinct attacks on same PID - use different rule categories to avoid dedup
             var telemetry1 = new ProcessTelemetry
             {
                 ProcessName = "evil.exe",
@@ -463,13 +463,13 @@ namespace Sentinel.Tests
         public void CategorizeDetection_FallsBackToStringMatching_ForComposites()
         {
             // Composite detections are emitted with dynamic names that have no class.
-            // String matching is order-dependent — verify actual categorization results.
+            // String matching is order-dependent - verify actual categorization results.
             Assert.Equal(DetectionCategory.C2Beaconing, ScoringEngine.CategorizeDetection("Injected C2 Beacon"));
             Assert.Equal(DetectionCategory.Ransomware, ScoringEngine.CategorizeDetection("Active Ransomware Chain"));
-            // "DGA + C2 Beaconing" contains "beacon" → C2Beaconing (string matcher is order-dependent)
+            // "DGA + C2 Beaconing" contains "beacon" -> C2Beaconing (string matcher is order-dependent)
             Assert.Equal(DetectionCategory.C2Beaconing, ScoringEngine.CategorizeDetection("DGA + C2 Beaconing"));
             Assert.Equal(DetectionCategory.AntiTamper, ScoringEngine.CategorizeDetection("Anti-Tamper: Process Suspended"));
-            // "Fileless Attack Chain" doesn't contain any of the evasion keywords — falls to Unknown
+            // "Fileless Attack Chain" doesn't contain any of the evasion keywords - falls to Unknown
             // unless it passes through the attribute registry. This is expected behavior for
             // composite names that were designed for human readability rather than categorization.
             var filelessCategory = ScoringEngine.CategorizeDetection("Fileless Attack Chain");

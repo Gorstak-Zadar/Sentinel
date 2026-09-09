@@ -1,5 +1,5 @@
 /**
- * Sentinel — Threat Report Proxy Worker (v2.1.7)
+ * Sentinel - Threat Report Proxy Worker (v2.1.7)
  *
  * Receives threat reports from Sentinel agents and forwards them to
  * abuse.ch (MalwareBazaar, URLhaus) using server-side API keys.
@@ -14,11 +14,11 @@
  *   - No wildcard CORS (non-browser agents only).
  *
  * Endpoints:
- *   POST /report/hash    — Report a malicious hash to MalwareBazaar
- *   POST /report/url     — Report a malicious URL to URLhaus
- *   POST /report/ip      — Report a malicious IP to AbuseIPDB
- *   POST /lookup/vt      — Lookup a SHA-256 hash on VirusTotal (proxied)
- *   GET  /health         — Health check (unauthenticated)
+ *   POST /report/hash    - Report a malicious hash to MalwareBazaar
+ *   POST /report/url     - Report a malicious URL to URLhaus
+ *   POST /report/ip      - Report a malicious IP to AbuseIPDB
+ *   POST /lookup/vt      - Lookup a SHA-256 hash on VirusTotal (proxied)
+ *   GET  /health         - Health check (unauthenticated)
  *
  * Deploy: wrangler deploy
  * Secrets: wrangler secret put SENTINEL_SHARED_SECRET
@@ -33,7 +33,7 @@
 const RATE_LIMIT_PER_MINUTE = 30;
 const rateBuckets = new Map();
 
-// v2.0.8: Nonce replay cache (timestamp.nonce → expiry unix sec)
+// v2.0.8: Nonce replay cache (timestamp.nonce -> expiry unix sec)
 const MAX_NONCE_ENTRIES = 4096;
 const usedNonces = new Map();
 const TIMESTAMP_WINDOW_SEC = 60;
@@ -56,7 +56,7 @@ function checkRateLimit(ip, limit = RATE_LIMIT_PER_MINUTE) {
 }
 
 function consumeNonce(nonce, ts) {
-  // Format already validated by caller — just check replay and store
+  // Format already validated by caller - just check replay and store
   const key = `${ts}:${nonce.toLowerCase()}`;
   if (usedNonces.has(key)) return false;
   usedNonces.set(key, ts + TIMESTAMP_WINDOW_SEC);
@@ -318,7 +318,7 @@ function validateReportInput(pathname, body) {
       return 'Invalid IP address format (must be valid IPv4 or IPv6)';
     }
     case '/lookup/vt':
-      // Already validated in lookupVirusTotal — no extra check needed
+      // Already validated in lookupVirusTotal - no extra check needed
       return null;
     default:
       return null;

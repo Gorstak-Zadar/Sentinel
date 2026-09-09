@@ -34,7 +34,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                // Cache may not exist yet — degrade gracefully
+                // Cache may not exist yet - degrade gracefully
             }
         }
 

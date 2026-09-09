@@ -24,7 +24,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore Sentinel.sln
 
-    # Fail the build if warnings reappear — the codebase currently builds 0-warning
+    # Fail the build if warnings reappear - the codebase currently builds 0-warning
     # and we want to keep it that way. -warnaserror turns any new warning into a red CI.
     - name: Build (warnings as errors)
       run: dotnet build Sentinel.sln -c Release --no-restore -warnaserror

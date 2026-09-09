@@ -266,7 +266,7 @@ namespace Sentinel.Tests
             // Assert: must not terminate the test host. Path-verified self-exclusion
             // only fires when image path is under AppContext.BaseDirectory (product install);
             // under testhost the engine may attempt kill which SafeKillProcessTree refuses
-            // for non-matching paths — either way we stay alive and must not "succeed" a nuke.
+            // for non-matching paths - either way we stay alive and must not "succeed" a nuke.
             Assert.False(Process.GetCurrentProcess().HasExited);
             var log = ReadLog();
             Assert.False(string.IsNullOrEmpty(log), "Expected a response log line");
@@ -319,7 +319,7 @@ namespace Sentinel.Tests
                 ProcessId = 6666,
                 Metadata = new Dictionary<string, string>
                 {
-                    { "TargetIP", "127.0.0.1" } // Loopback — should be skipped
+                    { "TargetIP", "127.0.0.1" } // Loopback - should be skipped
                 }
             };
 

@@ -1,4 +1,4 @@
-// System Integrity Monitor Group — firewall, secure boot, scheduled tasks, TLS certificates, UAC, WMI persistence, and boot integrity
+// System Integrity Monitor Group - firewall, secure boot, scheduled tasks, TLS certificates, UAC, WMI persistence, and boot integrity
 
 using System;
 using System.Collections.Concurrent;
@@ -20,9 +20,9 @@ using Microsoft.Win32;
 
 namespace Sentinel.Core
 {
-    // ──────────────────────────────────────────────
-    // Firewall Integrity Monitor — detects firewall rule tampering
-    // ──────────────────────────────────────────────
+    // 
+    // Firewall Integrity Monitor - detects firewall rule tampering
+    // 
     public sealed class FirewallIntegrityMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -73,9 +73,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Secure Boot Integrity Monitor — checks Secure Boot state
-    // ──────────────────────────────────────────────
+    // 
+    // Secure Boot Integrity Monitor - checks Secure Boot state
+    // 
     public sealed class SecureBootIntegrityMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -117,9 +117,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Scheduled Task Monitor — detects new/modified scheduled tasks
-    // ──────────────────────────────────────────────
+    // 
+    // Scheduled Task Monitor - detects new/modified scheduled tasks
+    // 
     public sealed class ScheduledTaskMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -172,12 +172,12 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // TLS Certificate Monitor — detects NEW root certificates added after baseline.
+    // 
+    // TLS Certificate Monitor - detects NEW root certificates added after baseline.
     // Startup: silently baselines all existing certs. Never alerts or removes.
     // Runtime: detects new certs not in baseline. Emits Tier2 log-only alerts.
-    // Never auto-removes any certificate — alerts only for admin review.
-    // ──────────────────────────────────────────────
+    // Never auto-removes any certificate - alerts only for admin review.
+    // 
     public sealed class TlsCertificateMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -186,7 +186,7 @@ namespace Sentinel.Core
         private readonly ILogger<TlsCertificateMonitor> _logger;
         private readonly HashSet<string> _baselineThumbprints = new(StringComparer.OrdinalIgnoreCase);
 
-        // Known enterprise TLS inspection CA subject patterns — these are legitimate
+        // Known enterprise TLS inspection CA subject patterns - these are legitimate
         // but still logged as Tier2 indicators for visibility
         private static readonly string[] KnownEnterpriseCAs =
         {
@@ -196,7 +196,7 @@ namespace Sentinel.Core
             "Websense", "Forcepoint", "Netskope", "Clearswift"
         };
 
-        // Known developer/debugging tool CA patterns — Tier2 only, no removal
+        // Known developer/debugging tool CA patterns - Tier2 only, no removal
         private static readonly string[] KnownDevToolCAs =
         {
             "Fiddler", "DO_NOT_TRUST_FiddlerRoot", "Charles", "mitmproxy",
@@ -212,9 +212,9 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[TlsCertificateMonitor] Started — performing startup full-store audit");
+            _logger.LogInformation("[TlsCertificateMonitor] Started - performing startup full-store audit");
 
-            // Phase 1: Startup scan — audit every existing cert, flag unknowns
+            // Phase 1: Startup scan - audit every existing cert, flag unknowns
             try
             {
                 await AuditAndBaselineStoreAsync(ct);
@@ -226,7 +226,7 @@ namespace Sentinel.Core
 
             _logger.LogInformation("[TlsCertificateMonitor] Audit complete: {Count} certs baselined", _baselineThumbprints.Count);
 
-            // Phase 2: Runtime polling — detect new certs
+            // Phase 2: Runtime polling - detect new certs
             while (!ct.IsCancellationRequested)
             {
                 try
@@ -319,8 +319,8 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Runtime polling: detect new certs added after baseline.
-        /// New unknown certs with high confidence → remove + notify.
-        /// New known public CAs → baseline silently.
+        /// New unknown certs with high confidence -> remove + notify.
+        /// New known public CAs -> baseline silently.
         /// Monitors Root AND TrustedPublisher stores (BYOVD attack vector).
         /// </summary>
         private async Task PollForNewCertsAsync(CancellationToken ct)
@@ -370,7 +370,7 @@ namespace Sentinel.Core
                         continue;
                     }
 
-                    // TrustedPublisher additions are extra suspicious — used for BYOVD
+                    // TrustedPublisher additions are extra suspicious - used for BYOVD
                     if (storeLabel == "TrustedPublisher")
                     {
                         analysis.Confidence = Math.Max(analysis.Confidence, 0.75);
@@ -394,7 +394,7 @@ namespace Sentinel.Core
                         }
                         else if (analysis.Confidence >= 0.75)
                         {
-                            // Raised from 0.65 — single weak signals (e.g. missing CRL on a
+                            // Raised from 0.65 - single weak signals (e.g. missing CRL on a
                             // legitimate but unknown CA) must not delete trust anchors.
                             response = ResponseAction.RemoveCert;
                         }
@@ -424,10 +424,10 @@ namespace Sentinel.Core
         {
             try
             {
-                // v1.8.1 RT-NEW-1: require a real thumbprint — never match by empty CN (Contains("") == true)
+                // v1.8.1 RT-NEW-1: require a real thumbprint - never match by empty CN (Contains("") == true)
                 if (string.IsNullOrWhiteSpace(certThumbprint) || certThumbprint.Length < 16)
                 {
-                    _logger.LogWarning("[TlsCertificateMonitor] BYOVD scan skipped — missing/short cert thumbprint");
+                    _logger.LogWarning("[TlsCertificateMonitor] BYOVD scan skipped - missing/short cert thumbprint");
                     return;
                 }
 
@@ -446,7 +446,7 @@ namespace Sentinel.Core
                         var signerCert = GetFileCertificate(driverPath);
                         if (signerCert == null) continue;
 
-                        // EXACT thumbprint only — subject substring matching removed (empty CN bricked hosts)
+                        // EXACT thumbprint only - subject substring matching removed (empty CN bricked hosts)
                         bool matchesThumbprint = signerCert.Thumbprint?.Equals(
                             certThumbprint) == true;
                         if (!matchesThumbprint) continue;
@@ -463,7 +463,7 @@ namespace Sentinel.Core
                             Reason = $"Driver '{driverPath}' exact thumbprint match for removed TrustedPublisher cert '{certSubject}'. Stopping service + deleting service key. File NOT deleted from System32\\drivers (WRP-safe)."
                         });
 
-                        // Stop service + remove registration. Do NOT delete the .sys under System32\drivers —
+                        // Stop service + remove registration. Do NOT delete the .sys under System32\drivers -
                         // WRP/OS integrity; mass-delete was a bricking risk when matching was too broad.
                         try
                         {
@@ -523,7 +523,7 @@ namespace Sentinel.Core
             catch { return null; }
         }
 
-        // Known legitimate public root CA patterns — these are trusted global CAs.
+        // Known legitimate public root CA patterns - these are trusted global CAs.
         // Keep in sync with common Microsoft AuthRoot / browser root store names.
         // Missing entries cause false "suspicious root" alerts when Windows updates the store.
         private static readonly string[] KnownPublicRootCAs =
@@ -543,12 +543,12 @@ namespace Sentinel.Core
             "Chunghwa Telecom", "Hongkong Post", "Japan Registry", "WISeKey",
             "Buypass", "D-TRUST", "Telia", "Telekom", "Deutsche Telekom",
             "Staat der", "Government", "eID", "Network Solutions",
-            "AddTrust", "USERTrust", "SECOM", "Unizeto", "TÜRKTRUST", "AC RAIZ",
+            "AddTrust", "USERTrust", "SECOM", "Unizeto", "TRKTRUST", "AC RAIZ",
             "Autoridad de Certificacion", "Certigna", "Certinomis", "ACCV",
             "ANF", "A-Trust", "BGC", "BNA", "CFCA", "China Internet", "CNNIC",
             "E-Tugra", "GDCA", "Hellenic", "HongKong Post", "Izenpe", "KISA",
             "KOICA", "Microsec", "NetLock", "OISTE", "PSC", "SK ID", "SSC",
-            "StartCom", "TÜB", "TWCA", "VRK", "WoSign", "SecureSign", "Macao",
+            "StartCom", "TB", "TWCA", "VRK", "WoSign", "SecureSign", "Macao",
             "Atos", "TWCA Root", "emSign", "vTrus", "UCA Global", "TrustAsia",
             "BJCA", "CFCA EV ROOT", "GDCA TrustAUTH"
         };
@@ -560,7 +560,7 @@ namespace Sentinel.Core
         /// </summary>
         internal static CertAnalysisResult AnalyzeCert(System.Security.Cryptography.X509Certificates.X509Certificate2 cert)
         {
-            // Start with LOW base confidence — require MULTIPLE strong indicators to reach action threshold
+            // Start with LOW base confidence - require MULTIPLE strong indicators to reach action threshold
             double confidence = 0.40;
             var tier = DetectionTier.Tier2Indicator;
             var reasons = new List<string>();
@@ -571,17 +571,17 @@ namespace Sentinel.Core
             // 1. Self-signed check (Subject == Issuer)
             // NOTE: All root CAs are self-signed! This is NORMAL, not suspicious.
             bool isSelfSigned = subject.Equals(issuer);
-            // DO NOT add confidence for self-signed — this is expected for root certs
+            // DO NOT add confidence for self-signed - this is expected for root certs
 
-            // 2. Check for known legitimate public root CA — downgrade to Tier2 immediately
+            // 2. Check for known legitimate public root CA - downgrade to Tier2 immediately
             bool isPublicRootCA = KnownPublicRootCAs.Any(ca =>
                 subject.Contains(ca));
 
-            // 3. Known enterprise CA — downgrade to Tier2, reduce confidence
+            // 3. Known enterprise CA - downgrade to Tier2, reduce confidence
             bool isEnterpriseCa = KnownEnterpriseCAs.Any(ca =>
                 subject.Contains(ca));
 
-            // 4. Known dev tool — downgrade to Tier2, reduce confidence
+            // 4. Known dev tool - downgrade to Tier2, reduce confidence
             bool isDevTool = KnownDevToolCAs.Any(dt =>
                 subject.Contains(dt));
 
@@ -608,15 +608,15 @@ namespace Sentinel.Core
             // Only apply suspicion signals if NOT a known legitimate CA
             if (!isPublicRootCA && !isEnterpriseCa && !isDevTool)
             {
-                // 5. Short validity period (< 1 year — real root CAs are 10-25 years)
+                // 5. Short validity period (< 1 year - real root CAs are 10-25 years)
                 var validity = cert.NotAfter - cert.NotBefore;
                 if (validity.TotalDays < 365)
                 {
-                    confidence += 0.15; // Increased from 0.10 — this is a strong signal
+                    confidence += 0.15; // Increased from 0.10 - this is a strong signal
                     reasons.Add($"Short validity ({validity.TotalDays:F0} days, expected 3650+)");
                 }
 
-                // 6. Very short validity (< 90 days — highly suspicious for a root CA)
+                // 6. Very short validity (< 90 days - highly suspicious for a root CA)
                 if (validity.TotalDays < 90)
                 {
                     confidence += 0.10; // Increased from 0.05
@@ -637,7 +637,7 @@ namespace Sentinel.Core
                     if (ext.Oid?.Value == "1.3.6.1.5.5.7.1.1") hasOcsp = true;
                 }
 
-                // Long-lived self-signed roots (≥5y) commonly have no CRL/AIA — do not score.
+                // Long-lived self-signed roots (>=5y) commonly have no CRL/AIA - do not score.
                 bool looksLikeLongLivedRoot = isSelfSigned && validity.TotalDays >= 365 * 5;
                 if (!hasCrl && !hasOcsp && !looksLikeLongLivedRoot)
                 {
@@ -645,7 +645,7 @@ namespace Sentinel.Core
                     reasons.Add("No CRL/OCSP distribution points");
                 }
 
-                // 8. Generic/random Subject CN — real CAs have well-known names
+                // 8. Generic/random Subject CN - real CAs have well-known names
                 var cn = ExtractCN(subject);
                 if (!string.IsNullOrEmpty(cn))
                 {
@@ -662,14 +662,14 @@ namespace Sentinel.Core
                     }
                 }
 
-                // 9. Already expired — suspicious to install an expired root cert
+                // 9. Already expired - suspicious to install an expired root cert
                 if (cert.NotAfter < DateTime.UtcNow)
                 {
                     confidence += 0.10;
                     reasons.Add($"Already expired (NotAfter={cert.NotAfter:u})");
                 }
 
-                // 10. Suspicious keywords in subject — some malware uses obvious names
+                // 10. Suspicious keywords in subject - some malware uses obvious names
                 var lowerSubject = subject.ToLowerInvariant();
                 if (lowerSubject.Contains("test") || lowerSubject.Contains("fake") ||
                     lowerSubject.Contains("evil") || lowerSubject.Contains("malware") ||
@@ -679,7 +679,7 @@ namespace Sentinel.Core
                     reasons.Add("Suspicious keywords in Subject");
                 }
 
-                // 11. Machine-name CN (hostname pattern) — MitM certs generated by RDP/attack tools
+                // 11. Machine-name CN (hostname pattern) - MitM certs generated by RDP/attack tools
                 // Real CAs never have bare hostnames as their CN
                 if (!string.IsNullOrEmpty(cn) && IsHostnameLike(cn))
                 {
@@ -687,7 +687,7 @@ namespace Sentinel.Core
                     reasons.Add($"CN looks like a machine hostname: '{cn}'");
                 }
 
-                // 12. Absurd validity (>100 years) — attack certs use 999-year validity
+                // 12. Absurd validity (>100 years) - attack certs use 999-year validity
                 // No legitimate CA issues certs for more than 25 years
                 if (validity.TotalDays > 36500) // >100 years
                 {
@@ -695,7 +695,7 @@ namespace Sentinel.Core
                     reasons.Add($"Absurd validity period ({validity.TotalDays / 365:F0} years)");
                 }
 
-                // 13. Server Authentication EKU in root store — root CAs should NOT have
+                // 13. Server Authentication EKU in root store - root CAs should NOT have
                 // server auth EKU. Only leaf/intermediate certs need it. A root cert with
                 // server auth EKU is designed for direct TLS interception.
                 bool hasServerAuthEku = false;
@@ -745,7 +745,7 @@ namespace Sentinel.Core
         /// </summary>
         private static string ExtractCN(string distinguishedName)
         {
-            // Subject format: "CN=Name, O=Org, ..." — extract CN value
+            // Subject format: "CN=Name, O=Org, ..." - extract CN value
             var parts = distinguishedName.Split(',');
             foreach (var part in parts)
             {
@@ -792,7 +792,7 @@ namespace Sentinel.Core
                 upper.StartsWith("LAPTOP-") || upper.StartsWith("WORKSTATION-") ||
                 upper.StartsWith("PC-") || upper.StartsWith("SERVER-"))
                 return true;
-            // Matches local machine name — definitely a self-signed MitM cert
+            // Matches local machine name - definitely a self-signed MitM cert
             try
             {
                 var machineName = Environment.MachineName;
@@ -911,7 +911,7 @@ namespace Sentinel.Core
 
             var evidence = $"{scanPhase}: Root cert Subject='{cert.Subject}', " +
                            $"Thumbprint={cert.Thumbprint}, " +
-                           $"Validity={cert.NotBefore:yyyy-MM-dd}→{cert.NotAfter:yyyy-MM-dd}, " +
+                           $"Validity={cert.NotBefore:yyyy-MM-dd}->{cert.NotAfter:yyyy-MM-dd}, " +
                            $"Signals=[{reasonsList}]";
 
             if (adderInfo != null)
@@ -966,7 +966,7 @@ namespace Sentinel.Core
             await _detectionEngine.EmitAsync(new DetectionEvent
             {
                 RuleName = removing
-                    ? "TLS: MitM Planted Root Certificate — Removing"
+                    ? "TLS: MitM Planted Root Certificate - Removing"
                     : "TLS: Suspicious Root Certificate Detected",
                 Evidence = evidence,
                 Reasoning = reasoning,
@@ -1004,9 +1004,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // UAC Bypass Surface Monitor — detects autoelevate binary abuse
-    // ──────────────────────────────────────────────
+    // 
+    // UAC Bypass Surface Monitor - detects autoelevate binary abuse
+    // 
     public sealed class UacBypassSurfaceMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -1056,10 +1056,10 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Windows Update Integrity Monitor — WU tampering + patch posture (v2.1.0)
-    // LogOnly only — never force install updates (work-first).
-    // ──────────────────────────────────────────────
+    // 
+    // Windows Update Integrity Monitor - WU tampering + patch posture (v2.1.0)
+    // LogOnly only - never force install updates (work-first).
+    // 
     public sealed class WindowsUpdateIntegrityMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -1081,7 +1081,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[WindowsUpdateIntegrityMonitor] Started — service + policy + posture");
+            _logger.LogInformation("[WindowsUpdateIntegrityMonitor] Started - service + policy + posture");
 
             // First posture check after 2 minutes (avoid boot noise)
             try { await Task.Delay(TimeSpan.FromMinutes(2), ct); } catch (OperationCanceledException) { return; }
@@ -1115,7 +1115,7 @@ namespace Sentinel.Core
                     {
                         RuleName = "Tampering: Windows Update Service Disabled",
                         Evidence = "wuauserv service Start value is 4 (Disabled)",
-                        Reasoning = "Windows Update disabled — blocks security patches (e.g. kernel LPE fixes). Common malware / ransomware technique. Sentinel cannot replace missing OS patches.",
+                        Reasoning = "Windows Update disabled - blocks security patches (e.g. kernel LPE fixes). Common malware / ransomware technique. Sentinel cannot replace missing OS patches.",
                         Confidence = 0.88,
                         Tier = DetectionTier.Tier2Indicator,
                         AuthorizedResponse = ResponseAction.LogOnly,
@@ -1149,7 +1149,7 @@ namespace Sentinel.Core
                     Evidence = $"WindowsUpdate\\AU NoAutoUpdate={noAuto} AUOptions={auOpts}",
                     Reasoning =
                         "Group Policy / registry disables automatic updates. Host may miss critical patches " +
-                        "(including actively exploited kernel bugs). LogOnly — operator must remediate policy.",
+                        "(including actively exploited kernel bugs). LogOnly - operator must remediate policy.",
                     Confidence = 0.80,
                     Tier = DetectionTier.Tier2Indicator,
                     AuthorizedResponse = ResponseAction.LogOnly,
@@ -1171,13 +1171,13 @@ namespace Sentinel.Core
             try
             {
                 // Auto Update Detection frequency / last success under WindowsUpdate\UX\Settings
-                // Fallback: Wuauserv last start is weak — use DetectionFrequency or Servicing stack
+                // Fallback: Wuauserv last start is weak - use DetectionFrequency or Servicing stack
                 using var ux = Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\WindowsUpdate\UX\Settings");
                 var lastSuccess = ux?.GetValue("LastSuccessfulScanTimeUtc") ??
                                   ux?.GetValue("LastScanTimeUtc");
 
-                // Alternate: CBS package age is expensive; use WU API-free heuristic —
+                // Alternate: CBS package age is expensive; use WU API-free heuristic -
                 // if Suspended or Pause feature updates forever
                 var pause = ux?.GetValue("PauseFeatureUpdatesStartTime") ??
                             ux?.GetValue("FlightSettingsMaxPauseDays");
@@ -1253,7 +1253,7 @@ namespace Sentinel.Core
                     Reasoning =
                         "CISA KEV: CVE-2026-68820 (afd.sys WinSock LPE, exploited by Lazarus). " +
                         "Sentinel cannot patch the kernel race. Install KB5121003 (Win11 build UBR 9168+) and reboot. " +
-                        "LogOnly + toast — never force-patches.",
+                        "LogOnly + toast - never force-patches.",
                     Confidence = eval.HighConfidence ? 0.90 : 0.72,
                     Tier = DetectionTier.Tier2Indicator,
                     AuthorizedResponse = ResponseAction.LogOnly,
@@ -1307,7 +1307,7 @@ namespace Sentinel.Core
                         : $"No LastSuccessTime; Patch Tuesday {pt:yyyy-MM-dd} has passed the 7-day grace window.",
                     Reasoning =
                         "Host has not applied the latest monthly cumulative update. New CVEs (kernel EoP, installer EoP, " +
-                        "browser RCE) require OS patches Sentinel cannot apply. LogOnly + toast — never force-patches.",
+                        "browser RCE) require OS patches Sentinel cannot apply. LogOnly + toast - never force-patches.",
                     Confidence = lastInstall.HasValue ? 0.86 : 0.70,
                     Tier = DetectionTier.Tier2Indicator,
                     AuthorizedResponse = ResponseAction.LogOnly,
@@ -1326,7 +1326,7 @@ namespace Sentinel.Core
                 {
                     _toast?.ShowCriticalToast(
                         "Sentinel: Windows Update overdue",
-                        "This PC missed the latest Patch Tuesday. Install Windows Updates and reboot — Sentinel cannot patch kernel bugs.");
+                        "This PC missed the latest Patch Tuesday. Install Windows Updates and reboot - Sentinel cannot patch kernel bugs.");
                 }
                 catch { }
             }
@@ -1335,12 +1335,12 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // WMI Persistence Monitor — filter + consumer + binding (T1546.003)
+    // 
+    // WMI Persistence Monitor - filter + consumer + binding (T1546.003)
     // v2.2.8: names alone are spoofable. Snapshot the triple across
     // root\subscription and root\default. Hostile CommandLine / ActiveScript
     // consumers are a persistence terminal, not LogOnly wallpaper.
-    // ──────────────────────────────────────────────
+    // 
     public sealed class WmiPersistenceMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -1351,7 +1351,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[WmiPersistenceMonitor] Started — filter/consumer/binding triple");
+            _logger.LogInformation("[WmiPersistenceMonitor] Started - filter/consumer/binding triple");
             SnapshotSubscriptions(_baselineSubscriptions);
 
             while (!ct.IsCancellationRequested)
@@ -1391,7 +1391,7 @@ namespace Sentinel.Core
                             // Terminal WmiPersistence only for the hostile branch (rule name
                             // "WMI Persistence: Hostile Event Subscription" matches a fragment).
                             // The non-hostile "Persistence: New WMI Event Subscription" matches no
-                            // fragment and stays non-terminal today — keep it null.
+                            // fragment and stays non-terminal today - keep it null.
                             Family = hostile ? (TerminalFamily?)TerminalFamily.WmiPersistence : null,
                             Metadata = new Dictionary<string, string>
                             {
@@ -1466,11 +1466,11 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // WMI Policy Rewrite Monitor — StdRegProv / provider-host policy overwrite
+    // 
+    // WMI Policy Rewrite Monitor - StdRegProv / provider-host policy overwrite
     // v2.2.8: user Policies hives rewritten via WMI have no autorun. Correlate
     // Kernel-Registry writes from WmiPrvSE/wmiadap/scrcons with HKLM/HKU Policies trees.
-    // ──────────────────────────────────────────────
+    // 
     public sealed class WmiPolicyRewriteMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -1486,7 +1486,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[WmiPolicyRewriteMonitor] Started — HKLM/HKU Policies attribution");
+            _logger.LogInformation("[WmiPolicyRewriteMonitor] Started - HKLM/HKU Policies attribution");
             _baselineFingerprint = FingerprintPolicyHives();
 
             while (!ct.IsCancellationRequested)
@@ -1547,7 +1547,7 @@ namespace Sentinel.Core
                 ProcessId = pid,
                 SignalType = SignalType.SecurityEvasion,
                 // Terminal WmiPersistence: both rule-name branches ("WMI Persistence + Policy
-                // Rewrite" and "WMI Policy Rewrite: …") match WmiPersistence fragments today.
+                // Rewrite" and "WMI Policy Rewrite: ...") match WmiPersistence fragments today.
                 // Preserves current substring classification.
                 Family = TerminalFamily.WmiPersistence,
                 Metadata = new Dictionary<string, string>
@@ -1638,9 +1638,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Work Folders Exfil Monitor — detects mass file sync
-    // ──────────────────────────────────────────────
+    // 
+    // Work Folders Exfil Monitor - detects mass file sync
+    // 
     public sealed class WorkFoldersExfilMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -1685,7 +1685,7 @@ namespace Sentinel.Core
                             ProcessName = "SYSTEM", ProcessId = 0
                         });
                     }
-                    // If file count increases dramatically (100+ new files added quickly) — staging for sync exfil
+                    // If file count increases dramatically (100+ new files added quickly) - staging for sync exfil
                     else if (currentCount > _baselineFileCount + 100)
                     {
                         await _detectionEngine.EmitAsync(new DetectionEvent
@@ -1707,9 +1707,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Browser DNS Policy Guard — forces ALL apps to use OS DNS resolver (respects hosts file)
-    // ──────────────────────────────────────────────
+    // 
+    // Browser DNS Policy Guard - forces ALL apps to use OS DNS resolver (respects hosts file)
+    // 
     public sealed class BrowserDnsPolicyGuard : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -1732,7 +1732,7 @@ namespace Sentinel.Core
         private const string DnsCacheParamsKey = @"SYSTEM\CurrentControlSet\Services\Dnscache\Parameters";
         private const string EnableAutoDohValue = "EnableAutoDoh";
 
-        // Firefox uses a different mechanism — policies.json or registry
+        // Firefox uses a different mechanism - policies.json or registry
         private const string FirefoxPolicyKey = @"SOFTWARE\Policies\Mozilla\Firefox";
         private const string FirefoxDnsOverHttpsKey = @"SOFTWARE\Policies\Mozilla\Firefox\DNSOverHTTPS";
 
@@ -1744,7 +1744,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[BrowserDnsPolicyGuard] Started — enforcing OS DNS resolver for all browsers and disabling system DoH");
+            _logger.LogInformation("[BrowserDnsPolicyGuard] Started - enforcing OS DNS resolver for all browsers and disabling system DoH");
 
             await Task.Delay(10000, ct);
 
@@ -1926,10 +1926,10 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Hosts File Guard — monitors hosts file for suspicious modifications (malware indicators)
+    // 
+    // Hosts File Guard - monitors hosts file for suspicious modifications (malware indicators)
     // Users may freely edit the hosts file; only MitM-defense lines are enforced when enabled.
-    // ──────────────────────────────────────────────
+    // 
     public sealed class HostsFileGuard : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -1949,7 +1949,7 @@ namespace Sentinel.Core
 
         private readonly SemaphoreSlim _scanLock = new(1, 1);
 
-        // Previous file hash — used to detect actual changes (not just watcher noise)
+        // Previous file hash - used to detect actual changes (not just watcher noise)
         private string _lastKnownHash = string.Empty;
 
         // MitM defense: FCM mtalk lines that must remain present when MitmDefense is active
@@ -1971,12 +1971,12 @@ namespace Sentinel.Core
         // Patterns that indicate malware DNS hijacking (not legitimate user edits)
         private static readonly string[] SuspiciousRedirectTargets = new[]
         {
-            // Known malware/C2 IP patterns — redirecting legitimate domains to these is suspicious
+            // Known malware/C2 IP patterns - redirecting legitimate domains to these is suspicious
             "185.215.", "194.180.", "91.215.", "45.133.", "23.106.",
             "193.233.", "77.91.", "79.137.", "94.232.", "5.42.",
         };
 
-        // Domains that should never be redirected away from their real IPs —
+        // Domains that should never be redirected away from their real IPs -
         // if someone points these at 127.0.0.1 or another IP, it's likely malware blocking security updates
         private static readonly HashSet<string> ProtectedDomains = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -2005,7 +2005,7 @@ namespace Sentinel.Core
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
             _logger.LogInformation(
-                "[HostsFileGuard] Started — monitoring hosts file for suspicious modifications (MitM enforce={MitM}) in {Path}",
+                "[HostsFileGuard] Started - monitoring hosts file for suspicious modifications (MitM enforce={MitM}) in {Path}",
                 _enforceMitmLines, DriversEtcPath);
 
             if (!Directory.Exists(DriversEtcPath))
@@ -2143,7 +2143,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// When MitM defense is active, ensures the FCM mtalk blocking lines are present.
-        /// Appends them if missing — does NOT touch any other user content.
+        /// Appends them if missing - does NOT touch any other user content.
         /// </summary>
         private async Task EnsureMitmLinesAsync(string trigger, CancellationToken ct)
         {
@@ -2162,12 +2162,12 @@ namespace Sentinel.Core
 
                 if (missingLines.Count == 0) return;
 
-                // Append missing MitM lines — preserve everything else
+                // Append missing MitM lines - preserve everything else
                 _logger.LogWarning(
-                    "[HostsFileGuard] MitM defense active — appending {Count} missing FCM block lines (trigger: {Trigger})",
+                    "[HostsFileGuard] MitM defense active - appending {Count} missing FCM block lines (trigger: {Trigger})",
                     missingLines.Count, trigger);
 
-                var appendText = "\r\n# Sentinel MitM Defense — FCM push channel block (do not remove while MitmDefense is enabled)\r\n" +
+                var appendText = "\r\n# Sentinel MitM Defense - FCM push channel block (do not remove while MitmDefense is enabled)\r\n" +
                                  string.Join("\r\n", missingLines) + "\r\n";
 
                 for (int i = 0; i < 3; i++)
@@ -2361,9 +2361,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Boot Integrity Guard — monitors bcdedit, EFI, and driver load order for rootkit persistence
-    // ──────────────────────────────────────────────
+    // 
+    // Boot Integrity Guard - monitors bcdedit, EFI, and driver load order for rootkit persistence
+    // 
     public sealed class BootIntegrityGuard : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -2406,7 +2406,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[BootIntegrityGuard] Started — monitoring boot configuration, EFI, and driver load order");
+            _logger.LogInformation("[BootIntegrityGuard] Started - monitoring boot configuration, EFI, and driver load order");
 
             await Task.Delay(30000, ct);
             await CaptureBaselineAsync();
@@ -2454,7 +2454,7 @@ namespace Sentinel.Core
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
                         RuleName = "Boot Integrity: Test Signing Enabled",
-                        Evidence = "bcdedit testsigning=Yes — unsigned kernel drivers can load.",
+                        Evidence = "bcdedit testsigning=Yes - unsigned kernel drivers can load.",
                         Reasoning = "Rootkits enable test signing to load unsigned kernel components.",
                         Confidence = 0.95, Tier = DetectionTier.Tier1Behavioral,
                         AuthorizedResponse = ResponseAction.LogOnly,
@@ -2469,7 +2469,7 @@ namespace Sentinel.Core
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
                         RuleName = "Boot Integrity: Kernel Debug Mode Enabled",
-                        Evidence = "bcdedit debug=Yes — kernel debugger can attach.",
+                        Evidence = "bcdedit debug=Yes - kernel debugger can attach.",
                         Reasoning = "Kernel debug mode allows remote kernel access. Rootkits enable this for persistent control.",
                         Confidence = 0.90, Tier = DetectionTier.Tier1Behavioral,
                         AuthorizedResponse = ResponseAction.LogOnly,
@@ -2484,7 +2484,7 @@ namespace Sentinel.Core
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
                         RuleName = "Boot Integrity: Integrity Checks Disabled",
-                        Evidence = "bcdedit nointegritychecks=Yes — boot code integrity bypassed.",
+                        Evidence = "bcdedit nointegritychecks=Yes - boot code integrity bypassed.",
                         Reasoning = "Disabling integrity checks allows tampered boot components to load unchallenged.",
                         Confidence = 0.95, Tier = DetectionTier.Tier1Behavioral,
                         AuthorizedResponse = ResponseAction.LogOnly,
@@ -2515,8 +2515,8 @@ namespace Sentinel.Core
                             await _detectionEngine.EmitAsync(new DetectionEvent
                             {
                                 RuleName = "Boot Integrity: BCD Entry Modified",
-                                Evidence = $"{kvp.Key}: '{_baselineBcd[kvp.Key]}' → '{kvp.Value}'",
-                                Reasoning = "Boot configuration was modified at runtime — possible bootkit activity.",
+                                Evidence = $"{kvp.Key}: '{_baselineBcd[kvp.Key]}' -> '{kvp.Value}'",
+                                Reasoning = "Boot configuration was modified at runtime - possible bootkit activity.",
                                 Confidence = 0.80, Tier = DetectionTier.Tier1Behavioral,
                                 AuthorizedResponse = ResponseAction.LogOnly,
                                 ProcessName = "SYSTEM", ProcessId = 0, SignalType = SignalType.AntiTamper,
@@ -2548,7 +2548,7 @@ namespace Sentinel.Core
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
                         RuleName = "Boot Integrity: New Boot Driver Registered",
-                        Evidence = $"New boot driver '{driver}' — ImagePath: {imagePath ?? "unknown"}",
+                        Evidence = $"New boot driver '{driver}' - ImagePath: {imagePath ?? "unknown"}",
                         Reasoning = "Rootkits register kernel drivers for boot-start to load before security software.",
                         Confidence = suspicious ? 0.95 : 0.80,
                         Tier = DetectionTier.Tier1Behavioral,
@@ -2583,14 +2583,14 @@ namespace Sentinel.Core
                 mountedByUs = result.MountedByUs;
                 if (string.IsNullOrEmpty(efiDir)) return;
 
-                // Check for bootmgfw.efi.bak — classic bootkit signature
+                // Check for bootmgfw.efi.bak - classic bootkit signature
                 var bakPath = Path.Combine(efiDir, "EFI", "Microsoft", "Boot", "bootmgfw.efi.bak");
                 if (File.Exists(bakPath))
                 {
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
                         RuleName = "Boot Integrity: EFI Boot Manager Backup Found",
-                        Evidence = $"File: {bakPath} — original boot manager may have been replaced.",
+                        Evidence = $"File: {bakPath} - original boot manager may have been replaced.",
                         Reasoning = "EFI bootkits (BlackLotus, ESPecter) rename bootmgfw.efi to .bak and replace it.",
                         Confidence = 0.92, Tier = DetectionTier.Tier1Behavioral,
                         AuthorizedResponse = ResponseAction.LogOnly,
@@ -2744,7 +2744,7 @@ namespace Sentinel.Core
                     catch { }
                 }
 
-                // Find a free drive letter to mount onto — avoid any letter already in use
+                // Find a free drive letter to mount onto - avoid any letter already in use
                 var usedLetters = new HashSet<char>(
                     DriveInfo.GetDrives()
                         .Where(d => d.Name.Length >= 1)
@@ -2772,7 +2772,7 @@ namespace Sentinel.Core
                 if (Directory.Exists(Path.Combine(mountPath, "EFI")))
                     return (mountPath, true);
 
-                // Mount failed or no EFI folder — clean up immediately
+                // Mount failed or no EFI folder - clean up immediately
                 UnmountEfiVolume(mountPath);
             }
             catch { }
@@ -2795,35 +2795,35 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // WMI Provider Integrity Monitor — detects malicious WMI provider DLLs (v1.6.6)
-    // ──────────────────────────────────────────────
+    // 
+    // WMI Provider Integrity Monitor - detects malicious WMI provider DLLs (v1.6.6)
+    // 
     // A malicious WMI provider DLL runs inside WmiPrvSE.exe (legitimate SYSTEM process)
     // and can intercept/modify WMI query results (fake thermals, throttle power settings)
-    // or execute arbitrary code on any WMI query to its namespace — without any visible
+    // or execute arbitrary code on any WMI query to its namespace - without any visible
     // process, autorun entry, scheduled task, or WMI event subscription.
     //
     // This monitor:
     //   1. Enumerates all __Win32Provider objects across WMI namespaces
-    //   2. Resolves CLSID → InprocServer32 → DLL path
+    //   2. Resolves CLSID -> InprocServer32 -> DLL path
     //   3. Validates Authenticode signatures (unsigned in sensitive namespace = Tier1)
     //   4. Baselines known providers at startup; alerts on new providers at runtime
     //   5. Scans WmiPrvSE.exe loaded modules for non-system DLLs
     //   6. Checks for MOF auto-recovery persistence
-    // ──────────────────────────────────────────────
+    // 
     public sealed class WmiProviderIntegrityMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
         private readonly ILogger<WmiProviderIntegrityMonitor> _logger;
 
-        // Baseline: provider name → resolved DLL path (from first scan)
+        // Baseline: provider name -> resolved DLL path (from first scan)
         private readonly Dictionary<string, WmiProviderInfo> _baselineProviders = new(StringComparer.OrdinalIgnoreCase);
         private bool _baselineEstablished;
 
         // MOF paths already alerted this process lifetime (avoid re-emitting every scan)
         private readonly HashSet<string> _alertedMofPaths = new(StringComparer.OrdinalIgnoreCase);
 
-        // Sensitive WMI namespaces — unsigned providers here are high-confidence threats
+        // Sensitive WMI namespaces - unsigned providers here are high-confidence threats
         // (power management, thermal, Intel DTT, hardware monitoring)
         private static readonly HashSet<string> SensitiveNamespaces = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -2838,7 +2838,7 @@ namespace Sentinel.Core
         };
 
         // Known legitimate non-Microsoft providers that will be unsigned or third-party signed
-        // (GPU drivers, OEM tools, etc.) — suppress false positives
+        // (GPU drivers, OEM tools, etc.) - suppress false positives
         private static readonly HashSet<string> KnownThirdPartyProviders = new(StringComparer.OrdinalIgnoreCase)
         {
             "NVDisplay.ContainerLocalSystem",   // NVIDIA
@@ -2867,7 +2867,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[WmiProviderIntegrityMonitor] Started — scanning WMI provider DLLs for integrity");
+            _logger.LogInformation("[WmiProviderIntegrityMonitor] Started - scanning WMI provider DLLs for integrity");
 
             // Initial delay to let system stabilize after boot
             await Task.Delay(15000, ct);
@@ -3017,7 +3017,7 @@ namespace Sentinel.Core
                     }
                 }
             }
-            catch { } // Some namespaces deny enumeration — skip silently
+            catch { } // Some namespaces deny enumeration - skip silently
         }
 
         /// <summary>
@@ -3059,10 +3059,10 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Analyzes providers for suspicious characteristics:
-        /// - Unsigned DLL in a sensitive namespace (power, thermal, Intel) → Tier1 (0.88)
-        /// - Unsigned DLL in non-system path → Tier1 (0.80)
-        /// - New provider added at runtime (not in baseline) → Tier1 (0.82)
-        /// - Unsigned DLL in standard namespace → Tier2 (0.65)
+        /// - Unsigned DLL in a sensitive namespace (power, thermal, Intel) -> Tier1 (0.88)
+        /// - Unsigned DLL in non-system path -> Tier1 (0.80)
+        /// - New provider added at runtime (not in baseline) -> Tier1 (0.82)
+        /// - Unsigned DLL in standard namespace -> Tier2 (0.65)
         /// </summary>
         private async Task ScanForSuspiciousProvidersAsync(
             IEnumerable<WmiProviderInfo> providers, bool isBaseline, CancellationToken ct)
@@ -3115,7 +3115,7 @@ namespace Sentinel.Core
                         ProcessId = 0
                     });
                     _logger.LogWarning("[WmiProviderIntegrityMonitor] ALERT: Unsigned provider in sensitive namespace: " +
-                        "{Name} @ {Namespace} → {Dll}", provider.Name, provider.Namespace, provider.DllPath);
+                        "{Name} @ {Namespace} -> {Dll}", provider.Name, provider.Namespace, provider.DllPath);
                 }
                 else if (!isSigned && !isSystemPath)
                 {
@@ -3135,7 +3135,7 @@ namespace Sentinel.Core
                         ProcessName = "WmiPrvSE.exe",
                         ProcessId = 0
                     });
-                    _logger.LogWarning("[WmiProviderIntegrityMonitor] Suspicious unsigned provider: {Name} → {Dll}",
+                    _logger.LogWarning("[WmiProviderIntegrityMonitor] Suspicious unsigned provider: {Name} -> {Dll}",
                         provider.Name, provider.DllPath);
                 }
                 else if (!isBaseline && !isSigned)
@@ -3236,7 +3236,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Checks the MOF auto-recovery registry key for non-Windows MOF files.
         /// MOF auto-recovery is a legacy persistence mechanism that auto-compiles
-        /// MOF files into WMI on repository rebuild — survives WMI reset.
+        /// MOF files into WMI on repository rebuild - survives WMI reset.
         /// </summary>
         private async Task CheckMofAutoRecoveryAsync(CancellationToken ct)
         {

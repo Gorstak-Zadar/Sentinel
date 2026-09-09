@@ -1,6 +1,6 @@
-// Driver Load Monitor — detects BYOVD (Bring Your Own Vulnerable Driver) attacks
-// v1.5.0: New monitor. Critical Group — restarts indefinitely.
-// v1.7.0: Added cert-tracing — extracts Authenticode cert from detected drivers,
+// Driver Load Monitor - detects BYOVD (Bring Your Own Vulnerable Driver) attacks
+// v1.5.0: New monitor. Critical Group - restarts indefinitely.
+// v1.7.0: Added cert-tracing - extracts Authenticode cert from detected drivers,
 //         revokes planted TrustedPublisher/Root certs, quarantines signed drivers.
 
 using System;
@@ -20,11 +20,11 @@ using Microsoft.Win32;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// Monitors for BYOVD (Bring Your Own Vulnerable Driver) attacks — the #1 technique
+    /// Monitors for BYOVD (Bring Your Own Vulnerable Driver) attacks - the #1 technique
     /// used by ransomware groups (GentleKiller, PoisonX, Qilin, Warlock, Reynolds) to
     /// disable endpoint security products at kernel level.
     ///
-    /// Detection approach (userland-compatible — no kernel driver needed):
+    /// Detection approach (userland-compatible - no kernel driver needed):
     ///   1. System Event Log: Event ID 7045 (new service installed) with Type=kernel
     ///   2. Registry monitoring: HKLM\SYSTEM\CurrentControlSet\Services\* new ImagePath=*.sys
     ///   3. Hash cross-reference against embedded vulnerable driver blocklist
@@ -72,7 +72,7 @@ namespace Sentinel.Core
             // HpPortIox64.sys (HP) - arbitrary I/O port access
             "D0970E3B79B3CE0F0BC8C40D2DCE3E59F88C6EDC6A2B1B5FCA9E7F7C8E7C9A7D",
             // EneIo64.sys (ENE Technology) - direct physical memory access
-            // EneIo64.sys (ENE Technology) — placeholder until a verified SHA-256 is recorded.
+            // EneIo64.sys (ENE Technology) - placeholder until a verified SHA-256 is recorded.
             // Previous value was a corrupted edit ("174A2F tried:...") and never matched.
             // iqvw64e.sys (Intel) - CVE-2015-2291, widely abused
             "4429F32DB1CC70567919D7D47B844A91CF1329A6CD116F582305F3B7B60CD60B",
@@ -126,7 +126,7 @@ namespace Sentinel.Core
             "PoisonX.sys",            // GodDamn/Hyadina ransomware-as-a-service EDR killer, July 2026
         };
 
-        // v2.1.5: Known GPU driver filenames — if a .sys with these names appears from
+        // v2.1.5: Known GPU driver filenames - if a .sys with these names appears from
         // non-standard paths (not DriverStore, not manufacturer installer), it's likely
         // a trojanized GPU driver used for privilege escalation or hardware-level persistence.
         private static readonly HashSet<string> GpuDriverNames = new(StringComparer.OrdinalIgnoreCase)
@@ -141,7 +141,7 @@ namespace Sentinel.Core
             "igdkmd64.sys", "igdkmd32.sys", "igdkmdn.sys",
         };
 
-        // Legitimate GPU driver install paths — drivers should ONLY come from these locations
+        // Legitimate GPU driver install paths - drivers should ONLY come from these locations
         private static readonly string[] LegitimateGpuDriverPaths = new[]
         {
             @"C:\Windows\System32\drivers",
@@ -152,7 +152,7 @@ namespace Sentinel.Core
             @"C:\Windows\SysWOW64\drivers",
         };
 
-        // Paths where legitimate drivers reside — new .sys outside these are suspicious
+        // Paths where legitimate drivers reside - new .sys outside these are suspicious
         private static readonly string[] LegitimateDriverPaths = new[]
         {
             @"C:\Windows\System32\drivers",
@@ -169,7 +169,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[DriverLoadMonitor] Started — monitoring for BYOVD vulnerable driver loads");
+            _logger.LogInformation("[DriverLoadMonitor] Started - monitoring for BYOVD vulnerable driver loads");
 
             // Baseline existing kernel driver services
             BaselineExistingDrivers();
@@ -293,7 +293,7 @@ namespace Sentinel.Core
 
                         var imagePath = svcKey?.GetValue("ImagePath")?.ToString() ?? "";
 
-                        // New kernel driver detected — add to baseline and evaluate
+                        // New kernel driver detected - add to baseline and evaluate
                         _baselineDriverServices.Add(svcName);
                         await EvaluateNewDriverAsync(svcName, imagePath, ct);
                     }
@@ -304,7 +304,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Scans for .sys files in user-writable paths — attackers drop vulnerable drivers
+        /// Scans for .sys files in user-writable paths - attackers drop vulnerable drivers
         /// in temp/downloads/appdata before loading them.
         /// </summary>
         private async Task CheckSuspiciousDriverFilesAsync(CancellationToken ct)
@@ -357,7 +357,7 @@ namespace Sentinel.Core
                                        $"Known vulnerable: {isKnownVulnerable}. Hash blocklist match: {hashMatch}.",
                             Reasoning = isKnownVulnerable || hashMatch
                                 ? $"A known BYOVD driver '{fileName}' was dropped in a user-writable directory. " +
-                                  "This is the staging phase of a BYOVD attack — the attacker drops the vulnerable " +
+                                  "This is the staging phase of a BYOVD attack - the attacker drops the vulnerable " +
                                   "driver, then loads it as a kernel service to gain ring-0 access for EDR termination. " +
                                   "This driver appears on the Microsoft Vulnerable Driver Blocklist or LOLDrivers database."
                                 : $"A .sys kernel driver file was created in a user-writable directory ('{basePath}'). " +
@@ -392,7 +392,7 @@ namespace Sentinel.Core
         /// but dropped from non-standard paths. Legitimate GPU drivers are installed exclusively via
         /// DriverStore (Windows Update, vendor installer, GeForce Experience, AMD Software).
         /// A GPU driver filename appearing in Temp, Downloads, or user-writable paths is a
-        /// trojanized driver — either for privilege escalation or hardware-level persistence.
+        /// trojanized driver - either for privilege escalation or hardware-level persistence.
         /// </summary>
         private async Task CheckSuspiciousGpuDriverDropAsync(CancellationToken ct)
         {
@@ -535,7 +535,7 @@ namespace Sentinel.Core
             }
             else
             {
-                // Unknown driver from standard path — low concern
+                // Unknown driver from standard path - low concern
                 return;
             }
 
@@ -550,7 +550,7 @@ namespace Sentinel.Core
                 Reasoning = "A kernel-mode driver was loaded that matches known BYOVD attack patterns. " +
                             "Ransomware groups (GentleKiller, PoisonX, Qilin, Warlock, Reynolds) use vulnerable " +
                             "signed drivers to gain ring-0 access, then terminate EDR processes via " +
-                            "ZwTerminateProcess from kernel mode — bypassing all userland protections. " +
+                            "ZwTerminateProcess from kernel mode - bypassing all userland protections. " +
                             "54+ known EDR-killer tools abuse 35+ vulnerable drivers for this purpose. " +
                             (hashMatch
                                 ? "The SHA-256 hash matches the Microsoft Vulnerable Driver Blocklist."
@@ -576,16 +576,16 @@ namespace Sentinel.Core
                 }
             });
 
-            // If high confidence — attempt to stop and disable the driver service
+            // If high confidence - attempt to stop and disable the driver service
             if (confidence >= 0.90)
             {
                 await AttemptDriverDisableAsync(serviceName, ct);
             }
 
-            // v1.7.0: Cert-tracing — if the driver is signed by a non-public cert that was
+            // v1.7.0: Cert-tracing - if the driver is signed by a non-public cert that was
             // planted in TrustedPublisher or Root store, revoke it to prevent re-loading.
-            // This closes the attack chain: attacker plants cert → loads driver → Sentinel
-            // removes cert + quarantines driver → re-load is impossible without repeating entire chain.
+            // This closes the attack chain: attacker plants cert -> loads driver -> Sentinel
+            // removes cert + quarantines driver -> re-load is impossible without repeating entire chain.
             if (confidence >= 0.70 && File.Exists(resolvedPath))
             {
                 await TracAndRevokeDriverCertAsync(resolvedPath, serviceName, confidence, ct);
@@ -602,7 +602,7 @@ namespace Sentinel.Core
         ///   1. Attacker plants fake code-signing cert in TrustedPublisher
         ///   2. Attacker signs their own .sys driver with that cert
         ///   3. Windows DSE passes because TrustedPublisher trusts the signer
-        ///   4. Sentinel detects the driver load → extracts cert → revokes it
+        ///   4. Sentinel detects the driver load -> extracts cert -> revokes it
         ///   5. Without the TrustedPublisher entry, Windows will refuse to load the driver again
         ///
         /// Also handles the case where the attacker planted a root CA cert to chain-validate
@@ -619,7 +619,7 @@ namespace Sentinel.Core
                 var subject = signerCert.Subject;
                 var issuer = signerCert.Issuer;
 
-                // Skip well-known public CAs — these are legitimate even on vulnerable drivers
+                // Skip well-known public CAs - these are legitimate even on vulnerable drivers
                 // (e.g., RTCore64.sys was signed by a real MSI certificate)
                 if (IsKnownPublicCa(subject) || IsKnownPublicCa(issuer))
                 {
@@ -631,7 +631,7 @@ namespace Sentinel.Core
                 var (foundInTrustedPublisher, trustedPubThumbprint) = FindCertInStore(
                     StoreName.TrustedPublisher, StoreLocation.LocalMachine, thumbprint, subject);
 
-                // Check Root store (fake CA pattern — e.g., "Chromecast IoT Root CA")
+                // Check Root store (fake CA pattern - e.g., "Chromecast IoT Root CA")
                 var (foundInRoot, rootThumbprint) = FindCertInStore(
                     StoreName.Root, StoreLocation.LocalMachine, thumbprint, issuer);
 
@@ -666,17 +666,17 @@ namespace Sentinel.Core
                 // Confidence boost: planted cert + BYOVD driver = very high confidence attack
                 double certTraceConfidence = Math.Max(baseConfidence, 0.95);
 
-                // Emit RemoveCertAndKillAdder detection — the response engine handles actual removal
+                // Emit RemoveCertAndKillAdder detection - the response engine handles actual removal
                 await _detectionEngine.EmitAsync(new DetectionEvent
                 {
                     RuleName = "BYOVD: Planted Signing Certificate Revocation",
                     Evidence = $"Driver '{serviceName}' at '{driverPath}' is signed by cert '{subject}' " +
                                $"(Thumbprint: {thumbprint[..16]}...) which was found in {storeLabel}. " +
-                               $"This is NOT a well-known public CA — it was planted to enable driver signature validation bypass.",
+                               $"This is NOT a well-known public CA - it was planted to enable driver signature validation bypass.",
                     Reasoning = "BYOVD attack chain detected: a non-public code-signing certificate was planted " +
                                 $"in the {storeLabel} store, enabling the attacker's driver to pass Windows Driver " +
                                 "Signature Enforcement. By revoking this certificate, the driver cannot be reloaded " +
-                                "after removal — closing the attack chain permanently. " +
+                                "after removal - closing the attack chain permanently. " +
                                 "This pattern matches known attacks (fake Chromecast CA, rogue IoT device certs) " +
                                 "that bypass DSE by establishing trust at the certificate level.",
                     Confidence = certTraceConfidence,
@@ -693,7 +693,7 @@ namespace Sentinel.Core
                         ["CertStore"] = storeLabel,
                         ["DriverPath"] = driverPath,
                         ["ServiceName"] = serviceName,
-                        ["AdderProcessId"] = "0", // Unknown — cert may have been planted earlier
+                        ["AdderProcessId"] = "0", // Unknown - cert may have been planted earlier
                         ["Technique"] = "T1553.004/T1068/BYOVD"
                     }
                 });
@@ -712,7 +712,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Scans System32\drivers for other .sys files signed by the same planted cert.
-        /// Quarantines any found — the attacker may have loaded multiple BYOVD drivers.
+        /// Quarantines any found - the attacker may have loaded multiple BYOVD drivers.
         /// </summary>
         private async Task ScanForOtherDriversSignedByCertAsync(
             X509Certificate2 maliciousCert, string thumbprint, string certSubject,
@@ -897,7 +897,7 @@ namespace Sentinel.Core
         /// Attempts to stop and disable a malicious driver service before it can kill Sentinel.
         /// Race condition: if the driver loads before we act, we lose. But if we catch it
         /// during service creation (before start), we can prevent the attack.
-        /// v1.6.0: Native SCM + ServiceController — no sc.exe LOLBin dependency.
+        /// v1.6.0: Native SCM + ServiceController - no sc.exe LOLBin dependency.
         /// </summary>
         private async Task AttemptDriverDisableAsync(string serviceName, CancellationToken ct)
         {
@@ -932,7 +932,7 @@ namespace Sentinel.Core
                 // 2. Disable start type + delete via native SCM P/Invoke
                 DisableAndDeleteServiceNative(serviceName);
 
-                _logger.LogWarning("[DriverLoadMonitor] BYOVD driver service '{Service}' — stop/disable/delete attempted", serviceName);
+                _logger.LogWarning("[DriverLoadMonitor] BYOVD driver service '{Service}' - stop/disable/delete attempted", serviceName);
             }
             catch (Exception ex)
             {
@@ -953,7 +953,7 @@ namespace Sentinel.Core
             return true;
         }
 
-        // ── Native SCM (v1.6.0 — replaces sc.exe) ──────────────────────────
+        //  Native SCM (v1.6.0 - replaces sc.exe) 
         [System.Runtime.InteropServices.DllImport("advapi32.dll", EntryPoint = "OpenSCManagerW", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr OpenSCManager(string? machineName, string? databaseName, uint dwDesiredAccess);
 

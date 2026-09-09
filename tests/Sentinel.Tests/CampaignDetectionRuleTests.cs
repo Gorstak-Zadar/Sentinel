@@ -26,7 +26,7 @@ namespace Sentinel.Tests
             };
         }
 
-        // ── CobaltStrike ────────────────────────────────────────────────────
+        //  CobaltStrike 
 
         [Fact]
         public void CobaltStrike_Fires_OnBeaconExe()
@@ -44,7 +44,7 @@ namespace Sentinel.Tests
             Assert.NotNull(result);
         }
 
-        // ── QBot ────────────────────────────────────────────────────────────
+        //  QBot 
 
         [Fact]
         public void QBot_Fires_OnChkdsksExe()
@@ -66,7 +66,7 @@ namespace Sentinel.Tests
             Assert.Null(result);
         }
 
-        // ── Emotet ──────────────────────────────────────────────────────────
+        //  Emotet 
 
         [Fact]
         public void Emotet_Fires_OnSysExe()
@@ -85,7 +85,7 @@ namespace Sentinel.Tests
             Assert.NotNull(result);
         }
 
-        // ── TrickBot ────────────────────────────────────────────────────────
+        //  TrickBot 
 
         [Fact]
         public void TrickBot_Fires_OnTabExe()
@@ -103,7 +103,7 @@ namespace Sentinel.Tests
             Assert.NotNull(result);
         }
 
-        // ── False positive prevention (v3.8.0 exact filename fix) ───────────
+        //  False positive prevention (v3.8.0 exact filename fix) 
 
         [Fact]
         public void DoesNotFire_OnGoogleUpdateExe()
@@ -151,7 +151,7 @@ namespace Sentinel.Tests
             Assert.Null(_rule.Evaluate(ctx));
         }
 
-        // ── Detection properties ────────────────────────────────────────────
+        //  Detection properties 
 
         [Fact]
         public void Detection_HasCorrectMetadata()

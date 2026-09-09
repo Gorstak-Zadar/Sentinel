@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// Unified ETW real-time session — subscribes to multiple system providers simultaneously.
+    /// Unified ETW real-time session - subscribes to multiple system providers simultaneously.
     /// Replaces poll-based monitoring with event-driven telemetry at ~50ms latency.
     /// 
     /// v1.5.5: Fully implemented using buffer-offset P/Invoke approach.
@@ -63,12 +63,12 @@ namespace Sentinel.Core
         private const int WNODE_HistoricalContext_Offset = 8;   // ULONG64 (8)
         private const int WNODE_TimeStamp_Offset = 16;          // LARGE_INTEGER (8)
         private const int WNODE_Guid_Offset = 24;               // GUID (16)
-        private const int WNODE_ClientContext_Offset = 40;      // ULONG (4) — clock resolution
+        private const int WNODE_ClientContext_Offset = 40;      // ULONG (4) - clock resolution
         private const int WNODE_Flags_Offset = 44;              // ULONG (4)
         private const int WNODE_SIZE = 48;
 
         // EVENT_TRACE_PROPERTIES offsets after WNODE_HEADER
-        private const int ETP_BufferSize_Offset = WNODE_SIZE + 0;       // ULONG (4) — KB per buffer
+        private const int ETP_BufferSize_Offset = WNODE_SIZE + 0;       // ULONG (4) - KB per buffer
         private const int ETP_MinimumBuffers_Offset = WNODE_SIZE + 4;   // ULONG (4)
         private const int ETP_MaximumBuffers_Offset = WNODE_SIZE + 8;   // ULONG (4)
         private const int ETP_MaximumFileSize_Offset = WNODE_SIZE + 12; // ULONG (4)
@@ -99,7 +99,7 @@ namespace Sentinel.Core
             public static readonly Guid Firewall = new("D1BC9AFF-2ABF-4D71-9146-ECB2A986EB85");
             public static readonly Guid TaskScheduler = new("DE7B24EA-73C8-4A09-985D-5BDADCFA9017");
             public static readonly Guid KernelNetwork = new("7DD42A49-5329-4832-8DFD-43D979153A88");
-            // Microsoft-Windows-WMI-Activity — filter/consumer/binding create (5859–5861)
+            // Microsoft-Windows-WMI-Activity - filter/consumer/binding create (5859-5861)
             public static readonly Guid WmiActivity = new("1418EF04-B0B4-4623-BF7B-2DE461B4F4CB");
         }
 
@@ -131,19 +131,19 @@ namespace Sentinel.Core
         [UnmanagedFunctionPointer(CallingConvention.StdCall)]
         private delegate uint BufferCallbackDelegate(ref EVENT_TRACE_LOGFILEW logfile);
 
-        // EVENT_TRACE_LOGFILEW — using explicit layout for the fields we need.
+        // EVENT_TRACE_LOGFILEW - using explicit layout for the fields we need.
         // The full struct is very large due to embedded EVENT_TRACE and TRACE_LOGFILE_HEADER.
         // We only set the fields OpenTrace requires for real-time consumption and let the
         // rest be zero-initialized (which is valid for real-time mode).
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         private struct EVENT_TRACE_LOGFILEW
         {
-            public IntPtr LogFileName;        // LPWSTR — NULL for real-time
-            public IntPtr LoggerName;         // LPWSTR — session name for real-time
+            public IntPtr LogFileName;        // LPWSTR - NULL for real-time
+            public IntPtr LoggerName;         // LPWSTR - session name for real-time
             public long CurrentTime;          // LONGLONG (output)
             public uint BuffersRead;          // ULONG (output)
-            public uint ProcessTraceMode;     // ULONG — processing flags
-            // EVENT_TRACE CurrentEvent — 176 bytes on x64
+            public uint ProcessTraceMode;     // ULONG - processing flags
+            // EVENT_TRACE CurrentEvent - 176 bytes on x64
             // We need to pad this correctly. EVENT_TRACE on x64:
             //   WNODE_HEADER (48) + BufferContext (4) + ... remainder
             // Actually the exact EVENT_TRACE layout varies. For OpenTrace input, we only
@@ -174,7 +174,7 @@ namespace Sentinel.Core
             public long Padding_CurrentEvent_19;
             public long Padding_CurrentEvent_20;
             public long Padding_CurrentEvent_21; // 176 bytes = 22 * 8
-            // TRACE_LOGFILE_HEADER LogfileHeader — ~280 bytes on x64 = 35 * 8
+            // TRACE_LOGFILE_HEADER LogfileHeader - ~280 bytes on x64 = 35 * 8
             public long Padding_LogfileHeader_0;
             public long Padding_LogfileHeader_1;
             public long Padding_LogfileHeader_2;
@@ -213,13 +213,13 @@ namespace Sentinel.Core
             public IntPtr BufferCallback;     // PEVENT_TRACE_BUFFER_CALLBACKW
             public uint BufferSize;           // ULONG (output)
             public uint Filled;               // ULONG (output)
-            public uint EventsLost;           // ULONG (output — not used)
+            public uint EventsLost;           // ULONG (output - not used)
             public IntPtr EventRecordCallback; // PEVENT_RECORD_CALLBACK or EventCallback
             public uint IsKernelTrace;        // ULONG (output)
-            public IntPtr Context;            // PVOID — user context
+            public IntPtr Context;            // PVOID - user context
         }
 
-        // EVENT_RECORD — the struct delivered to EventRecordCallback
+        // EVENT_RECORD - the struct delivered to EventRecordCallback
         [StructLayout(LayoutKind.Sequential)]
         private struct EVENT_RECORD
         {
@@ -318,7 +318,7 @@ namespace Sentinel.Core
                 {
                     _logger.LogWarning("[UnifiedEtwSession] StartTraceW failed with error {Error}. " +
                         "Monitors will use WMI/polling fallback. " +
-                        "(0x000000B7 = session already exists, 5 = access denied — requires admin)", result);
+                        "(0x000000B7 = session already exists, 5 = access denied - requires admin)", result);
                     FreePropertiesBuffer();
                     IsActive = false;
                     return Task.CompletedTask;
@@ -468,7 +468,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                // Never throw from ETW callback — swallow all exceptions
+                // Never throw from ETW callback - swallow all exceptions
                 Interlocked.Increment(ref _eventsDropped);
             }
         }
@@ -481,7 +481,7 @@ namespace Sentinel.Core
 
             try
             {
-                // Close the trace handle first — this unblocks ProcessTrace
+                // Close the trace handle first - this unblocks ProcessTrace
                 if (_traceHandle != INVALID_PROCESSTRACE_HANDLE && _traceHandle != 0)
                 {
                     CloseTrace(_traceHandle);
@@ -525,7 +525,7 @@ namespace Sentinel.Core
         {
             try
             {
-                _logger.LogWarning("[UnifiedEtwSession] RestartAsync — stopping and recreating session");
+                _logger.LogWarning("[UnifiedEtwSession] RestartAsync - stopping and recreating session");
                 await StopAsync();
                 // Brief pause so kernel releases the session name
                 await Task.Delay(500, ct);

@@ -15,32 +15,32 @@ namespace Sentinel.Agent
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern bool FreeConsole();
 
-        // ── Self-restart state ────────────────────────────────────────────
+        //  Self-restart state 
         // v2.0.3: File-based restart counter (replaces env var which leaked into
         // child processes and could be polluted by inheritance). The marker file
         // stores a timestamp + count; stale markers (>60s old) are treated as fresh.
         private const int MaxSelfRestarts = 5;
         private const int RestartWindowSeconds = 60;
-        // ─────────────────────────────────────────────────────────────────
+        // 
 
-        // ── Single-instance guard ─────────────────────────────────────────
+        //  Single-instance guard 
         // Multiple launch paths can race (installer, Run key, AgentWatchdog,
         // self-restart). A named mutex prevents duplicate tray icons.
         private const string SingleInstanceMutexName = "Global\\SentinelAgentSingleInstance";
-        // ─────────────────────────────────────────────────────────────────
+        // 
 
         [STAThread]
         public static void Main(string[] args)
         {
-            // ── Single-instance check (before anything else) ──────────────
+            //  Single-instance check (before anything else) 
             using var instanceMutex = new Mutex(true, SingleInstanceMutexName, out bool createdNew);
             if (!createdNew)
             {
-                // Another Agent instance is already running — exit silently.
+                // Another Agent instance is already running - exit silently.
                 return;
             }
 
-            // ── Crash handlers (registered first, before any allocations) ──
+            //  Crash handlers (registered first, before any allocations) 
             AppDomain.CurrentDomain.UnhandledException += (s, e) =>
             {
                 LogCrash("UnhandledException", e.ExceptionObject as Exception);
@@ -62,13 +62,13 @@ namespace Sentinel.Agent
                 LogCrash("ThreadException", e.Exception);
             };
 
-            // ── Hardening ─────────────────────────────────────────────────
+            //  Hardening 
             HardeningModule.ApplyOrFail();
 
             // Detach from parent console window (installer / Run key launch)
             try { FreeConsole(); } catch { }
 
-            // ── Build & run host ──────────────────────────────────────────
+            //  Build & run host 
             var host = CreateHostBuilder(args).Build();
 
             // v1.3.9: Wire the orchestrator into the detection engine so
@@ -81,7 +81,7 @@ namespace Sentinel.Agent
             // v2.6.0: Wire ancestry cache into ResponsePolicy for cross-PID chain correlation.
             ResponsePolicy.SetAncestryCache(host.Services.GetRequiredService<ProcessAncestryCache>());
 
-            // v2.0.3: Clear restart marker on successful startup — host built and wired
+            // v2.0.3: Clear restart marker on successful startup - host built and wired
             ClearRestartMarker();
 
             try
@@ -96,7 +96,7 @@ namespace Sentinel.Agent
             }
             finally
             {
-                // v1.3.9: Self-restart on exit — covers all normal and abnormal exits
+                // v1.3.9: Self-restart on exit - covers all normal and abnormal exits
                 // except the IsTerminating path above (which calls ScheduleDelayedRelaunch).
                 // The AgentWatchdog in the Service is the authoritative restarter; this is
                 // a belt-and-suspenders fallback for the window before the watchdog notices.
@@ -104,9 +104,9 @@ namespace Sentinel.Agent
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Self-restart helpers
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Attempts to re-launch this process immediately.
@@ -114,7 +114,7 @@ namespace Sentinel.Agent
         ///
         /// Guards:
         ///   - Only restarts on unclean exit (non-zero expected lifecycle exits are
-        ///     not currently signalled, so we restart on every exit — the watchdog
+        ///     not currently signalled, so we restart on every exit - the watchdog
         ///     dedup window prevents storms).
         ///   - v2.0.3: File-based restart counter prevents crash-loop amplification
         ///     beyond MaxSelfRestarts within a rolling window.
@@ -127,7 +127,7 @@ namespace Sentinel.Agent
 
                 if (restartCount >= MaxSelfRestarts)
                 {
-                    // Too many rapid self-restarts — let the AgentWatchdog (Service side) handle it
+                    // Too many rapid self-restarts - let the AgentWatchdog (Service side) handle it
                     LogCrash("SelfRestartAborted",
                         new InvalidOperationException(
                             $"Self-restart limit ({MaxSelfRestarts}) reached within {RestartWindowSeconds}s. " +
@@ -154,7 +154,7 @@ namespace Sentinel.Agent
             }
             catch
             {
-                // Best-effort — if we can't self-restart, the AgentWatchdog will cover it
+                // Best-effort - if we can't self-restart, the AgentWatchdog will cover it
             }
         }
 
@@ -188,9 +188,9 @@ namespace Sentinel.Agent
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // File-based restart marker (v2.0.3)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Reads the current restart count from the marker file. If the marker is
@@ -217,7 +217,7 @@ namespace Sentinel.Agent
                         {
                             count = existingCount;
                         }
-                        // else: stale marker — treat as fresh (count stays 0)
+                        // else: stale marker - treat as fresh (count stays 0)
                     }
                 }
 
@@ -255,9 +255,9 @@ namespace Sentinel.Agent
             return Path.Combine(programData, "Sentinel", ".agent_restart_marker");
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Crash logger
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static void LogCrash(string type, Exception? ex)
         {
@@ -273,9 +273,9 @@ namespace Sentinel.Agent
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Host builder
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)

@@ -11,12 +11,12 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// DLL identity defense — remediation on map, not on count.
+    /// DLL identity defense - remediation on map, not on count.
     ///
     /// Every mapped module is run through <see cref="ModuleIdentity"/>. Foreign
-    /// path / user-writable drop / unsigned sideload plant → immediate containment
+    /// path / user-writable drop / unsigned sideload plant -> immediate containment
     /// and disk quarantine (constraint: DLL remediation may act without a chain).
-    /// Hijack-name plants on disk (dbghelp/version/winmm/…) are quarantined so
+    /// Hijack-name plants on disk (dbghelp/version/winmm/...) are quarantined so
     /// the loader cannot bind them. Never kill a process from a disk plant alone (0.5.3).
     /// Games skipped for handle safety only. Never terminate lsass/csrss/DISM/NTLite.
     ///
@@ -32,7 +32,7 @@ namespace Sentinel.Core
         private readonly ConcurrentDictionary<string, DateTimeOffset> _alertHistory = new();
         private readonly ConcurrentDictionary<string, DateTimeOffset> _remediationHistory = new();
         // MBA runs every 5s. Re-Authenticode of the same mapped PE was the LatencyMon
-        // hard-fault source (mba-hf.log: 30–107 faults/cycle). Evaluate+WinVerifyTrust
+        // hard-fault source (mba-hf.log: 30-107 faults/cycle). Evaluate+WinVerifyTrust
         // only on first sight of a path in that PID. New mapped modules still run identity.
         private readonly ConcurrentDictionary<int, PidModuleCache> _pidModules = new();
         private int _remediationsThisMinute;
@@ -43,14 +43,14 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Hosts where termination is a boot-loop or self-kill. Identity still
-        /// applies to explorer/svchost — those are inject targets.
+        /// applies to explorer/svchost - those are inject targets.
         /// </summary>
         private static readonly HashSet<string> ProtectedProcessNames = new(StringComparer.OrdinalIgnoreCase)
         {
             "system", "smss", "csrss", "wininit", "services", "lsass",
             "dwm", "winlogon", "MsMpEng", "NisSrv",
             "Sentinel.Service", "Sentinel.Agent",
-            // OS servicing / imaging — NEVER terminate/quarantine (NTLite, DISM, Setup)
+            // OS servicing / imaging - NEVER terminate/quarantine (NTLite, DISM, Setup)
             "DismHost", "Dism", "TrustedInstaller", "TiWorker", "NTLite",
             "SetupHost", "WUSA", "msiexec", "Setup", "WindowsPackageManagerServer",
             "MoUsoCoreWorker", "UsoClient", "wuauclt", "MusNotification",
@@ -105,8 +105,8 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Per-process scan used by timers. Observe-first:
-        /// - Hijack-name disk plant → quarantine the file (no process kill).
-        /// - Process has loaded a hostile module → proven load → Contain & Quarantine.
+        /// - Hijack-name disk plant -> quarantine the file (no process kill).
+        /// - Process has loaded a hostile module -> proven load -> Contain & Quarantine.
         /// </summary>
         public Task<DllUnloadResult> CheckAndUnloadAsync(int processId, string processName)
             => ScanProcessAsync(processId, processName, allowRemediateOnProvenLoad: true);
@@ -165,7 +165,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Hijack-name plant on disk (dbghelp/version/winmm/… outside the OS tree).
+        /// Hijack-name plant on disk (dbghelp/version/winmm/... outside the OS tree).
         /// Quarantine the file so the loader cannot bind it on next start. Never
         /// kill a process from this path alone (0.5.3 cascade). If a host already mapped
         /// it, ScanProcessAsync terminates and cleans up.
@@ -223,7 +223,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// True when <paramref name="pathOrName"/> is a loadable module by extension
-        /// (.dll, .winmd, .ocx, .cpl, .ax, .node, .drv, …). The engine enumerates and
+        /// (.dll, .winmd, .ocx, .cpl, .ax, .node, .drv, ...). The engine enumerates and
         /// evaluates every mapped PE regardless of extension; this helper exists so
         /// filename-keyed logic and disk scans are not silently .dll-only.
         /// </summary>
@@ -373,7 +373,7 @@ namespace Sentinel.Core
                 if (!provenLoad && !forceRemediate)
                     return result;
 
-                // Proven: remediate (contain process tree → quarantine hostile DLL on disk)
+                // Proven: remediate (contain process tree -> quarantine hostile DLL on disk)
                 if (!allowRemediateOnProvenLoad && !forceRemediate)
                     return result;
 
@@ -550,7 +550,7 @@ namespace Sentinel.Core
                 if (File.Exists(dllPath))
                     await _quarantineManager.QuarantineFileAtomicAsync(dllPath, forceQuarantineSigned: true);
 
-                // No zero-byte Hidden|System stub after quarantine — that pattern scores as
+                // No zero-byte Hidden|System stub after quarantine - that pattern scores as
                 // wiper/ransom agent behavior (Alyac MSIL.Ransom.Agent). Re-drops are caught
                 // by FileActivityMonitor; sideload names must not be re-planted either
                 // (search order would bind the stub instead of System32).

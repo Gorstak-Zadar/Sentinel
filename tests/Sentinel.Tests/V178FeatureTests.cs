@@ -9,7 +9,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// v1.7.8 — Reportable-grade policy, integrity seal, victim affidavit.
+    /// v1.7.8 - Reportable-grade policy, integrity seal, victim affidavit.
     /// </summary>
     public class V178FeatureTests
     {

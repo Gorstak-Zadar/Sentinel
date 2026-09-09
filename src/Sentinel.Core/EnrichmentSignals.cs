@@ -5,7 +5,7 @@ namespace Sentinel.Core
 {
     /// <summary>
     /// Base class for all enrichment signals that flow through the ContextBus.
-    /// These are NOT detections — they are context signals that help monitors
+    /// These are NOT detections - they are context signals that help monitors
     /// make better decisions by sharing findings with each other.
     /// </summary>
     public abstract class EnrichmentSignal
@@ -19,9 +19,9 @@ namespace Sentinel.Core
         public bool IsExpired => DateTimeOffset.UtcNow - Timestamp > Ttl;
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Network Signals
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     /// <summary>
     /// Published by BeaconingDetector when C2 beaconing is confirmed.
@@ -72,9 +72,9 @@ namespace Sentinel.Core
         DoHBypass,             // Application-level DNS bypass
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // File & Process Signals
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     /// <summary>
     /// Published by FileReputationEngine after scoring a file.
@@ -118,9 +118,9 @@ namespace Sentinel.Core
         public string PrefetchFile { get; set; } = string.Empty;
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Volume / Exfiltration Signals
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     /// <summary>
     /// Published by DataExfiltrationMonitor when volume spikes are detected.
@@ -165,9 +165,9 @@ namespace Sentinel.Core
         public bool IsEnforcementPhase { get; set; }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Named Pipe Signals (v1.6.8)
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     /// <summary>
     /// Published by NamedPipeMonitor when a suspicious named pipe is detected.
@@ -183,9 +183,9 @@ namespace Sentinel.Core
         public double Entropy { get; set; }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Token Theft Signals (v1.6.8)
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     /// <summary>
     /// Published by TokenTheftMonitor when token manipulation is detected.

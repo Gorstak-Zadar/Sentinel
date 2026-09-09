@@ -39,7 +39,7 @@ namespace Sentinel.Core
     /// This replaces fragile string-matching in ScoringEngine.CategorizeDetection with
     /// a type-safe, statically-verified approach. If a rule is renamed, the category
     /// stays correct. If a new rule forgets to add this attribute, the fallback string
-    /// matcher still works — but the preferred path is always the attribute.
+    /// matcher still works - but the preferred path is always the attribute.
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public sealed class RuleCategoryAttribute : Attribute
@@ -95,7 +95,7 @@ namespace Sentinel.Core
                         }
                         catch
                         {
-                            // Constructor requires parameters — fall through to class name
+                            // Constructor requires parameters - fall through to class name
                         }
                     }
 
@@ -162,7 +162,7 @@ namespace Sentinel.Core
         /// 
         /// NOTE (v0.8.2): C2Beaconing was removed from President's Law.
         /// HARDENING v1.5.9: C2Beaconing RE-ADDED to President's Law for suppression protection.
-        /// The AllowlistService must never fully suppress C2 beaconing detections — a user-
+        /// The AllowlistService must never fully suppress C2 beaconing detections - a user-
         /// allowlisted process (e.g., chrome.exe) with an injected Cobalt Strike beacon would
         /// have all beaconing detections suppressed, allowing the C2 channel to persist.
         /// The BeaconingDetector's own trust demotion logic (v1.5.9: minimum NetworkIsolate)
@@ -300,7 +300,7 @@ namespace Sentinel.Core
             }
 
             // Safe process consensus: removed the -30 blanket reduction.
-            // This was too aggressive — a process marked "safe" by consensus could still be
+            // This was too aggressive - a process marked "safe" by consensus could still be
             // compromised via injection or sideloading. Trust is now handled by the capped
             // baseline reduction above.
             bool isPresidentsLaw = IsPresidentsLawRule(detection);

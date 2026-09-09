@@ -9,9 +9,9 @@ namespace Sentinel.Tests.Monitors
     /// </summary>
     public class CloudSyncExfilMonitorTests
     {
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Cloud sync exfiltration detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void CloudSyncExfil_RcloneBulkUpload_Model()
@@ -49,9 +49,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(detection.Confidence < 0.50);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // ConnectivityCanaryMonitor detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void ConnectivityCanary_DnsFailure_Model()
@@ -69,9 +69,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(ResponseAction.LogOnly, detection.AuthorizedResponse);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // PrivacyServiceOutboundMonitor detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void PrivacyOutbound_UnexpectedConnection_Model()
@@ -89,9 +89,9 @@ namespace Sentinel.Tests.Monitors
             Assert.False(detection.KillAuthorized);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // RemoteSessionGuard detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void RemoteSession_UnauthorizedRdp_Model()
@@ -109,9 +109,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(ResponseAction.NetworkIsolate, detection.AuthorizedResponse);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // RpcLateralMonitor detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void RpcLateral_SuspiciousBinding_Model()
@@ -129,9 +129,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(DetectionTier.Tier1Behavioral, detection.Tier);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // EtwProviderTamperMonitor detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void EtwTamper_ProviderDisabled_IsPresidentsLaw()
@@ -140,9 +140,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(ScoringEngine.IsPresidentsLawRule("ETW Tampering: Provider Disabled"));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // WfpIntegrityMonitor detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void WfpIntegrity_FilterRemoved_Model()

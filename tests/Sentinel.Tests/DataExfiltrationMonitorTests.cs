@@ -6,7 +6,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for DataExfiltrationMonitor — validates integration with
+    /// Tests for DataExfiltrationMonitor - validates integration with
     /// BulkTransferNoise suppression and detection model behavior.
     /// </summary>
     public class DataExfiltrationMonitorTests

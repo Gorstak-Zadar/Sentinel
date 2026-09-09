@@ -117,7 +117,7 @@ namespace Sentinel.Core
             }
             catch (Exception ex) { _logger.LogDebug(ex, "[IncidentResponseService] Process tree collection failed"); }
 
-            // 4. Quarantine the binary — NEVER OS-critical paths (v1.6.3: powershell.exe FP)
+            // 4. Quarantine the binary - NEVER OS-critical paths (v1.6.3: powershell.exe FP)
             try
             {
                 using var proc = Process.GetProcessById(detection.ProcessId);
@@ -151,7 +151,7 @@ namespace Sentinel.Core
             evidence["EvidenceDirectory"] = incidentDir;
             await _eventLogger.LogEventAsync("incident", evidence);
 
-            _logger.LogWarning("[IncidentResponseService] Evidence collected for PID {Pid} ({Rule}) → {Dir}",
+            _logger.LogWarning("[IncidentResponseService] Evidence collected for PID {Pid} ({Rule}) -> {Dir}",
                 detection.ProcessId, detection.RuleName, incidentDir);
         }
 

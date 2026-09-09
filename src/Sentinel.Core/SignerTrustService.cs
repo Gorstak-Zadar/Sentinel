@@ -12,7 +12,7 @@ namespace Sentinel.Core
     /// This service answers ONE question: "Is this binary validly signed?"
     /// 
     /// Being signed does NOT grant trust or exemption. It is a signal that lowers
-    /// detection confidence. Behavioral detections still fire on signed binaries —
+    /// detection confidence. Behavioral detections still fire on signed binaries -
     /// if something acts malicious, it gets killed regardless of who signed it.
     /// 
     /// The signer name is extracted for logging/evidence purposes only.
@@ -22,7 +22,7 @@ namespace Sentinel.Core
     {
         private readonly ILogger<SignerTrustService> _logger;
 
-        // Cache: file path → (isSigned, signerName, lastWriteTime)
+        // Cache: file path -> (isSigned, signerName, lastWriteTime)
         // HARDENING v1.3.0: Added lastWriteTime tracking. If the file is modified after
         // caching (e.g., attacker replaces a signed binary with malware), the stale cache
         // entry is invalidated and re-verified. Previously the cache was permanent.
@@ -42,7 +42,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Returns true if the process at the given PID has a valid Authenticode signature.
-        /// This does NOT mean the process is trusted — only that it's signed.
+        /// This does NOT mean the process is trusted - only that it's signed.
         /// </summary>
         public bool IsSignedProcess(int pid)
         {
@@ -60,7 +60,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Returns true if the file at the given path has a valid Authenticode signature.
-        /// This does NOT mean the file is trusted — only that it's signed.
+        /// This does NOT mean the file is trusted - only that it's signed.
         /// </summary>
         public bool IsSignedFile(string filePath)
         {
@@ -127,7 +127,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Adjusts a detection confidence value based on whether the process is signed.
         /// Signed processes get reduced confidence (less likely to be malicious),
-        /// but NEVER zero — behavioral detections always have a chance to fire.
+        /// but NEVER zero - behavioral detections always have a chance to fire.
         /// </summary>
         public double AdjustConfidence(double baseConfidence, int pid)
         {
@@ -146,7 +146,7 @@ namespace Sentinel.Core
             return baseConfidence * SignedConfidenceMultiplier;
         }
 
-        // ── Legacy compatibility shims (to be removed once all callers migrate) ──
+        //  Legacy compatibility shims (to be removed once all callers migrate) 
 
         /// <summary>
         /// Legacy: returns true if signed. Callers should migrate to using
@@ -171,7 +171,7 @@ namespace Sentinel.Core
             return IsSignedFile(imagePath!);
         }
 
-        // ── End legacy shims ──
+        //  End legacy shims 
 
         private (bool IsSigned, string Signer) VerifyAndExtractSigner(string filePath)
         {

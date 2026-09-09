@@ -13,7 +13,7 @@ namespace Sentinel.Tests.Monitors
         [InlineData("1.2.3.4/24", true)]
         [InlineData("1.2.3.4/16", true)]   // minimum allowed prefix (v1.8.3)
         [InlineData("1.2.3.4/32", true)]
-        [InlineData("1.2.3.4/8", false)]   // v1.8.3: /8–/15 too broad (CDN/OCSP collateral)
+        [InlineData("1.2.3.4/8", false)]   // v1.8.3: /8-/15 too broad (CDN/OCSP collateral)
         [InlineData("1.2.3.4/12", false)]  // too broad
         [InlineData("1.2.3.4/15", false)]  // too broad
         [InlineData("1.2.3.4/7", false)]   // too broad

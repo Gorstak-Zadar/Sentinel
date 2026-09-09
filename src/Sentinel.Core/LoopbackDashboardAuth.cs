@@ -3,7 +3,7 @@ using System;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v2.2.0 — Dashboard API authentication helpers.
+    /// v2.2.0 - Dashboard API authentication helpers.
     /// Bearer token is the only authenticator. Referer is never accepted as proof of origin
     /// (any local process can set an arbitrary Referer header on HttpListener).
     /// </summary>
@@ -39,7 +39,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Authenticate a request. Referer is ignored on purpose — it is client-controlled.
+        /// Authenticate a request. Referer is ignored on purpose - it is client-controlled.
         /// </summary>
         public static bool Authenticate(string? authorizationHeader, string? queryToken, string expectedToken)
         {

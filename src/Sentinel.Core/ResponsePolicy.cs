@@ -34,7 +34,7 @@ namespace Sentinel.Core
 
         private static readonly ConcurrentDictionary<int, PidSignalBuffer> PidBuffers = new();
 
-        // v2.6.0: Cross-PID ancestry buffer — catches staged attacks that spawn a fresh
+        // v2.6.0: Cross-PID ancestry buffer - catches staged attacks that spawn a fresh
         // process per malicious action so each PID starts at zero per-PID signals.
         // Keyed by the non-system root ancestor PID; all children sharing that root
         // contribute to the same buffer.  System/browser/IDE hosts are excluded as roots
@@ -127,7 +127,7 @@ namespace Sentinel.Core
                 "Named Pipe: Known C2",
                 "Tunneling Tool Detected",
             }),
-            // v2.5.3 — attributed AMSI/ETW patch, Hell's Gate, unmapped thread (the 10)
+            // v2.5.3 - attributed AMSI/ETW patch, Hell's Gate, unmapped thread (the 10)
             ("Evasion", new[]
             {
                 "AMSI Bypass Detected",
@@ -142,7 +142,7 @@ namespace Sentinel.Core
                 "Remote Memory Injection",
                 "ALLOCVM_REMOTE",
             }),
-            // v2.2.8 — executable WMI consumers / policy rewrite via provider host
+            // v2.2.8 - executable WMI consumers / policy rewrite via provider host
             ("WmiPersistence", new[]
             {
                 "Hostile Event Subscription",
@@ -167,8 +167,8 @@ namespace Sentinel.Core
         };
 
         /// <summary>
-        /// Pure UX / ambient noise — excluded from BOTH chain buffer and multi-signal composites.
-        /// (Cast observe, module-count growth, screen capture, BitLocker status, whitelist noise, …)
+        /// Pure UX / ambient noise - excluded from BOTH chain buffer and multi-signal composites.
+        /// (Cast observe, module-count growth, screen capture, BitLocker status, whitelist noise, ...)
         /// </summary>
         private static readonly string[] PureUxObserveRuleFragments =
         {
@@ -200,7 +200,7 @@ namespace Sentinel.Core
         };
 
         /// <summary>
-        /// Weak attack-adjacent heuristics — may still feed composites, but never alone complete
+        /// Weak attack-adjacent heuristics - may still feed composites, but never alone complete
         /// a ResponsePolicy PID chain nuke (need a real high-confidence terminal leg).
         /// Includes surveillance legs (screen/webcam) so stalkerware composites can fire (v1.9.4).
         /// </summary>
@@ -214,7 +214,7 @@ namespace Sentinel.Core
             "Persistence: New Scheduled Task",
             "Token Theft: SeImpersonatePrivilege",
             "Named Pipe: High-Entropy Name",
-            // v2.1.2: browse/play heuristics — observe fuel only, never a chain seed
+            // v2.1.2: browse/play heuristics - observe fuel only, never a chain seed
             "Suspicious Outbound Connection",
             "Application-Level DoH",
             "DNS Bypass:",
@@ -233,7 +233,7 @@ namespace Sentinel.Core
             "CVE Class: Package Manager EoP",
             "CVE Class: VS Code Encoded",
             "Patch Posture: Missed Patch Tuesday",
-            // v2.4.8: ambient protocol noise — never a chain seed
+            // v2.4.8: ambient protocol noise - never a chain seed
             "Network UDP:",
             "Network ICMP:",
             "Network WFP:",
@@ -280,18 +280,18 @@ namespace Sentinel.Core
             "Covert C2",
             "Dropped Payload Active",
             "DGA + C2 Beaconing",
-            // v1.9.4 — digital coercion / stalkerware / remote-control abuse (platform-agnostic)
+            // v1.9.4 - digital coercion / stalkerware / remote-control abuse (platform-agnostic)
             "Covert Surveillance + Remote Channel",
             "Remote Control Abuse Toolkit",
             "Session Theft + Abuse Channel",
             "Stalkerware Persistence Chain",
-            // v2.0 — explainable weighted multi-signal composite
+            // v2.0 - explainable weighted multi-signal composite
             "Weighted Correlation",
             "Multi-Signal Threat",
-            // v2.0 — signed disk rule packs
+            // v2.0 - signed disk rule packs
             "Rule Pack:",
             "[COMPOSITE]",
-            // v2.2.4 — generic CVE-class chains
+            // v2.2.4 - generic CVE-class chains
             "Kernel Exploit Loader Chain",
             "Installer / Package Manager EoP Chain",
             "MOTW Bypass Execution Chain",
@@ -319,7 +319,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Standing product law: system-wide module identity unload already remediates
-        /// in <c>DllUnloadEngine</c>. The detection must remain Tier1 forever — never
+        /// in <c>DllUnloadEngine</c>. The detection must remain Tier1 forever - never
         /// demoted by observe-until-chain or kill-grade filtering.
         /// </summary>
         public static bool IsPermanentModuleIdentityUnload(DetectionEvent? detection)
@@ -338,8 +338,8 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Standing tier law: Tier1 only when the act is kill-grade and confident enough —
-        /// token theft, credential dump, reverse shell, C2 beaconing — or a multi-signal
+        /// Standing tier law: Tier1 only when the act is kill-grade and confident enough -
+        /// token theft, credential dump, reverse shell, C2 beaconing - or a multi-signal
         /// composite / chain-confirmed detection that proves one of those.
         /// All other signals become Tier2 + LogOnly (still feed correlation).
         /// Module-identity unload remediations are a permanent Tier1 exception (already acted;
@@ -351,7 +351,7 @@ namespace Sentinel.Core
 
             detection.Metadata ??= new Dictionary<string, string>();
 
-            // v2.3.1 ALWAYS-ON: DLL Unload policy — never demote, never gate.
+            // v2.3.1 ALWAYS-ON: DLL Unload policy - never demote, never gate.
             // Checks both the legacy IsPermanentModuleIdentityUnload and the new
             // AlwaysOnPolicies.IsDllUnloadAlwaysOn (which also reads metadata markers).
             if (IsPermanentModuleIdentityUnload(detection) || AlwaysOnPolicies.IsDllUnloadAlwaysOn(detection))
@@ -363,7 +363,7 @@ namespace Sentinel.Core
                 return;
             }
 
-            // Multi-signal composites already encode independent proof → keep Tier1 kill intent.
+            // Multi-signal composites already encode independent proof -> keep Tier1 kill intent.
             if (IsNukeComposite(detection))
             {
                 detection.Tier = DetectionTier.Tier1Behavioral;
@@ -373,7 +373,7 @@ namespace Sentinel.Core
                 return;
             }
 
-            // Already chain-confirmed (correlation path) → Tier1.
+            // Already chain-confirmed (correlation path) -> Tier1.
             if (detection.Metadata.TryGetValue(ChainConfirmedKey, out var chain) &&
                 string.Equals(chain, "true"))
             {
@@ -395,7 +395,7 @@ namespace Sentinel.Core
             if (conf <= 0 && detection.Metadata.TryGetValue("ThreatScore", out var scoreStr) &&
                 double.TryParse(scoreStr, out var score))
             {
-                // ScoringEngine uses 0–100; map roughly to 0–1 when Confidence unset.
+                // ScoringEngine uses 0-100; map roughly to 0-1 when Confidence unset.
                 conf = score > 1.0 ? score / 100.0 : score;
             }
 
@@ -409,7 +409,7 @@ namespace Sentinel.Core
                 return;
             }
 
-            // Weak / non-terminal / low-confidence → observe only. Still logs + correlates.
+            // Weak / non-terminal / low-confidence -> observe only. Still logs + correlates.
             DemoteToObserve(detection, killGrade ? "LowConfidenceTerminal" : "NonKillGrade");
         }
 
@@ -466,8 +466,8 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Pure UX / ambient noise only — excluded from multi-signal composites.
-        /// Attack-adjacent weak signals (SeImpersonate, PPID, …) still feed composites.
+        /// Pure UX / ambient noise only - excluded from multi-signal composites.
+        /// Attack-adjacent weak signals (SeImpersonate, PPID, ...) still feed composites.
         /// </summary>
         public static bool IsPureUxObserveNoise(DetectionEvent? detection)
         {
@@ -503,7 +503,7 @@ namespace Sentinel.Core
             if (IsWeakObserveSeed(detection))
                 return null;
 
-            // v2.6: An explicitly-declared typed family is authoritative — a migrated monitor
+            // v2.6: An explicitly-declared typed family is authoritative - a migrated monitor
             // stated its outcome directly, so we don't guess from substrings. This is checked
             // AFTER the benign-noise / weak-seed safety demotions above (those always win) but
             // BEFORE the SignalType switch and rule-name matching below.
@@ -612,14 +612,14 @@ namespace Sentinel.Core
                         return true;
                 }
 
-                // Unattributed System32 PE write (PID ≤ 4) during redist races — never kill-grade.
+                // Unattributed System32 PE write (PID <= 4) during redist races - never kill-grade.
                 if (detection.ProcessId <= 4 &&
                     (r.IndexOf("System Directory") >= 0 ||
                      r.IndexOf("Unauthorized Write") >= 0))
                     return true;
             }
 
-            // Low-confidence System32 write signals are observe fuel only — not composite legs.
+            // Low-confidence System32 write signals are observe fuel only - not composite legs.
             if (detection.Confidence > 0 && detection.Confidence < 0.70 &&
                 (r.IndexOf("Unauthorized Write") >= 0 ||
                  r.IndexOf("System Directory") >= 0))
@@ -631,14 +631,14 @@ namespace Sentinel.Core
         /// <summary>
         /// True when this signal must not count toward multi-signal composites.
         /// DirectX / pure UX observe noise never satisfy composite legs. Attack-adjacent weak
-        /// seeds (SeImpersonate, PPID, …) still feed composites but not ResponsePolicy chain nukes.
+        /// seeds (SeImpersonate, PPID, ...) still feed composites but not ResponsePolicy chain nukes.
         /// </summary>
         public static bool IsNonCorrelatingObserveNoise(DetectionEvent detection)
             => detection == null || IsBenignInstallerNoise(detection) || IsPureUxObserveNoise(detection);
 
         /// <summary>
         /// Tailcat / userspace WG overlay / webhook-sink stealers attributed to a
-        /// real PID. Not Discord.exe, not Chrome, not official Tailscale — those
+        /// real PID. Not Discord.exe, not Chrome, not official Tailscale - those
         /// never emit these rule names. Solo chain-confirm when confidence is kill-grade.
         /// </summary>
         public static bool IsCovertChannelTerminal(DetectionEvent? detection)
@@ -656,9 +656,9 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// v2.5.3: the 10 — attributed attack-class rules that are the act, not
+        /// v2.5.3: the 10 - attributed attack-class rules that are the act, not
         /// ambient noise. Discord/Chrome/games/official Tailscale never emit these.
-        /// PID ≤ 4 stays observe. High-entropy pipes, SSH-from-shell, DoH, MOTW
+        /// PID <= 4 stays observe. High-entropy pipes, SSH-from-shell, DoH, MOTW
         /// delivery, SeImpersonate-alone, TeamViewer presence are not this list.
         /// </summary>
         public static bool IsAttackClassTerminal(DetectionEvent? detection)
@@ -725,7 +725,7 @@ namespace Sentinel.Core
             if (IsBenignInstallerNoise(detection))
                 return false;
 
-            // Weak observe seeds never fill the chain buffer (Cast, module growth, UX noise, …).
+            // Weak observe seeds never fill the chain buffer (Cast, module growth, UX noise, ...).
             if (IsWeakObserveSeed(detection))
                 return false;
 
@@ -738,7 +738,7 @@ namespace Sentinel.Core
             int pid = detection.ProcessId;
             if (pid <= 4)
             {
-                // No reliable process attribution — never authorize host mutation from PID 0 noise
+                // No reliable process attribution - never authorize host mutation from PID 0 noise
                 // (this is exactly how Steam DirectX / dxsetup races look).
                 return false;
             }
@@ -768,7 +768,7 @@ namespace Sentinel.Core
 
             var signalEntry = BuildSignalEntry(detection, minTerminalConf);
 
-            // ── Per-PID buffer (original path) ───────────────────────────────────
+            //  Per-PID buffer (original path) 
             if (EvaluateBuffer(PidBuffers, pid, signalEntry, window, minSignals, minTerminalConf,
                     detection, out var pidOutcome))
             {
@@ -776,7 +776,7 @@ namespace Sentinel.Core
                 return true;
             }
 
-            // ── v2.6.0: Cross-PID ancestry buffer ────────────────────────────────
+            //  v2.6.0: Cross-PID ancestry buffer 
             // Catches staged attacks that spawn a fresh process per malicious action.
             // Each fresh child PID starts at zero in the per-PID buffer, but all children
             // that share a non-system root ancestor accumulate in the root buffer.
@@ -817,7 +817,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Inline monitor host mutations (hosts rewrite, SUBST kill, USB disable, cuckoo restore)
-        /// when ObserveUntilChain is on — never, unless a detection is already chain-confirmed.
+        /// when ObserveUntilChain is on - never, unless a detection is already chain-confirmed.
         /// Prefer routing through DetectionEngine so chain logic applies.
         /// </summary>
         public static bool MayPerformInlineHostMutation(SentinelConfig config, DetectionEvent? chainContext = null)
@@ -926,7 +926,7 @@ namespace Sentinel.Core
 
         private readonly record struct SignalEntry(string RuleName, string? Outcome, double Confidence, DateTime When);
 
-        // v2.0.3: TTL sweep state — prevents stale PID buffers from accumulating
+        // v2.0.3: TTL sweep state - prevents stale PID buffers from accumulating
         // and false-positive chain-nukes on recycled PIDs.
         private static long _lastSweepTicks = Environment.TickCount;
         private const int SweepIntervalMs = 120_000; // sweep every 2 minutes
@@ -1025,7 +1025,7 @@ namespace Sentinel.Core
                     return true;
                 }
 
-                // Two+ distinct terminal families — still require min confidence each.
+                // Two+ distinct terminal families - still require min confidence each.
                 var terminalFamilies = buffer.Entries
                     .Where(e => e.Outcome != null && e.Confidence >= minTerminalConf)
                     .Select(e => e.Outcome!)
@@ -1065,7 +1065,7 @@ namespace Sentinel.Core
                 if (visited.Contains(parentId)) break; // cycle guard
                 visited.Add(parentId);
 
-                // Stop walking at widely-shared system ancestors — these would cross-
+                // Stop walking at widely-shared system ancestors - these would cross-
                 // contaminate unrelated processes.
                 if (ExcludedAncestryRoots.Contains(parentName))
                     break;
@@ -1082,7 +1082,7 @@ namespace Sentinel.Core
         {
             long now = Environment.TickCount;
             long last = Interlocked.Read(ref _lastSweepTicks);
-            // Avoid sweep storms — only one sweep per interval
+            // Avoid sweep storms - only one sweep per interval
             if (unchecked(now - last) >= SweepIntervalMs)
             {
                 if (Interlocked.CompareExchange(ref _lastSweepTicks, now, last) == last)
@@ -1092,7 +1092,7 @@ namespace Sentinel.Core
             }
         }
 
-        /// <summary>Test helper — clear PID buffers between tests.</summary>
+        /// <summary>Test helper - clear PID buffers between tests.</summary>
         internal static void ResetForTests()
         {
             PidBuffers.Clear();

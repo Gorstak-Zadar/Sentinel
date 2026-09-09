@@ -15,13 +15,13 @@ namespace Sentinel.Core
 {
     /// <summary>
     /// Comprehensive script-based attack detection covering:
-    ///   1. PowerShell Script Block Logging (Event ID 4104) — catches deobfuscated content
-    ///   2. Parent-child process anomaly detection — Office→shells, wmiprvse→shells, etc.
-    ///   3. AMSI bypass detection — amsi.dll unload or integrity tampering
-    ///   4. SAM hive extraction — reg.exe save targeting SAM/SECURITY/SYSTEM
-    ///   5. Suspicious script file drops — .ps1/.vbs/.bat/.js created in user-writable paths
-    ///   6. WMI provider abuse — wmiprvse.exe spawning child processes (T1047)
-    ///   7. Scheduled task execution — schtasks.exe /run or taskeng spawning children
+    ///   1. PowerShell Script Block Logging (Event ID 4104) - catches deobfuscated content
+    ///   2. Parent-child process anomaly detection - Office->shells, wmiprvse->shells, etc.
+    ///   3. AMSI bypass detection - amsi.dll unload or integrity tampering
+    ///   4. SAM hive extraction - reg.exe save targeting SAM/SECURITY/SYSTEM
+    ///   5. Suspicious script file drops - .ps1/.vbs/.bat/.js created in user-writable paths
+    ///   6. WMI provider abuse - wmiprvse.exe spawning child processes (T1047)
+    ///   7. Scheduled task execution - schtasks.exe /run or taskeng spawning children
     ///
     /// v1.4.5: New monitor.
     /// </summary>
@@ -38,7 +38,7 @@ namespace Sentinel.Core
         private static readonly string[] MaliciousPatterns = new[]
         {
             // AMSI bypass. Plaintext by design: C# folds "Amsi" + "ScanBuffer" back to the
-            // full literal in the compiled PE, so splitting was cosmetic — and ML AV scores
+            // full literal in the compiled PE, so splitting was cosmetic - and ML AV scores
             // the runtime-assembly PATTERN as evasion. A signed binary with plaintext
             // detection signatures reads as a security product, not malware.
             "AmsiInitFailed", "amsi.dll", "AmsiScanBuffer", "AmsiUtils",
@@ -72,7 +72,7 @@ namespace Sentinel.Core
             "interact.sh",
         };
 
-        // Parent-child anomaly pairs: parent → suspicious children
+        // Parent-child anomaly pairs: parent -> suspicious children
         private static readonly Dictionary<string, HashSet<string>> AnomalousParentChild = new(StringComparer.OrdinalIgnoreCase)
         {
             // Office applications spawning shells
@@ -125,7 +125,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[ScriptExecutionMonitor] Started — monitoring script execution, parent-child anomalies, AMSI bypass, SAM extraction, script drops");
+            _logger.LogInformation("[ScriptExecutionMonitor] Started - monitoring script execution, parent-child anomalies, AMSI bypass, SAM extraction, script drops");
 
             while (!ct.IsCancellationRequested)
             {
@@ -278,7 +278,7 @@ namespace Sentinel.Core
 
                             await _detectionEngine.EmitAsync(new DetectionEvent
                             {
-                                RuleName = $"Script: Anomalous Parent-Child ({parentName}→{procName})",
+                                RuleName = $"Script: Anomalous Parent-Child ({parentName}->{procName})",
                                 Evidence = $"Process '{procName}' (PID {proc.Id}) spawned by '{parentName}' (PID {parentPid}). " +
                                            "This parent should not spawn shell interpreters.",
                                 Reasoning = $"The process {parentName}.exe spawned {procName}.exe which is a known " +
@@ -304,7 +304,7 @@ namespace Sentinel.Core
         /// If amsi.dll is missing from a running PowerShell process, it was likely unloaded
         /// via FreeLibrary to disable script scanning.
         ///
-        /// v1.6.3: Production FP — stock System32 powershell.exe without amsi.dll (CLR bootstrap /
+        /// v1.6.3: Production FP - stock System32 powershell.exe without amsi.dll (CLR bootstrap /
         /// provider timing) triggered KillProcessTree + quarantine of the OS binary, removing
         /// C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe from the host.
         /// Guards: min process age, system-host demotion to LogOnly (never kill/quarantine path),
@@ -323,7 +323,7 @@ namespace Sentinel.Core
                 {
                     try
                     {
-                        // Skip young processes — amsi.dll often loads after CLR + SMA init
+                        // Skip young processes - amsi.dll often loads after CLR + SMA init
                         try
                         {
                             var age = DateTime.UtcNow - proc.StartTime.ToUniversalTime();
@@ -371,7 +371,7 @@ namespace Sentinel.Core
                                 Evidence = systemHost
                                     ? $"System PowerShell (PID {proc.Id}, path '{imagePath}') has no amsi.dll " +
                                       $"after {Math.Max(0, (int)(DateTime.UtcNow - proc.StartTime.ToUniversalTime()).TotalSeconds)}s " +
-                                      $"and {moduleCount} modules. Logging only — system hosts are never killed/quarantined for this signal."
+                                      $"and {moduleCount} modules. Logging only - system hosts are never killed/quarantined for this signal."
                                     : $"Non-system PowerShell-named process (PID {proc.Id}, path '{imagePath ?? "unknown"}') " +
                                       "does not have amsi.dll loaded. Possible AMSI bypass or impostor binary.",
                                 Reasoning = systemHost
@@ -537,9 +537,9 @@ namespace Sentinel.Core
             catch (Exception ex) { _logger.LogDebug(ex, "[ScriptExecutionMonitor] ScriptDrop check error"); }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helpers
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static string GetProcessNameSafe(int pid)
         {

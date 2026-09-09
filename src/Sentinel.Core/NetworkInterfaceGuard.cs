@@ -371,7 +371,7 @@ namespace Sentinel.Core
         private void EnforceSecureDoh()
         {
             // REMOVED: This conflicts with BrowserDnsPolicyGuard which disables DoH to enforce
-            // hosts-file-based blocking. BrowserDnsPolicyGuard is the authoritative policy —
+            // hosts-file-based blocking. BrowserDnsPolicyGuard is the authoritative policy -
             // the hosts file is the DNS override mechanism for this system.
             // NetworkInterfaceGuard should NOT re-enable DoH.
         }

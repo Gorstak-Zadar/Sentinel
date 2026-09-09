@@ -19,7 +19,7 @@ namespace Sentinel.Core
         private const uint LOAD_LIBRARY_SEARCH_SYSTEM32 = 0x00000800;
 
         /// <summary>
-        /// v2.5.5: Hardening is now unconditional — always active.
+        /// v2.5.5: Hardening is now unconditional - always active.
         /// The setter is retained for compatibility but is a no-op.
         /// IPSec port lockdown, ASR Block rules, RPC/DCOM firewall, remote session guard,
         /// registry hardening, credential hardening, browser hardening, and LGPO security
@@ -39,12 +39,12 @@ namespace Sentinel.Core
                 // cryptographic posture. If internal code throws under FIPS, fix the algorithm
                 // usage rather than disabling FIPS system-wide.
 
-                // Self-only: protect Sentinel process / install — never the user's tools.
+                // Self-only: protect Sentinel process / install - never the user's tools.
                 bool res1 = SetDllDirectory(string.Empty);
                 bool res2 = SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32);
                 RegisterForSafeMode();
 
-                // v2.5.5: Hardening is now unconditional — always active.
+                // v2.5.5: Hardening is now unconditional - always active.
                 // IPSec, RPC firewall, and setup-scripts hardening run on every startup.
                 ApplyIPSecPolicy();
                 BlockRemoteRpcEphemeralPorts();
@@ -71,10 +71,10 @@ namespace Sentinel.Core
         {
             try
             {
-                // IPSec GSecurity — Sentinel-created policy (identified by name "GSecurity")
+                // IPSec GSecurity - Sentinel-created policy (identified by name "GSecurity")
                 RemoveIPSecPolicyIfPresent();
 
-                // Inbound RPC ephemeral block — Sentinel-created (identified by prefix "Sentinel-")
+                // Inbound RPC ephemeral block - Sentinel-created (identified by prefix "Sentinel-")
                 RemoveFirewallRuleByName("Sentinel-Block-Remote-RPC-Ephemeral");
 
                 // ASR Block rules Sentinel wrote under Policy hive (identified by known GUIDs)
@@ -102,7 +102,7 @@ namespace Sentinel.Core
                 dynamic? policy = Activator.CreateInstance(policyType);
                 if (policy == null) return;
 
-                // Copy names first — cannot modify collection while enumerating
+                // Copy names first - cannot modify collection while enumerating
                 var toRemove = new List<dynamic>();
                 foreach (dynamic rule in policy.Rules)
                 {
@@ -180,7 +180,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Extra ports only when RestrictivePortHardening=true (locked-down host).
-        /// These are services real users may run (SSH, RDP, SMB, DBs, proxies, Docker…).
+        /// These are services real users may run (SSH, RDP, SMB, DBs, proxies, Docker...).
         /// </summary>
         private static readonly PortDef[] RestrictiveExtraPortDefinitions =
         {
@@ -235,7 +235,7 @@ namespace Sentinel.Core
         /// <summary>Ports currently enforced by IPSec (always the combined attack + restrictive set).</summary>
         private static PortDef[] GetActivePortDefinitions()
         {
-            // v2.5.5: Hardening is always-on — always return the full combined set.
+            // v2.5.5: Hardening is always-on - always return the full combined set.
             var list = new List<PortDef>(AttackOnlyPortDefinitions.Length + RestrictiveExtraPortDefinitions.Length);
             list.AddRange(AttackOnlyPortDefinitions);
             list.AddRange(RestrictiveExtraPortDefinitions);
@@ -268,7 +268,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Verifies the GSecurity IPSec policy is currently assigned and active.
         /// Returns true if the policy is confirmed active, false if missing/unassigned.
-        /// Uses 'netsh ipsec static show policy name=GSecurity' — exit code 0 + "assigned: yes"
+        /// Uses 'netsh ipsec static show policy name=GSecurity' - exit code 0 + "assigned: yes"
         /// means it's active. Anything else means it's been tampered with.
         /// </summary>
         public static bool IsIPSecPolicyActive()
@@ -299,7 +299,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Re-applies the IPSec policy from scratch.
-        /// v2.5.5: Hardening is always-on — always rebuilds the full restrictive policy.
+        /// v2.5.5: Hardening is always-on - always rebuilds the full restrictive policy.
         /// </summary>
         public static void ReapplyIPSecPolicy()
         {
@@ -308,7 +308,7 @@ namespace Sentinel.Core
                 var ports = GetActivePortDefinitions();
                 const string mode = "always-on hardening (v2.5.5+)";
 
-                // Delete and recreate — handles partial corruption and profile changes
+                // Delete and recreate - handles partial corruption and profile changes
                 RunNetsh("ipsec static delete policy name=GSecurity");
                 RunNetsh($"ipsec static add policy name=GSecurity description=\"Sentinel IPSec: {mode}.\" assign=yes");
                 RunNetsh("ipsec static add filteraction name=BlockAction action=block description=\"Block traffic\"");
@@ -381,7 +381,7 @@ namespace Sentinel.Core
         /// <summary>
         /// v1.4.2: Blocks inbound access to RPC dynamic endpoint ports (49664-49675)
         /// from non-localhost sources via Windows Firewall.
-        /// v2.5.5: Hardening is always-on — always enforced.
+        /// v2.5.5: Hardening is always-on - always enforced.
         /// Self-healing: checks for rule existence on every call.
         /// </summary>
         public static void BlockRemoteRpcEphemeralPorts()
@@ -418,9 +418,9 @@ namespace Sentinel.Core
                     newRule.Action = 0; // Block
                     newRule.Enabled = true;
                     newRule.Profiles = 0x7FFFFFFF; // All profiles
-                    // Allow localhost (loopback) — only block external
+                    // Allow localhost (loopback) - only block external
                     newRule.RemoteAddresses = "LocalSubnet,DNS,DHCP,WINS,DefaultGateway";
-                    // Actually we need to BLOCK from everywhere except local — invert logic:
+                    // Actually we need to BLOCK from everywhere except local - invert logic:
                     // Block all remote, which is the default when no RemoteAddresses filter is set
                     newRule.RemoteAddresses = "*";
                     // Exclude local loopback by setting LocalAddresses (can't exclude in block rule)
@@ -470,7 +470,7 @@ namespace Sentinel.Core
             if (processId == System.Net48Environment.ProcessId) return;
 
             // HARDENING v1.3.8 / v2.0.8: Never kill verified Sentinel product binaries.
-            // v2.0.8 RT: Do NOT exclude every PE under the install directory — that let an
+            // v2.0.8 RT: Do NOT exclude every PE under the install directory - that let an
             // attacker plant malware during the installer ACL window and become unkillable.
             // SelfPathGuard requires known Sentinel binary names under the install final path
             // (hardlink-aware). Arbitrary files under Program Files\Sentinel are fair game.
@@ -483,7 +483,7 @@ namespace Sentinel.Core
                     return;
                 }
             }
-            catch { /* process may have already exited — continue with kill attempt */ }
+            catch { /* process may have already exited - continue with kill attempt */ }
 
             try
             {
@@ -495,7 +495,7 @@ namespace Sentinel.Core
                 {
                     // HARDENING: Verify the binary actually resides in a system directory.
                     // An attacker can manipulate the PEB ProcessName field to masquerade as
-                    // "csrss" or "explorer" — but they cannot move their binary into System32
+                    // "csrss" or "explorer" - but they cannot move their binary into System32
                     // without triggering FileActivityMonitor's System32 write detection.
                     var imagePath = SecurityValidation.GetProcessImagePath(processId);
                     if (imagePath != null && IsInSystemDirectory(imagePath))
@@ -503,9 +503,9 @@ namespace Sentinel.Core
                         Debug.WriteLine($"SafeKillProcessTree: REFUSED to kill critical process {name} (PID {processId}) at verified system path");
                         return;
                     }
-                    // Name matches critical process but path is NOT in system directory —
+                    // Name matches critical process but path is NOT in system directory -
                     // this is masquerading. Allow the kill to proceed.
-                    Debug.WriteLine($"SafeKillProcessTree: Process claims to be '{name}' but path is '{imagePath}' — masquerading detected, allowing kill");
+                    Debug.WriteLine($"SafeKillProcessTree: Process claims to be '{name}' but path is '{imagePath}' - masquerading detected, allowing kill");
                 }
 
                 proc.KillTree();
@@ -519,7 +519,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Returns true for processes whose termination would cause BSOD or system instability.
         /// v1.5.5: Removed cmd, powershell, and pwsh from this list (RT-HIGH-2/5).
-        /// These are NOT BSOD-critical — they are the most common LOLBin attack vectors.
+        /// These are NOT BSOD-critical - they are the most common LOLBin attack vectors.
         /// Sentinel's detection rules (ReverseShellRule, AttackToolsRule) authorize killing
         /// them, and the safety guard must not contradict the response engine.
         /// explorer.exe is retained because killing it destabilizes the user session
@@ -536,11 +536,11 @@ namespace Sentinel.Core
                    string.Equals(name, "dwm") ||
                    string.Equals(name, "explorer") ||
                    string.Equals(name, "System") ||
-                   // v1.4.0: svchost hosts hundreds of critical Windows services — killing it can
+                   // v1.4.0: svchost hosts hundreds of critical Windows services - killing it can
                    // BSOD or leave the system in an unrecoverable state. Protect all instances
                    // that reside in System32 (the path check below verifies legitimacy).
                    string.Equals(name, "svchost") ||
-                   // v1.6.0: Core security products — path verified below (system or Program Files)
+                   // v1.6.0: Core security products - path verified below (system or Program Files)
                    string.Equals(name, "MsMpEng") ||
                    string.Equals(name, "NisSrv") ||
                    string.Equals(name, "SecurityHealthService") ||
@@ -593,7 +593,7 @@ namespace Sentinel.Core
 
                 var security = dirInfo.GetAccessControl();
 
-                // Keep inheritance — do NOT call SetAccessRuleProtection(true, false)
+                // Keep inheritance - do NOT call SetAccessRuleProtection(true, false)
                 // which strips all inherited ACEs and locks out non-SYSTEM users.
                 // Instead, add a deny-write rule for regular Users to prevent tampering
                 // while keeping read+execute intact.
@@ -702,7 +702,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                // Non-fatal — Setup also unlocks via icacls for older installed binaries.
+                // Non-fatal - Setup also unlocks via icacls for older installed binaries.
             }
 
             try
@@ -748,7 +748,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// v1.5.7: Native C# system hardening — no scripts, no shell-outs for logic.
+        /// v1.5.7: Native C# system hardening - no scripts, no shell-outs for logic.
         /// 
         /// Each hardening action is:
         ///   - Documented with its security purpose
@@ -801,7 +801,7 @@ namespace Sentinel.Core
                 ("RemoteRegistry",  "Remote Registry"), // lateral movement; rare legitimate use
             };
 
-            // Restrictive lockdown only — users may want these
+            // Restrictive lockdown only - users may want these
             var restrictiveServices = new[]
             {
                 ("TermService",      "Remote Desktop Services"),
@@ -852,8 +852,8 @@ namespace Sentinel.Core
                     key.SetValue("Start", 4, Microsoft.Win32.RegistryValueKind.DWord); // 4 = Disabled
                 }
             }
-            catch (InvalidOperationException) { } // Service doesn't exist — expected
-            catch { } // Access denied or other — non-fatal
+            catch (InvalidOperationException) { } // Service doesn't exist - expected
+            catch { } // Access denied or other - non-fatal
         }
 
         #endregion
@@ -889,7 +889,7 @@ namespace Sentinel.Core
             SetRegistryDword(@"SOFTWARE\WOW6432Node\Microsoft\.NETFramework\v4.0.30319", "SystemDefaultTlsVersions", 1);
 
             // --- Exploit Mitigations ---
-            // Enable SEHOP — Structured Exception Handler Overwrite Protection (CIS 18.3.4)
+            // Enable SEHOP - Structured Exception Handler Overwrite Protection (CIS 18.3.4)
             SetRegistryDword(@"SYSTEM\CurrentControlSet\Control\Session Manager\kernel", "DisableExceptionChainValidation", 0);
             // Spectre/Meltdown mitigations (FeatureSettingsOverride/Mask)
             SetRegistryDword(@"SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management", "FeatureSettingsOverride", 0x40);
@@ -898,7 +898,7 @@ namespace Sentinel.Core
             SetRegistryString(@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Virtualization", "MinVmVersionForCpuBasedMitigations", "1.0");
 
             // --- Privilege Escalation Prevention ---
-            // Disable AlwaysInstallElevated (MITRE T1548.002 — MSI privilege escalation)
+            // Disable AlwaysInstallElevated (MITRE T1548.002 - MSI privilege escalation)
             SetRegistryDword(@"SOFTWARE\Policies\Microsoft\Windows\Installer", "AlwaysInstallElevated", 0);
             // Disable COM auto-approval for UAC bypass (MITRE T1548.002)
             SetRegistryDword(@"Software\Microsoft\Windows NT\CurrentVersion\UAC\COMAutoApprovalList", "{ca8c87c1-929d-45ba-94db-ef8e6cb346ad}", 0);
@@ -913,7 +913,7 @@ namespace Sentinel.Core
             SetRegistryDword(@"SYSTEM\CurrentControlSet\Control\CrashControl", "CrashDumpEnabled", 0);
 
             // --- Network Hardening ---
-            // Disable WCN (Windows Connect Now) registrars — prevents UPnP/WPS provisioning attacks
+            // Disable WCN (Windows Connect Now) registrars - prevents UPnP/WPS provisioning attacks
             SetRegistryDword(@"SOFTWARE\Policies\Microsoft\Windows\WCN\Registrars", "EnableRegistrars", 0);
             SetRegistryDword(@"Software\Policies\Microsoft\Windows\WCN\UI", "DisableWcnUi", 1);
             // Disable QUIC protocol in browsers (can bypass network inspection)
@@ -974,7 +974,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Enforces DEP (Data Execution Prevention) AlwaysOn via bcdedit.
         /// This is a one-time boot configuration that survives reboots.
-        /// No .NET API exists for BCD store manipulation — bcdedit is required.
+        /// No .NET API exists for BCD store manipulation - bcdedit is required.
         /// </summary>
         private static void EnforceDepAlwaysOn()
         {
@@ -997,10 +997,10 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Applies the embedded GSecurity.inf security policy via LGPO.exe.
-        /// LGPO.exe is Microsoft's Local Group Policy Object utility — it's the only
+        /// LGPO.exe is Microsoft's Local Group Policy Object utility - it's the only
         /// <summary>
         /// Applies the GSecurity.inf security policy via LGPO.exe.
-        /// LGPO.exe is Microsoft's Local Group Policy Object utility — it's the only
+        /// LGPO.exe is Microsoft's Local Group Policy Object utility - it's the only
         /// supported way to apply .inf security templates programmatically without
         /// Active Directory. No .NET equivalent exists.
         ///
@@ -1043,7 +1043,7 @@ namespace Sentinel.Core
         /// Written to the Policy hive so they survive Defender UI toggles and re-apply via AsrPolicyGuard.
         /// Sourced from GEDR_ASR_Rules.ps1 + high-value workstation rules.
         ///
-        /// NOT included: c1db55ab ("Use advanced protection against ransomware") — that rule blocks
+        /// NOT included: c1db55ab ("Use advanced protection against ransomware") - that rule blocks
         /// unsigned/low-prevalence executables launched from %TEMP% (classic Inno Setup extract path)
         /// and was observed blocking SentinelSetup-*.exe upgrades (Defender Event 1121).
         /// NOT included: pure prevalence "block unknown PE" rules for the same reason.
@@ -1163,7 +1163,7 @@ namespace Sentinel.Core
 
                 key.SetValue("ASROnlyExclusions", paths.ToArray(), Microsoft.Win32.RegistryValueKind.MultiString);
             }
-            catch { /* Non-fatal — barebone / locked policy hives */ }
+            catch { /* Non-fatal - barebone / locked policy hives */ }
         }
 
         /// <summary>

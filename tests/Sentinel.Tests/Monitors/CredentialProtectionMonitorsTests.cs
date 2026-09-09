@@ -4,15 +4,15 @@ using Sentinel.Core;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for CredentialProtectionMonitors — verifies detection model behavior
+    /// Tests for CredentialProtectionMonitors - verifies detection model behavior
     /// for credential theft scenarios, category classification, and President's Law
     /// enforcement on credential rules.
     /// </summary>
     public class CredentialProtectionMonitorsTests
     {
-        // ═══════════════════════════════════════════════════════════════
-        // Credential detection rules — President's Law classification
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // Credential detection rules - President's Law classification
+        // 
 
         [Theory]
         [InlineData("LSASS Memory Dump")]
@@ -35,9 +35,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(DetectionCategory.CredentialDump, category);
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // Browser credential guard — detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // Browser credential guard - detection model
+        // 
 
         [Fact]
         public void BrowserCredentialAccess_DetectionModel()
@@ -57,9 +57,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(detection.KillAuthorized);
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // Canary credential monitor — signal behavior
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // Canary credential monitor - signal behavior
+        // 
 
         [Fact]
         public void CredentialAccessSignal_CanaryDeleted_Model()
@@ -84,9 +84,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(2, (int)CredentialAccessType.CanaryModified);
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // Null session guard — observe-until-chain enforcement
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // Null session guard - observe-until-chain enforcement
+        // 
 
         [Fact]
         public void NullSessionProtection_Detection_IsTier2WhenObserveMode()
@@ -106,9 +106,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(ResponseAction.LogOnly, detection.AuthorizedResponse);
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // Password rotation guard — static helpers
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // Password rotation guard - static helpers
+        // 
 
         [Fact]
         public void PasswordRotation_GeneratesExpectedLengthPasswords()

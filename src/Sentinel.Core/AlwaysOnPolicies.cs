@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v2.3.1 — Always-on policies that CANNOT be disabled by configuration, observe-until-chain,
+    /// v2.3.1 - Always-on policies that CANNOT be disabled by configuration, observe-until-chain,
     /// tier law, or any future code changes. These represent fundamental product invariants:
     ///
     /// 1. GAME PROTECTION: Never kill, quarantine, memory-inspect, or FreeLibrary game processes.
@@ -25,13 +25,13 @@ namespace Sentinel.Core
     /// </summary>
     public static class AlwaysOnPolicies
     {
-        // ═══════════════════════════════════════════════════════════════════
+        // 
         // POLICY 1: GAME PROTECTION
         // Games with Denuvo/BattlEye/EAC/Vanguard self-terminate on VM_READ.
         // Anti-cheat processes crash if FreeLibrary'd or quarantined.
         // This policy guarantees Sentinel never interferes with interactive
         // entertainment workloads.
-        // ═══════════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Master gate for game protection. Returns true if the given process/path
@@ -64,7 +64,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Process-name-only check (startup race: path not yet resolvable).
         /// Returns true if the process name matches known game/anti-cheat basenames.
-        /// Name-only is NOT a trust grant — only prevents memory inspection that would
+        /// Name-only is NOT a trust grant - only prevents memory inspection that would
         /// trigger Denuvo self-exit.
         /// </summary>
         public static bool IsProtectedGameProcessName(string? processName)
@@ -86,7 +86,7 @@ namespace Sentinel.Core
             if (string.IsNullOrEmpty(imagePath) || !IsProtectedGamePath(imagePath))
                 return false;
 
-            // Force LogOnly — game processes are NEVER subject to destructive response.
+            // Force LogOnly - game processes are NEVER subject to destructive response.
             detection.Tier = DetectionTier.Tier2Indicator;
             detection.AuthorizedResponse = ResponseAction.LogOnly;
             detection.Metadata ??= new Dictionary<string, string>();
@@ -95,12 +95,12 @@ namespace Sentinel.Core
             return true;
         }
 
-        // ═══════════════════════════════════════════════════════════════════
+        // 
         // POLICY 2: DLL UNLOAD (MODULE IDENTITY)
         // Foreign/hostile module identity violations are remediated immediately.
-        // This is permanent product law — NOT gated on ObserveUntilChain,
+        // This is permanent product law - NOT gated on ObserveUntilChain,
         // NOT gated on ActiveResponse, NOT suppressible by allowlist.
-        // ═══════════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Returns true if a detection represents a DLL unload/module identity action

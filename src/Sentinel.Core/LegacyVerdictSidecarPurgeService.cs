@@ -55,7 +55,7 @@ namespace Sentinel.Core
 
                 if (System.IO.File.Exists(_verdictAds.LegacySidecarPurgeMarkerPath))
                 {
-                    _logger.LogDebug("[LegacyVerdictPurge] Marker present — skip.");
+                    _logger.LogDebug("[LegacyVerdictPurge] Marker present - skip.");
                     return;
                 }
 

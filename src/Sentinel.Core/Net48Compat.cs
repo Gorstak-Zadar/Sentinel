@@ -436,7 +436,7 @@ namespace Sentinel.Core
                 (options & StringSplitOptions.RemoveEmptyEntries) != 0
                     ? StringSplitOptions.RemoveEmptyEntries
                     : StringSplitOptions.None);
-            // net48 has no TrimEntries — apply manually when flag bit present (value 2 on modern)
+            // net48 has no TrimEntries - apply manually when flag bit present (value 2 on modern)
             if (((int)options & 2) != 0)
             {
                 for (int i = 0; i < parts.Length; i++)

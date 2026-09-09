@@ -10,7 +10,7 @@ namespace Sentinel.Core
     /// Sentinel does NOT identify "rapists" or moderate chat. It classifies
     /// <em>machine behaviour</em> (remote control, covert surveillance, session theft,
     /// extortion malware) so response and evidence packs can use clear victim-facing
-    /// language. Applies to Discord, email, social, browsers, messaging apps, games —
+    /// language. Applies to Discord, email, social, browsers, messaging apps, games -
     /// any channel that leaves traces on Windows.
     /// </summary>
     public static class CoercionAbusePolicy
@@ -24,7 +24,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Commercial / open remote-control tools frequently abused for coercive
-        /// control of a victim PC (also used legitimately — never kill on name alone).
+        /// control of a victim PC (also used legitimately - never kill on name alone).
         /// </summary>
         public static readonly HashSet<string> RemoteAccessToolNames = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -107,7 +107,7 @@ namespace Sentinel.Core
                 stem = stem.Substring(0, stem.Length - 4);
             if (RemoteAccessToolNames.Contains(stem))
                 return true;
-            // Substring for service variants (TeamViewer_Service → teamviewer)
+            // Substring for service variants (TeamViewer_Service -> teamviewer)
             foreach (var tool in RemoteAccessToolNames)
             {
                 if (tool.Length < 4) continue;
@@ -190,27 +190,27 @@ namespace Sentinel.Core
         public static string BuildPackSection(DetectionEvent detection)
         {
             var sb = new System.Text.StringBuilder();
-            sb.AppendLine("────────────────────────────────────────────────────────────────────");
+            sb.AppendLine("");
             sb.AppendLine("DIGITAL COERCION / SURVEILLANCE TOOLKIT (TECHNICAL SCOPE)");
-            sb.AppendLine("────────────────────────────────────────────────────────────────────");
+            sb.AppendLine("");
             sb.AppendLine();
             sb.AppendLine("  This pack matches endpoint patterns often used to control, watch, or");
-            sb.AppendLine("  take over a victim computer — including cases of online harassment,");
+            sb.AppendLine("  take over a victim computer - including cases of online harassment,");
             sb.AppendLine("  sexual coercion, stalkerware, account takeover, and remote blackmail.");
             sb.AppendLine();
             sb.AppendLine("  WHAT SENTINEL ASSERTS (technical only):");
-            sb.AppendLine("  • Machine behaviour on THIS Windows host matched a multi-signal attack");
+            sb.AppendLine("  - Machine behaviour on THIS Windows host matched a multi-signal attack");
             sb.AppendLine("    pattern (remote control, covert surveillance, session theft, and/or");
             sb.AppendLine("    related malware tooling).");
             sb.AppendLine();
             sb.AppendLine("  WHAT SENTINEL DOES NOT ASSERT:");
-            sb.AppendLine("  • Identity or guilt of any person as a sexual offender");
-            sb.AppendLine("  • Content of chat messages on Discord, email, social media, etc.");
-            sb.AppendLine("  • That a sexual assault occurred offline");
+            sb.AppendLine("  - Identity or guilt of any person as a sexual offender");
+            sb.AppendLine("  - Content of chat messages on Discord, email, social media, etc.");
+            sb.AppendLine("  - That a sexual assault occurred offline");
             sb.AppendLine();
-            sb.AppendLine("  Platforms in scope (examples — not an exclusive list):");
+            sb.AppendLine("  Platforms in scope (examples - not an exclusive list):");
             sb.AppendLine("  messaging apps, social networks, email, browsers, games, voice/video,");
-            sb.AppendLine("  remote-support tools, cloud sync — any channel that leaves host traces.");
+            sb.AppendLine("  remote-support tools, cloud sync - any channel that leaves host traces.");
             sb.AppendLine();
             sb.AppendLine($"  Matched rule: {detection.RuleName}");
             if (detection.Metadata != null &&
@@ -223,7 +223,7 @@ namespace Sentinel.Core
         public static string BuildAffidavitHarmHints()
         {
             return
-                "   Optional harm categories (check any that apply — you complete this, not Sentinel):\n" +
+                "   Optional harm categories (check any that apply - you complete this, not Sentinel):\n" +
                 "   [ ] Unauthorized remote control of my computer\n" +
                 "   [ ] Unauthorized screen / camera / microphone capture\n" +
                 "   [ ] Theft of account sessions (email, messaging, social, games, banking)\n" +

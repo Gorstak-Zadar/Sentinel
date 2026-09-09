@@ -21,12 +21,12 @@ namespace Sentinel.Core
     /// from the web dashboard or IPC.
     ///
     /// Scan categories:
-    ///   1. Running processes — hash reputation + unsigned in staging paths
-    ///   2. Persistence — Run/RunOnce keys, scheduled tasks, startup folder, services, IFEO
-    ///   3. Certificate store — non-public-CA entries in TrustedPublisher/Root
-    ///   4. LNK files — malicious shortcut patterns (UNC, protocol abuse, LOLBin+remote)
-    ///   5. Staging paths — unsigned executables in Temp, AppData, Downloads, ProgramData
-    ///   6. Network — listening ports from suspicious paths, connections to known-bad IPs
+    ///   1. Running processes - hash reputation + unsigned in staging paths
+    ///   2. Persistence - Run/RunOnce keys, scheduled tasks, startup folder, services, IFEO
+    ///   3. Certificate store - non-public-CA entries in TrustedPublisher/Root
+    ///   4. LNK files - malicious shortcut patterns (UNC, protocol abuse, LOLBin+remote)
+    ///   5. Staging paths - unsigned executables in Temp, AppData, Downloads, ProgramData
+    ///   6. Network - listening ports from suspicious paths, connections to known-bad IPs
     /// </summary>
     public sealed class ScanEngine
     {
@@ -49,7 +49,7 @@ namespace Sentinel.Core
         public bool IsRunning => Interlocked.CompareExchange(ref _isRunning, 0, 0) == 1;
 
         /// <summary>
-        /// Performs a full system scan. Returns structured results. Thread-safe — only one scan at a time.
+        /// Performs a full system scan. Returns structured results. Thread-safe - only one scan at a time.
         /// </summary>
         public async Task<ScanResult> RunFullScanAsync(CancellationToken ct = default)
         {
@@ -79,7 +79,7 @@ namespace Sentinel.Core
                 result.EndTime = DateTime.UtcNow;
                 result.Completed = true;
 
-                _logger.LogInformation("[ScanEngine] Scan completed in {Ms}ms — {Findings} findings, {Critical} critical",
+                _logger.LogInformation("[ScanEngine] Scan completed in {Ms}ms - {Findings} findings, {Critical} critical",
                     result.DurationMs, result.Findings.Count, result.Findings.Count(f => f.Severity == ScanSeverity.Critical));
 
                 return result;
@@ -259,7 +259,7 @@ namespace Sentinel.Core
                         else if (!string.IsNullOrEmpty(executable) && File.Exists(executable) &&
                                  !SecurityValidation.VerifyAuthenticodeSignature(executable!))
                         {
-                            // Unsigned binary in Run key — worth flagging
+                            // Unsigned binary in Run key - worth flagging
                             if (!IsKnownGoodRunEntry(name, executable!))
                             {
                                 suspicious = true;
@@ -274,7 +274,7 @@ namespace Sentinel.Core
                                 Category = ScanCategory.Persistence,
                                 Severity = IsStagingPath(executable!) ? ScanSeverity.Critical : ScanSeverity.Medium,
                                 Title = reason,
-                                Description = $"{hiveName}\\{path}\\{name} → {value}",
+                                Description = $"{hiveName}\\{path}\\{name} -> {value}",
                                 Path = executable,
                                 RegistryKey = $"{hiveName}\\{path}",
                                 RegistryValue = name,

@@ -13,7 +13,7 @@ namespace Sentinel.Core
 {
     /// <summary>
     /// Observes optional OS/vendor services that may phone home while remaining legitimate
-    /// (DiagTrack, whesvc, dmwappushservice, …).
+    /// (DiagTrack, whesvc, dmwappushservice, ...).
     ///
     /// Product law (v1.9.9): OBSERVE ONLY for this class of activity.
     /// Does not kill processes, stop services, or firewall-block destinations.
@@ -29,9 +29,9 @@ namespace Sentinel.Core
         private readonly SentinelConfig _config;
         private readonly ILogger<PrivacyServiceOutboundMonitor> _logger;
 
-        // Dedup: service|remote|port → last emit
+        // Dedup: service|remote|port -> last emit
         private readonly ConcurrentDictionary<string, DateTimeOffset> _outboundAlerted = new(StringComparer.OrdinalIgnoreCase);
-        // Dedup: service name → last "running" emit
+        // Dedup: service name -> last "running" emit
         private readonly ConcurrentDictionary<string, DateTimeOffset> _runningAlerted = new(StringComparer.OrdinalIgnoreCase);
 
         private static readonly TimeSpan OutboundDedup = TimeSpan.FromMinutes(10);
@@ -83,7 +83,7 @@ namespace Sentinel.Core
             // MVP: always observe-only regardless of Mode enum value if reaction paths are not implemented.
             // Soft/Hard would require ProductPosture opt-in in a future version.
             _logger.LogInformation(
-                "[PrivacyServiceOutboundMonitor] Started — observe-only privacy service outbound (Mode={Mode})",
+                "[PrivacyServiceOutboundMonitor] Started - observe-only privacy service outbound (Mode={Mode})",
                 posture.Mode);
 
             // Stagger after SystemIntegrity group start
@@ -115,7 +115,7 @@ namespace Sentinel.Core
                 posture.Allowlist ?? Array.Empty<string>(),
                 StringComparer.OrdinalIgnoreCase);
 
-            // Map service → pid for inventory members that are running
+            // Map service -> pid for inventory members that are running
             var servicePids = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
             foreach (var svc in inventory.Keys)
             {
@@ -180,7 +180,7 @@ namespace Sentinel.Core
                 Evidence = $"Optional service '{serviceName}' ({display}) is running (PID {pid}). Class={meta.Class}.",
                 Reasoning =
                     "This service is optional OS/vendor telemetry or diagnostics. " +
-                    "Sentinel observes only — no stop, no kill, no firewall. " +
+                    "Sentinel observes only - no stop, no kill, no firewall. " +
                     "Host mutation is reserved for chain-confirmed malice " +
                     "(credential dump, C2, ransomware, reverse shell, token theft).",
                 Confidence = 0.55,
@@ -231,7 +231,7 @@ namespace Sentinel.Core
             {
                 RuleName = "Privacy: Optional Service Outbound",
                 Evidence =
-                    $"Optional service '{serviceName}' ({display}) PID {conn.Pid} → {conn.RemoteIp}:{conn.RemotePort} (public).",
+                    $"Optional service '{serviceName}' ({display}) PID {conn.Pid} -> {conn.RemoteIp}:{conn.RemotePort} (public).",
                 Reasoning =
                     "Outbound connection from a known optional telemetry/diagnostics service. " +
                     "This is awareness only (observe/work-first). Not classified as malware. " +
@@ -315,7 +315,7 @@ namespace Sentinel.Core
             if (ip.StartsWith("10.")) return true;
             if (ip.StartsWith("192.168.")) return true;
             if (ip.StartsWith("169.254.")) return true;
-            // 172.16.0.0 – 172.31.255.255
+            // 172.16.0.0 - 172.31.255.255
             if (ip.StartsWith("172."))
             {
                 var parts = ip.Split('.');

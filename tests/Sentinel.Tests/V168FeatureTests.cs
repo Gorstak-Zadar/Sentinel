@@ -58,7 +58,7 @@ namespace Sentinel.Tests
                 SignalType = SignalType.NetworkC2,
                 Timestamp = DateTime.UtcNow
             });
-            // Only one signal — composite should NOT fire
+            // Only one signal - composite should NOT fire
             Assert.Null(getResult());
         }
 
@@ -80,7 +80,7 @@ namespace Sentinel.Tests
                 SignalType = SignalType.NetworkC2,
                 Timestamp = DateTime.UtcNow
             });
-            // Different PIDs — should not fire composite
+            // Different PIDs - should not fire composite
             var result = getResult();
             // If anything fired it would be on PID 502 or 999 individually
             // but not a pipe+beacon composite since they're on different PIDs
@@ -242,7 +242,7 @@ namespace Sentinel.Tests
 
         #endregion
 
-        #region SyscallStubMonitor — Hell's Gate Pattern Detection
+        #region SyscallStubMonitor - Hell's Gate Pattern Detection
 
         [Fact]
         public void CountSyscallStubs_DetectsValidPattern()
@@ -357,7 +357,7 @@ namespace Sentinel.Tests
 
         #endregion
 
-        #region BrowserC2Guard — Extension Permission Analysis
+        #region BrowserC2Guard - Extension Permission Analysis
 
         [Fact]
         public void ExtractDangerousPermissions_FindsDebugger()
@@ -449,7 +449,7 @@ namespace Sentinel.Tests
 
         #endregion
 
-        #region BrowserC2Guard — Debug Port Extraction
+        #region BrowserC2Guard - Debug Port Extraction
 
         [Theory]
         [InlineData("chrome.exe --remote-debugging-port=9222 --headless", 9222)]
@@ -478,7 +478,7 @@ namespace Sentinel.Tests
 
         #endregion
 
-        #region WslMonitor — Lateral Movement Pattern Detection
+        #region WslMonitor - Lateral Movement Pattern Detection
 
         [Theory]
         [InlineData("cp /etc/shadow /mnt/c/windows/system32/evil.dll", true)]
@@ -523,7 +523,7 @@ namespace Sentinel.Tests
 
         #endregion
 
-        #region PrintSpoolerMonitor — PrintNightmare Detection Logic
+        #region PrintSpoolerMonitor - PrintNightmare Detection Logic
 
         [Theory]
         [InlineData("splwow64", true)]
@@ -553,7 +553,7 @@ namespace Sentinel.Tests
 
         #endregion
 
-        #region ContextBus Integration — Signal Publishing Patterns
+        #region ContextBus Integration - Signal Publishing Patterns
 
         [Fact]
         public void NamedPipeSignal_KnownBadPattern_HasCorrectFields()
@@ -633,7 +633,7 @@ namespace Sentinel.Tests
 
         #endregion
 
-        #region Security Invariants — v1.6.8 Composites Must Be Tier1 Kill-Authorized
+        #region Security Invariants - v1.6.8 Composites Must Be Tier1 Kill-Authorized
 
         [Fact]
         public async Task Composite_PipeBeacon_IsTier1KillAuthorized()

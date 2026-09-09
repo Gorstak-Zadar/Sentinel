@@ -17,7 +17,7 @@ namespace Sentinel.Tests
         [Fact]
         public void SafeKillProcessTree_RefusesToKillPid4()
         {
-            // PID 4 is System — should be refused
+            // PID 4 is System - should be refused
             HardeningModule.SafeKillProcessTree(4);
         }
 
@@ -33,7 +33,7 @@ namespace Sentinel.Tests
             // Find csrss PID and verify SafeKillProcessTree won't kill it
             // We can't actually call it with csrss PID in a unit test (would need admin)
             // but we verify the logic by confirming the method doesn't throw for nonexistent PID
-            HardeningModule.SafeKillProcessTree(99999); // Nonexistent PID — should handle gracefully
+            HardeningModule.SafeKillProcessTree(99999); // Nonexistent PID - should handle gracefully
         }
 
         [Fact]
@@ -46,7 +46,7 @@ namespace Sentinel.Tests
         [Fact]
         public void ApplyOrFail_ReturnsBoolean()
         {
-            // DLL search hardening — just verify it doesn't crash
+            // DLL search hardening - just verify it doesn't crash
             var result = HardeningModule.ApplyOrFail();
             // Result depends on platform/permissions, but should never throw
             Assert.IsType<bool>(result);

@@ -12,7 +12,7 @@ namespace Sentinel.Core
     /// mounted ISO images, Docker containers, and virtual machines (Hyper-V, VirtualBox, VMware).
     ///
     /// Isolation-based attacks are increasingly common because they bypass traditional
-    /// file-based scanning — malware hides inside container images, ISOs, or VMs where
+    /// file-based scanning - malware hides inside container images, ISOs, or VMs where
     /// the host AV cannot inspect it until execution begins. This engine provides
     /// immediate containment once malicious behavior is confirmed inside these environments.
     /// </summary>
@@ -37,7 +37,7 @@ namespace Sentinel.Core
         /// <param name="isoPath">Full path to the .iso file on disk.</param>
         public async Task HandleIsoThreatAsync(int processId, string isoPath)
         {
-            _logger.LogInformation("[IsolationResponse] Handling ISO threat — PID {ProcessId}, IsoPath {IsoPath}",
+            _logger.LogInformation("[IsolationResponse] Handling ISO threat - PID {ProcessId}, IsoPath {IsoPath}",
                 processId, isoPath);
 
             var stopwatch = Stopwatch.StartNew();
@@ -60,7 +60,7 @@ namespace Sentinel.Core
 
             // 2. Dismount the ISO via PowerShell Dismount-DiskImage
             // SECURITY v1.4.4: Use -EncodedCommand to prevent command injection via crafted ISO filenames.
-            // Previously interpolated isoPath directly into a PowerShell -Command string — a filename
+            // Previously interpolated isoPath directly into a PowerShell -Command string - a filename
             // containing embedded single quotes could break out and execute arbitrary commands as SYSTEM.
             try
             {
@@ -139,7 +139,7 @@ namespace Sentinel.Core
                 return;
             }
 
-            _logger.LogInformation("[IsolationResponse] Handling Docker threat — ContainerId {ContainerId}", containerId);
+            _logger.LogInformation("[IsolationResponse] Handling Docker threat - ContainerId {ContainerId}", containerId);
 
             var stopwatch = Stopwatch.StartNew();
             string? imageId = null;
@@ -182,7 +182,7 @@ namespace Sentinel.Core
 
             // 3. Remove the image
             // SECURITY v1.4.4: Validate imageId from docker inspect output before use.
-            // imageId comes from external process output, not our own validation — a malicious
+            // imageId comes from external process output, not our own validation - a malicious
             // container could craft its image reference to include shell metacharacters.
             if (!string.IsNullOrWhiteSpace(imageId) && IsValidDockerIdentifier(imageId!))
             {
@@ -225,7 +225,7 @@ namespace Sentinel.Core
                 vmName = "SANITIZED";
             }
 
-            _logger.LogInformation("[IsolationResponse] Handling VM threat — PID {VmHostProcessId}, VmName {VmName}",
+            _logger.LogInformation("[IsolationResponse] Handling VM threat - PID {VmHostProcessId}, VmName {VmName}",
                 vmHostProcessId, vmName);
 
             var stopwatch = Stopwatch.StartNew();
@@ -254,7 +254,7 @@ namespace Sentinel.Core
                     await process.WaitForExitAsync();
                 }
 
-                _logger.LogWarning("[IsolationResponse] Terminated VM {VmName} — process {ProcessName} (PID {VmHostProcessId}), action={ActionTaken}",
+                _logger.LogWarning("[IsolationResponse] Terminated VM {VmName} - process {ProcessName} (PID {VmHostProcessId}), action={ActionTaken}",
                     vmName, processName, vmHostProcessId, actionTaken);
             }
             catch (Exception ex)
@@ -287,7 +287,7 @@ namespace Sentinel.Core
                 // SECURITY v1.4.4: Use -EncodedCommand to prevent command injection via crafted VM names.
                 // Previously interpolated vmName directly into a PowerShell -Command string.
                 // While IsValidVmName() validates characters, -EncodedCommand eliminates the attack
-                // surface entirely — no parsing of the command string by PowerShell's evaluator.
+                // surface entirely - no parsing of the command string by PowerShell's evaluator.
                 var script = $"Stop-VM -Name '{vmName.Replace("'", "''")}' -TurnOff -Force -ErrorAction Stop";
                 var encodedScript = Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script));
                 var args = $"-NoProfile -NonInteractive -EncodedCommand {encodedScript}";
@@ -337,7 +337,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Validates a VM name — alphanumeric, spaces, hyphens, underscores only.
+        /// Validates a VM name - alphanumeric, spaces, hyphens, underscores only.
         /// </summary>
         private static bool IsValidVmName(string name)
         {

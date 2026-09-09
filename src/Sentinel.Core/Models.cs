@@ -49,9 +49,9 @@ namespace Sentinel.Core
     }
 
     /// <summary>
-    /// Post-incident MITM hardening — cert plant + FCM tab injection + fake Chromecast C2 relay.
+    /// Post-incident MITM hardening - cert plant + FCM tab injection + fake Chromecast C2 relay.
     /// Observed chain (2026-06-13/14):
-    ///   1. Plant self-signed root (CN=WINDOWS-PC / long validity) → TLS intercept
+    ///   1. Plant self-signed root (CN=WINDOWS-PC / long validity) -> TLS intercept
     ///   2. Steal Chrome sync tokens during intercept window
     ///   3. "Send Tab to Self" via FCM push (TCP 5228) opens attacker URLs in open Chrome
     ///   4. Rogue LAN device (e.g. 192.168.1.100, OUI B0-B3-69) on Cast :8009 as C2 relay
@@ -68,7 +68,7 @@ namespace Sentinel.Core
         public bool RemovePlantedCerts { get; set; } = true;
 
         /// <summary>
-        /// Block Google FCM TCP 5228 — severs "Send Tab to Self" after token theft.
+        /// Block Google FCM TCP 5228 - severs "Send Tab to Self" after token theft.
         /// When MitmDefense.Enabled, this overrides Sentinel:BlockFcmPushChannel=false.
         /// </summary>
         public bool BlockFcmPushChannel { get; set; } = true;
@@ -97,7 +97,7 @@ namespace Sentinel.Core
         /// </summary>
         public bool ActiveResponse
         {
-            get => true; // Always armed — no off switch
+            get => true; // Always armed - no off switch
             set { } // No-op: cannot be disabled
         }
         public string? LogPath { get; set; }
@@ -111,7 +111,7 @@ namespace Sentinel.Core
         public string[] TrustedCastDevices { get; set; } = Array.Empty<string>();
 
         /// <summary>
-        /// v1.9.10: Post-incident MITM defense suite (June 13–14 chain).
+        /// v1.9.10: Post-incident MITM defense suite (June 13-14 chain).
         /// When Enabled: plant MitM certs are removed, FCM "Send Tab to Self" is blocked,
         /// and fake Chromecast / rogue Cast LAN relays are firewall-blocked.
         /// Does not require RestrictivePortHardening (narrow exception for this threat class).
@@ -157,7 +157,7 @@ namespace Sentinel.Core
         public bool ObserveUntilChain { get; set; } = true;
 
         /// <summary>
-        /// Minimum confidence (0–1) for a kill-grade family to remain Tier1.
+        /// Minimum confidence (0-1) for a kill-grade family to remain Tier1.
         /// Below this, signals demote to Tier2 observe (still feed correlation).
         /// </summary>
         public double MinTier1Confidence { get; set; } = 0.85;
@@ -187,7 +187,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// v1.8.3: When true, ThreatIntelFeedBlocker pre-creates Windows Firewall block rules
-        /// for every feed IP/CIDR. Default <c>false</c> — observe connections to listed IPs
+        /// for every feed IP/CIDR. Default <c>false</c> - observe connections to listed IPs
         /// and only act reactively (NetworkIsolate on live hit when ActiveResponse is on).
         /// Pre-blocking thousands of ranges breaks legitimate TLS/OCSP/CDN traffic.
         /// </summary>
@@ -195,13 +195,13 @@ namespace Sentinel.Core
 
         /// <summary>
         /// v1.8.3: When true, permanently block Google FCM (TCP 5228 + mtalk hosts).
-        /// Default <c>false</c> — do not break Chrome push for normal users.
-        /// Enable after confirmed MitM / Chrome sync token theft (see CHANGELOG 0.8.6 June 13–14 chain).
+        /// Default <c>false</c> - do not break Chrome push for normal users.
+        /// Enable after confirmed MitM / Chrome sync token theft (see CHANGELOG 0.8.6 June 13-14 chain).
         /// </summary>
         public bool BlockFcmPushChannel { get; set; } = false;
 
         /// <summary>
-        /// v2.5.5: Hardening is now unconditional — always active. The setter is retained
+        /// v2.5.5: Hardening is now unconditional - always active. The setter is retained
         /// for deserialization compatibility but is a no-op. IPSec port lockdown, ASR Block
         /// rules, RPC/DCOM firewall, remote session guard, registry hardening, credential
         /// hardening, browser hardening, and LGPO security policy always run.
@@ -223,15 +223,15 @@ namespace Sentinel.Core
         /// <summary>
         /// v1.9.7: When true, auto-disable USB nodes that fail descriptor requests
         /// (VID_0000 / "Device Descriptor Request Failed") via registry ConfigFlags.
-        /// Default <c>false</c> — do not kill flaky USB devices on normal desktops.
+        /// Default <c>false</c> - do not kill flaky USB devices on normal desktops.
         /// </summary>
         public bool AutoDisableFailedUsbEnumeration { get; set; } = false;
 
         public CveShieldConfig CveShield { get; set; } = new();
 
         /// <summary>
-        /// v1.9.9: Observe optional vendor/OS services that phone home (DiagTrack, whesvc, …).
-        /// Default Mode=Observe — log only; never stop services or firewall-block for privacy noise.
+        /// v1.9.9: Observe optional vendor/OS services that phone home (DiagTrack, whesvc, ...).
+        /// Default Mode=Observe - log only; never stop services or firewall-block for privacy noise.
         /// Destructive host mutation remains reserved for chain-confirmed malice
         /// (cred dump, C2, ransomware, reverse shell, token theft, proven exfil chains).
         /// </summary>
@@ -259,7 +259,7 @@ namespace Sentinel.Core
     }
 
     /// <summary>
-    /// v1.9.9 — Awareness of optional services that may phone home while remaining legitimate.
+    /// v1.9.9 - Awareness of optional services that may phone home while remaining legitimate.
     /// Product law: 99% of software is observe-only; act only on kill-grade malice chains.
     /// </summary>
     public sealed class ServiceExfilPostureConfig
@@ -274,7 +274,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Extra service short names to treat as privacy/phone-home inventory.
-        /// Merged with built-in defaults (DiagTrack, whesvc, …).
+        /// Merged with built-in defaults (DiagTrack, whesvc, ...).
         /// </summary>
         public string[] Inventory { get; set; } = Array.Empty<string>();
 
@@ -283,13 +283,13 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Services that must never be stopped/disabled even if HardReact is added later.
-        /// Empty uses built-in NeverTouch set (EventLog, BFE, Defender, …).
+        /// Empty uses built-in NeverTouch set (EventLog, BFE, Defender, ...).
         /// </summary>
         public string[] NeverTouch { get; set; } = Array.Empty<string>();
     }
 
     /// <summary>
-    /// v1.9.5 — Durable secondary audit trail via Windows Event Log.
+    /// v1.9.5 - Durable secondary audit trail via Windows Event Log.
     /// Primary product log remains JSONL. All writes fail-soft on stripped Windows.
     /// </summary>
     public class WindowsEventLogConfig
@@ -301,14 +301,14 @@ namespace Sentinel.Core
         public string SourceName { get; set; } = "Sentinel";
 
         /// <summary>
-        /// Target log. Default Application — most available on custom/stripped images.
+        /// Target log. Default Application - most available on custom/stripped images.
         /// Custom logs require extra ACLs and fail more often; avoid for barebone hosts.
         /// </summary>
         public string LogName { get; set; } = "Application";
 
         /// <summary>
         /// When true (default): only service lifecycle, chain response, evidence pack,
-        /// quarantine, anti-tamper, heartbeat — never Tier2 observe spam.
+        /// quarantine, anti-tamper, heartbeat - never Tier2 observe spam.
         /// </summary>
         public bool CriticalOnly { get; set; } = true;
 
@@ -343,7 +343,7 @@ namespace Sentinel.Core
         /// HMAC key for the threat-proxy Worker. Compiled into the binary.
         /// Must match Worker env SENTINEL_SHARED_SECRET. Split concat so a PE
         /// dump is not one line. Admin --set-config can rotate via DPAPI
-        /// config.enc (length ≥ 16). Short plants are ignored.
+        /// config.enc (length >= 16). Short plants are ignored.
         /// </summary>
         public string? ProxySharedSecret { get; set; } = CompiledProxySharedSecret;
 
@@ -353,7 +353,7 @@ namespace Sentinel.Core
     }
 
     /// <summary>
-    /// v1.7.7+ — Automatic local evidence packs + optional TI indicator share
+    /// v1.7.7+ - Automatic local evidence packs + optional TI indicator share
     /// for high-confidence hacking / attack detections.
     /// Does not file police reports (no public LE API); prepares packs and portal links.
     /// v1.7.8: reportable-grade policy, integrity manifest/HMAC, victim affidavit.
@@ -370,7 +370,7 @@ namespace Sentinel.Core
         /// B1 (durable evidence survival): when true, a signed <b>summary</b> of each
         /// chain-confirmed evidence pack is mirrored off-host via the existing HMAC-signed
         /// ThreatReporting proxy so a local admin who suppresses Sentinel cannot also erase the
-        /// proof. Default <b>false</b> (opt-in) — matches the honest, no-covert-exfil posture.
+        /// proof. Default <b>false</b> (opt-in) - matches the honest, no-covert-exfil posture.
         /// Requires a configured ThreatReporting ProxyEndpoint + shared secret; fails closed
         /// (skips silently) when the secret is missing. Never uploads file contents or secrets.
         /// </summary>
@@ -378,7 +378,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Submit hashes/URLs/IPs via ThreatReportService (MalwareBazaar/URLhaus/AbuseIPDB).
-        /// Requires ThreatReporting proxy secret. Community intel — not law enforcement.
+        /// Requires ThreatReporting proxy secret. Community intel - not law enforcement.
         /// </summary>
         public bool ReportThreatIntel { get; set; } = true;
 
@@ -388,7 +388,7 @@ namespace Sentinel.Core
         /// <summary>
         /// v1.7.8: When true (default), only reportable-grade events produce packs:
         /// kill-authorized at high confidence, NetworkIsolate for C2-class signals,
-        /// or Tier1 attack signals at MinConfidence — no low-signal noise.
+        /// or Tier1 attack signals at MinConfidence - no low-signal noise.
         /// </summary>
         public bool ReportableGradeOnly { get; set; } = true;
 
@@ -485,7 +485,7 @@ namespace Sentinel.Core
         public string RuleName { get; set; } = string.Empty;
         /// <summary>
         /// Stable rule identifier (e.g. "SENT-001") used for central action mapping,
-        /// deduplication, and audit correlation. Optional — legacy rules leave this null.
+        /// deduplication, and audit correlation. Optional - legacy rules leave this null.
         /// Ported from GorstaksProtection (GRS-00X scheme).
         /// </summary>
         public string? RuleId { get; set; }
@@ -499,7 +499,7 @@ namespace Sentinel.Core
         /// <summary>
         /// v2.6: Optional TYPED terminal-outcome family. When a monitor sets this explicitly,
         /// <see cref="ResponsePolicy.ClassifyTerminalOutcome"/> trusts it directly instead of
-        /// inferring the family from rule-name substrings — removing the "renamed a rule,
+        /// inferring the family from rule-name substrings - removing the "renamed a rule,
         /// silently lost its kill-grade classification" bug class. Null for legacy detections,
         /// which continue to flow through the proven substring classifier unchanged.
         /// </summary>

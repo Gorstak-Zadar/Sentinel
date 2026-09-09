@@ -4,14 +4,14 @@ using Sentinel.Core;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for PeripheralMonitors — verifies MTP transfer detection,
+    /// Tests for PeripheralMonitors - verifies MTP transfer detection,
     /// Bluetooth detection model, and dangerous extension classification.
     /// </summary>
     public class PeripheralMonitorsTests
     {
-        // ═══════════════════════════════════════════════════════════════
-        // MtpTransferGuard — dangerous extension detection
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // MtpTransferGuard - dangerous extension detection
+        // 
 
         [Theory]
         [InlineData(".exe", true)]
@@ -31,9 +31,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(isDangerous, IsDangerousExtension(ext));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Bluetooth detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void Bluetooth_NewDevice_DetectionModel()
@@ -53,9 +53,9 @@ namespace Sentinel.Tests.Monitors
             Assert.False(detection.KillAuthorized);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // MTP transfer detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void MtpTransfer_Inbound_Executable_HighConfidence()
@@ -90,9 +90,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(DetectionTier.Tier2Indicator, detection.Tier);
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // DeviceInstallMonitor — Windows driver path detection
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // DeviceInstallMonitor - Windows driver path detection
+        // 
 
         [Theory]
         [InlineData(@"C:\Windows\System32\drivers\WdFilter.sys", true)]
@@ -104,9 +104,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(isWindowsDriver, IsWindowsDriverPath(path));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helpers (mirror private logic)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static bool IsDangerousExtension(string ext)
         {

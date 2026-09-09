@@ -14,7 +14,7 @@ namespace Sentinel.Core
         private readonly System.Threading.Timer _refreshTimer;
 
         // HARDENING: Track PIDs injected by RecordProcessStart (ETW/WMI/fast-poll sourced).
-        // These are NEVER overwritten by the periodic refresh — they contain authoritative
+        // These are NEVER overwritten by the periodic refresh - they contain authoritative
         // data captured at process creation time. The refresh only ADDS new PIDs.
         private readonly ConcurrentDictionary<int, (int parentId, string name, string imagePath, DateTimeOffset recordedAt)> _authoritativeEntries = new();
 
@@ -56,7 +56,7 @@ namespace Sentinel.Core
                     }
                     else if (!livingPids.Contains(pid) && !_deadPidRetention.ContainsKey(pid))
                     {
-                        // Dead but not tracked yet — start tracking
+                        // Dead but not tracked yet - start tracking
                         _deadPidRetention.TryAdd(pid, now);
                     }
                 }
@@ -75,7 +75,7 @@ namespace Sentinel.Core
 
                     if (newCache.ContainsKey(pid))
                     {
-                        // Already have authoritative data — don't overwrite
+                        // Already have authoritative data - don't overwrite
                         proc.Dispose();
                         continue;
                     }
@@ -116,7 +116,7 @@ namespace Sentinel.Core
                 {
                     if (now - kvp.Value < DeadPidRetentionDuration)
                     {
-                        // Still within retention window — keep in cache if we have data
+                        // Still within retention window - keep in cache if we have data
                         if (!newCache.ContainsKey(kvp.Key) && currentCache.TryGetValue(kvp.Key, out var deadInfo))
                         {
                             newCache[kvp.Key] = deadInfo;
@@ -124,7 +124,7 @@ namespace Sentinel.Core
                     }
                     else
                     {
-                        // Expired — remove from retention tracking
+                        // Expired - remove from retention tracking
                         _deadPidRetention.TryRemove(kvp.Key, out _);
                     }
                 }
@@ -139,7 +139,7 @@ namespace Sentinel.Core
 
         public void RecordProcessStart(int pid, int parentPid, string processName, string imagePath)
         {
-            // Record as authoritative — this data came from ETW/WMI/fast-poll at creation time
+            // Record as authoritative - this data came from ETW/WMI/fast-poll at creation time
             // and will NOT be overwritten by the periodic refresh.
             _authoritativeEntries[pid] = (parentPid, processName, imagePath ?? "", DateTimeOffset.UtcNow);
 

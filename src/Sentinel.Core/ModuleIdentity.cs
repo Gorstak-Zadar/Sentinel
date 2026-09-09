@@ -6,8 +6,8 @@ namespace Sentinel.Core
     /// <summary>
     /// Identity of a mapped PE: path tree + Microsoft signature.
     /// Count is not identity (Chromium loading Edge DLLs is not injection).
-    /// Hijack names (dbghelp, version, winmm, …) next to the exe are plants even
-    /// when Microsoft-signed — DLL search order loads the local copy first.
+    /// Hijack names (dbghelp, version, winmm, ...) next to the exe are plants even
+    /// when Microsoft-signed - DLL search order loads the local copy first.
     /// </summary>
     public static class ModuleIdentity
     {
@@ -15,7 +15,7 @@ namespace Sentinel.Core
         /// Loadable-module file extensions. The unloader enumerates every mapped PE via
         /// EnumProcessModules regardless of extension, so identity applies to all of them.
         /// This set is used by the filename-keyed helpers (bundled / sideload plant) so a
-        /// non-.dll module (WinRT .winmd with MSIL, .ocx, .cpl, .node, .ax, .drv, …) is not
+        /// non-.dll module (WinRT .winmd with MSIL, .ocx, .cpl, .node, .ax, .drv, ...) is not
         /// silently treated as "not a module". A system-provided .winmd is pure metadata and
         /// stays keep-tree; a third-party managed .winmd can carry code, so it is in scope.
         /// </summary>
@@ -132,7 +132,7 @@ namespace Sentinel.Core
 
             // Whole OS tree except Windows\Temp (that is still a drop folder).
             // NativeImages, Microsoft.NET, SystemApps, UUS were missed by the
-            // system32-only check and got FreeLibrary'd — CLR 80131506 / StartMenu loop.
+            // system32-only check and got FreeLibrary'd - CLR 80131506 / StartMenu loop.
             var win = WindowsRoot();
             if (p.Equals(win, StringComparison.Ordinal) ||
                 p.StartsWith(win + @"\", StringComparison.Ordinal))
@@ -152,7 +152,7 @@ namespace Sentinel.Core
             if (ContainsDir(p, @"\ebwebview\")) return true;
             if (ContainsDir(p, @"\dotnet\")) return true;
             if (ContainsDir(p, @"\microsoft.net\")) return true;
-            // v2.5.5: NuGet package cache — Roslyn source generators and NuGet-cached DLLs
+            // v2.5.5: NuGet package cache - Roslyn source generators and NuGet-cached DLLs
             // loaded by VBCSCompiler/dotnet/msbuild must not be quarantined as foreign-path.
             if (ContainsDir(p, @"\.nuget\packages\")) return true;
             if (ContainsDir(p, @"\nvidia corporation\")) return true;

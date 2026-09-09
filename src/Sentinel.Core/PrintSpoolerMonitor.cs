@@ -211,7 +211,7 @@ namespace Sentinel.Core
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // v1.6.8: PrintNightmare-Class Exploitation Detection
         //
         // Detects exploitation of the print spooler for privilege escalation:
@@ -224,7 +224,7 @@ namespace Sentinel.Core
         // 2. Detect unsigned DLLs loaded by spoolsv.exe from non-standard paths
         // 3. Watch for new printer driver installations via registry
         // 4. Monitor for spoolsv.exe spawning child processes (exploitation indicator)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private readonly HashSet<string> _baselineDriverDlls = new(StringComparer.OrdinalIgnoreCase);
         private readonly ConcurrentDictionary<string, byte> _alertedDriverPaths = new();
@@ -304,7 +304,7 @@ namespace Sentinel.Core
                         if (_baselineDriverDlls.Contains(dllPath)) continue;
                         if (_alertedDriverPaths.ContainsKey(dllPath)) continue;
 
-                        // New DLL appeared in printer driver directory — potential PrintNightmare
+                        // New DLL appeared in printer driver directory - potential PrintNightmare
                         _alertedDriverPaths[dllPath] = 0;
 
                         // Check if the DLL is Authenticode signed
@@ -379,7 +379,7 @@ namespace Sentinel.Core
                             {
                                 if (proc.Id == spoolerPid || proc.Id <= 4) continue;
 
-                                // Check parent PID via WMI (lightweight — cached in ProcessAncestryCache equivalent)
+                                // Check parent PID via WMI (lightweight - cached in ProcessAncestryCache equivalent)
                                 int parentPid = GetParentPid(proc.Id);
                                 if (parentPid != spoolerPid) continue;
 
@@ -397,12 +397,12 @@ namespace Sentinel.Core
 
                                 await _detectionEngine.EmitAsync(new DetectionEvent
                                 {
-                                    RuleName = "Print Spooler: Exploitation — Unexpected Child Process",
+                                    RuleName = "Print Spooler: Exploitation - Unexpected Child Process",
                                     Evidence = $"spoolsv.exe (PID {spoolerPid}) spawned unexpected child: '{childName}' " +
                                                $"(PID {proc.Id}) at '{Truncate(childPath, 120)}'.",
                                     Reasoning = "The Windows Print Spooler service spawned an unexpected child process. " +
                                                 "In normal operation, spoolsv.exe only spawns splwow64.exe or printfilterpipelinesvc.exe. " +
-                                                "Any other child process indicates that a loaded printer driver DLL executed a payload — " +
+                                                "Any other child process indicates that a loaded printer driver DLL executed a payload - " +
                                                 "this is the exploitation phase of PrintNightmare or similar spooler privilege escalation attacks.",
                                     Confidence = 0.90,
                                     Tier = DetectionTier.Tier1Behavioral,

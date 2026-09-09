@@ -15,11 +15,11 @@ namespace Sentinel.Core
     /// <summary>
     /// Comprehensive clickjacking and UI manipulation guard:
     /// 
-    /// 1. Mouse input injection — detects synthetic mouse clicks (SendInput/mouse_event)
-    /// 2. Click redirection — detects SetCursorPos followed by synthetic click (cursor teleport + click)
-    /// 3. Non-foreground overlays — enumerates ALL visible top-level windows for overlay patterns
-    /// 4. Fake UAC/credential prompts — detects windows mimicking system UI from non-system processes
-    /// 5. Semi-transparent overlays — detects partially transparent windows over sensitive areas
+    /// 1. Mouse input injection - detects synthetic mouse clicks (SendInput/mouse_event)
+    /// 2. Click redirection - detects SetCursorPos followed by synthetic click (cursor teleport + click)
+    /// 3. Non-foreground overlays - enumerates ALL visible top-level windows for overlay patterns
+    /// 4. Fake UAC/credential prompts - detects windows mimicking system UI from non-system processes
+    /// 5. Semi-transparent overlays - detects partially transparent windows over sensitive areas
     ///
     /// Runs in the user session (Agent) since it needs desktop access.
     /// </summary>
@@ -92,7 +92,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[ClickjackingGuard] Started — monitoring for clickjacking, fake UAC, and suspicious overlays");
+            _logger.LogInformation("[ClickjackingGuard] Started - monitoring for clickjacking, fake UAC, and suspicious overlays");
 
             GetCursorPos(out _lastCursorPos);
 
@@ -201,7 +201,7 @@ namespace Sentinel.Core
                     catch { }
 
                     // v2.5.3: skip real civilians only. FakeOverlay.exe and
-                    // discord.exe in Temp are the attack — name is not identity.
+                    // discord.exe in Temp are the attack - name is not identity.
                     if (IsVerifiedOverlayCivilian(procName, imagePath))
                         return true;
 
@@ -331,7 +331,7 @@ namespace Sentinel.Core
                 catch { }
 
                 // Skip processes signed by a trusted publisher (Google, Microsoft, Mozilla, etc.)
-                // This cannot be bypassed by renaming a malicious binary to "chrome.exe" —
+                // This cannot be bypassed by renaming a malicious binary to "chrome.exe" -
                 // the attacker would need the publisher's private code-signing key.
                 if (!string.IsNullOrEmpty(imagePath) && _signerTrust.IsSignedFile(imagePath!))
                     return true;
@@ -340,7 +340,7 @@ namespace Sentinel.Core
                 if (string.Equals(procName, "Sentinel.Agent"))
                     return true;
 
-                // This is a non-system process with a UAC-like window title — fake UAC
+                // This is a non-system process with a UAC-like window title - fake UAC
                 if (!_fakeUacAlerted.ContainsKey((int)pid))
                 {
                     _fakeUacAlerted[(int)pid] = DateTime.UtcNow;
@@ -350,7 +350,7 @@ namespace Sentinel.Core
                         Evidence = $"Process '{procName}' (PID {pid}) from '{imagePath ?? "unknown"}' " +
                                    $"created a window titled '{title}' (class: {className})",
                         Reasoning = "A non-system process created a window with a title mimicking Windows UAC or " +
-                                    "credential prompts. Attackers use fake UAC dialogs to harvest passwords — the user " +
+                                    "credential prompts. Attackers use fake UAC dialogs to harvest passwords - the user " +
                                     "thinks they're authenticating to Windows but they're typing into an attacker-controlled window.",
                         Confidence = 0.90,
                         Tier = DetectionTier.Tier1Behavioral,

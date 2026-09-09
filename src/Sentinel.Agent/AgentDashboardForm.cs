@@ -125,7 +125,7 @@ namespace Sentinel.Agent
             }
             catch
             {
-                // Best effort — dashboard still works in quirks mode, just uglier
+                // Best effort - dashboard still works in quirks mode, just uglier
             }
         }
     }

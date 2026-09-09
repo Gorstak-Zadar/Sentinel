@@ -13,7 +13,7 @@ namespace Sentinel.Tests
     {
         private static string? FindCoreSourceFile(string fileName)
         {
-            // tests/Sentinel.Tests/bin/{Config}/net*/ → five levels up to repo root
+            // tests/Sentinel.Tests/bin/{Config}/net*/ -> five levels up to repo root
             var candidates = new[]
             {
                 Path.GetFullPath(Path.Combine(
@@ -105,7 +105,7 @@ namespace Sentinel.Tests
         public void TrustedCastDevices_EmptyMeansObserveNotKill()
         {
             // v1.8.3 docs in Models: empty allowlist is observe-only
-            // (unless MitmDefense.Enabled — then rogue Cast IOCs are blocked)
+            // (unless MitmDefense.Enabled - then rogue Cast IOCs are blocked)
             var cfg = new SentinelConfig();
             Assert.Empty(cfg.TrustedCastDevices);
             Assert.False(cfg.MitmDefense.Enabled);
@@ -144,7 +144,7 @@ namespace Sentinel.Tests
 
             var ghostEvt = new DetectionEvent
             {
-                RuleName = "Ghost Process: Invisible Process → Fake Chromecast / Rogue Cast (MitM chain)",
+                RuleName = "Ghost Process: Invisible Process -> Fake Chromecast / Rogue Cast (MitM chain)",
                 AuthorizedResponse = ResponseAction.KillProcessTree,
                 Metadata = new Dictionary<string, string> { ["MitmDefense"] = "true" }
             };
@@ -152,7 +152,7 @@ namespace Sentinel.Tests
 
             var certEvt = new DetectionEvent
             {
-                RuleName = "TLS: MitM Planted Root Certificate — Removing",
+                RuleName = "TLS: MitM Planted Root Certificate - Removing",
                 AuthorizedResponse = ResponseAction.RemoveCert
             };
             Assert.True(ResponsePolicy.IsMitmDefenseAction(certEvt, cfg));

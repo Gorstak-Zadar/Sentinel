@@ -29,7 +29,7 @@ namespace Sentinel.Tests
         [InlineData("046D", "Logitech USB Input Device")]
         [InlineData("05E3", "Generic USB Hub")]
         [InlineData("", "USB Composite Device")]
-        // Bare "Unknown USB Device" without parenthetical reason must NOT match —
+        // Bare "Unknown USB Device" without parenthetical reason must NOT match -
         // pre-1.7.2 invented this name for blank descriptions and disabled healthy devices.
         [InlineData("0951", "Unknown USB Device")]
         [InlineData("18F8", "Unknown USB Device")]

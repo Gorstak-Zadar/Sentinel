@@ -305,7 +305,7 @@ namespace Sentinel.Core
             if (IsWellKnownOrServiceSid(loadedKey)) return false;
             if (IsServiceProfilePath(profileImagePath)) return false;
             if (loggedOnSids == null || loggedOnSids.Count == 0)
-                return false; // fail closed: no session data → do not alert
+                return false; // fail closed: no session data -> do not alert
             return !loggedOnSids.Contains(loadedKey);
         }
 

@@ -280,7 +280,7 @@ namespace Sentinel.Tests
         {
             var d = new DetectionEvent
             {
-                RuleName = "DLL Sideloading: Proven Load — Unloaded & Quarantined",
+                RuleName = "DLL Sideloading: Proven Load - Unloaded & Quarantined",
                 ProcessId = 55,
                 ProcessName = "host.exe",
                 Confidence = 0.95,
@@ -425,7 +425,7 @@ namespace Sentinel.Tests
                 ProcessName = "evil.exe",
                 Confidence = 0.88,
                 Tier = DetectionTier.Tier1Behavioral,
-                // Start as LogOnly — chain confirm must promote kill-grade fields
+                // Start as LogOnly - chain confirm must promote kill-grade fields
                 AuthorizedResponse = ResponseAction.LogOnly,
             };
 
@@ -443,7 +443,7 @@ namespace Sentinel.Tests
         {
             var cfg = ObserveConfig();
             // Two weak observe-fuel signals that must never alone confirm a chain:
-            // low-confidence C2 (conf 0.50 — below MinTier1Confidence) and a
+            // low-confidence C2 (conf 0.50 - below MinTier1Confidence) and a
             // suspicious path alert (non-terminal family). Neither is kill-grade.
             var lowC2 = new DetectionEvent
             {

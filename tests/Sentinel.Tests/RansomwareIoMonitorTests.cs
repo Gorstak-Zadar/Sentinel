@@ -4,13 +4,13 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for RansomwareIoMonitor — validates installer heuristics and
+    /// Tests for RansomwareIoMonitor - validates installer heuristics and
     /// the ransomware IO whitelist logic that prevents false positives on
     /// legitimate high-IO applications.
     /// </summary>
     public class RansomwareIoMonitorTests
     {
-        // ── InstallerHeuristics.LooksLikeInstallerName ──────────────────
+        //  InstallerHeuristics.LooksLikeInstallerName 
 
         [Theory]
         [InlineData("Git-2.43.0-64-bit.exe")]
@@ -32,7 +32,7 @@ namespace Sentinel.Tests
             Assert.False(RansomwareIoMonitor.LooksLikeInstallerName(name));
         }
 
-        // ── Detection model validation ──────────────────────────────────
+        //  Detection model validation 
 
         [Fact]
         public void DetectionEvent_Ransomware_HasCorrectSignalType()

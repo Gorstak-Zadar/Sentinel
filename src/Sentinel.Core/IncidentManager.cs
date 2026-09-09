@@ -16,11 +16,11 @@ namespace Sentinel.Core
     /// and coordinated response. This is how real EDRs present threats to analysts.
     ///
     /// Grouping logic:
-    ///   - Same PID within 5 minutes → same incident
-    ///   - Parent-child PIDs (via ProcessAncestryCache) → same incident
-    ///   - Same SHA-256 hash across different PIDs → same incident (reinfection)
+    ///   - Same PID within 5 minutes -> same incident
+    ///   - Parent-child PIDs (via ProcessAncestryCache) -> same incident
+    ///   - Same SHA-256 hash across different PIDs -> same incident (reinfection)
     ///
-    /// Lifecycle: Open → Active → Responded → Closed
+    /// Lifecycle: Open -> Active -> Responded -> Closed
     ///   - Open: First detection received, investigation window starts
     ///   - Active: Multiple detections corroborating, severity escalating
     ///   - Responded: Kill/quarantine/isolate action executed
@@ -34,7 +34,7 @@ namespace Sentinel.Core
         private readonly System.Threading.Timer _lifecycleTimer;
 
         private readonly ConcurrentDictionary<string, Incident> _activeIncidents = new();
-        private readonly ConcurrentDictionary<int, string> _pidToIncident = new(); // PID → IncidentId
+        private readonly ConcurrentDictionary<int, string> _pidToIncident = new(); // PID -> IncidentId
         private long _incidentCounter;
 
         private static readonly TimeSpan GroupingWindow = TimeSpan.FromMinutes(5);
@@ -53,7 +53,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Registers a detection event — either creates a new incident or adds to an existing one.
+        /// Registers a detection event - either creates a new incident or adds to an existing one.
         /// Returns the incident this detection was assigned to.
         /// </summary>
         public Incident RegisterDetection(DetectionEvent detection)
@@ -83,14 +83,14 @@ namespace Sentinel.Core
             }
 
             _logger.LogDebug(
-                "[IncidentManager] Detection '{Rule}' on PID {Pid} → Incident {Id} (state={State}, severity={Severity}, detections={Count})",
+                "[IncidentManager] Detection '{Rule}' on PID {Pid} -> Incident {Id} (state={State}, severity={Severity}, detections={Count})",
                 detection.RuleName, detection.ProcessId, incidentId, incident.State, incident.Severity, incident.Detections.Count);
 
             return incident;
         }
 
         /// <summary>
-        /// Marks an incident as responded — a kill/quarantine/isolate action was executed.
+        /// Marks an incident as responded - a kill/quarantine/isolate action was executed.
         /// </summary>
         public void MarkResponded(string incidentId, string actionTaken)
         {
@@ -148,9 +148,9 @@ namespace Sentinel.Core
             ClosedCount = _activeIncidents.Count(i => i.Value.State == IncidentState.Closed)
         };
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Grouping Logic
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private string FindOrCreateIncident(DetectionEvent detection)
         {
@@ -237,9 +237,9 @@ namespace Sentinel.Core
             return newId;
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Severity Escalation
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static void EscalateSeverity(Incident incident)
         {
@@ -272,9 +272,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Lifecycle Management
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void ProcessLifecycles(object? state)
         {
@@ -330,7 +330,7 @@ namespace Sentinel.Core
                 }
 
                 // Remove from active after 30 minutes (keep for querying)
-                // Actually keep in memory for now — prune separately
+                // Actually keep in memory for now - prune separately
             }
 
             // Prune incidents closed more than 30 minutes ago
@@ -350,9 +350,9 @@ namespace Sentinel.Core
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Data Models
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     public enum IncidentState
     {

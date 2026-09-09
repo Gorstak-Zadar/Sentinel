@@ -5,7 +5,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// v1.8.0 — TokenTheft OS false-positive suppressions + evidence pack gates.
+    /// v1.8.0 - TokenTheft OS false-positive suppressions + evidence pack gates.
     /// </summary>
     public class V180FeatureTests
     {
@@ -162,7 +162,7 @@ namespace Sentinel.Tests
         [Fact]
         public void InstallerHeuristics_RandomMalwareInUupsFolder_NotBenignWithoutKnownToolName()
         {
-            // Path matches offline-image layout but binary is not a known tool — no free pass
+            // Path matches offline-image layout but binary is not a known tool - no free pass
             var path = @"C:\Users\Admin\Downloads\evil_convert\files\malware.exe";
             Assert.False(InstallerHeuristics.IsBenignPortableWorkContext("malware", path));
             Assert.False(InstallerHeuristics.IsPortableDownloadOrArchiveTool("malware", path));

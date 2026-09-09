@@ -7,7 +7,7 @@ namespace Sentinel.Core
 {
     /// <summary>
     /// Country-aware cybercrime reporting portal directory.
-    /// INTERPOL and Europol do not accept direct public reports — citizens must file
+    /// INTERPOL and Europol do not accept direct public reports - citizens must file
     /// with national / local channels; those agencies escalate internationally when needed.
     /// </summary>
     public static class LawEnforcementPortals
@@ -29,7 +29,7 @@ namespace Sentinel.Core
                 ["US"] = new("US", "United States",
                     "FBI Internet Crime Complaint Center (IC3)",
                     "https://www.ic3.gov/",
-                    "Primary US federal cybercrime intake. Save/print the complaint after filing — IC3 does not email a copy."),
+                    "Primary US federal cybercrime intake. Save/print the complaint after filing - IC3 does not email a copy."),
                 ["GB"] = new("GB", "United Kingdom",
                     "Action Fraud / Report cybercrime",
                     "https://www.actionfraud.police.uk/",
@@ -39,7 +39,7 @@ namespace Sentinel.Core
                     "https://www.actionfraud.police.uk/",
                     "UK national fraud and cybercrime reporting. Also contact local police for ongoing attacks."),
                 ["CA"] = new("CA", "Canada",
-                    "Canadian Centre for Cyber Security — Report a cyber incident",
+                    "Canadian Centre for Cyber Security - Report a cyber incident",
                     "https://www.cyber.gc.ca/en/incident-management",
                     "Use the national flow to locate the correct federal/provincial reporting path."),
                 ["AU"] = new("AU", "Australia",
@@ -55,11 +55,11 @@ namespace Sentinel.Core
                     "https://www.polizei.de/Polizei/DE/Einrichtungen/ZAC/zac_node.html",
                     "File with local police (Polizei) or state cybercrime units; BKA coordinates serious cases."),
                 ["FR"] = new("FR", "France",
-                    "Service public — plainte en ligne / cybermalveillance",
+                    "Service public - plainte en ligne / cybermalveillance",
                     "https://www.cybermalveillance.gouv.fr/",
                     "French national cyber assistance and reporting guidance."),
                 ["NL"] = new("NL", "Netherlands",
-                    "Politie — cybercrime melden",
+                    "Politie - cybercrime melden",
                     "https://www.politie.nl/aangifte-of-melding-doen",
                     "Report via Dutch police; serious cybercrime is handled by specialized units."),
                 ["BE"] = new("BE", "Belgium",
@@ -67,7 +67,7 @@ namespace Sentinel.Core
                     "https://www.police.be/",
                     "Belgian police online reporting channels."),
                 ["ES"] = new("ES", "Spain",
-                    "Policía Nacional / Guardia Civil denuncias",
+                    "Polica Nacional / Guardia Civil denuncias",
                     "https://www.policia.es/_es/denuncias.php",
                     "Spain: national police or Guardia Civil electronic complaints."),
                 ["IT"] = new("IT", "Italy",
@@ -87,15 +87,15 @@ namespace Sentinel.Core
                     "https://www.ncsc.admin.ch/",
                     "Swiss NCSC guidance; file criminal complaints with cantonal police."),
                 ["SE"] = new("SE", "Sweden",
-                    "Polisen — anmälan",
+                    "Polisen - anmlan",
                     "https://polisen.se/",
                     "Swedish police online reporting."),
                 ["NO"] = new("NO", "Norway",
-                    "Politiet — anmelde",
+                    "Politiet - anmelde",
                     "https://www.politiet.no/",
                     "Norwegian police reporting."),
                 ["DK"] = new("DK", "Denmark",
-                    "Politi — anmeld",
+                    "Politi - anmeld",
                     "https://politi.dk/",
                     "Danish police reporting."),
                 ["FI"] = new("FI", "Finland",
@@ -111,11 +111,11 @@ namespace Sentinel.Core
                     "https://www.policie.cz/",
                     "Czech police reporting."),
                 ["IE"] = new("IE", "Ireland",
-                    "Garda — report a crime",
+                    "Garda - report a crime",
                     "https://www.garda.ie/",
-                    "An Garda Síochána reporting."),
+                    "An Garda Sochna reporting."),
                 ["PT"] = new("PT", "Portugal",
-                    "Polícia Judiciária / online reporting",
+                    "Polcia Judiciria / online reporting",
                     "https://www.policiajudiciaria.pt/",
                     "Portuguese criminal investigation police for serious cybercrime."),
                 ["IN"] = new("IN", "India",
@@ -135,7 +135,7 @@ namespace Sentinel.Core
                     "https://www.scamshield.gov.sg/",
                     "Singapore scam and cybercrime reporting."),
                 ["BR"] = new("BR", "Brazil",
-                    "Polícia Civil / SaferNet",
+                    "Polcia Civil / SaferNet",
                     "https://www.gov.br/",
                     "Report to state civil police cyber units; SaferNet for certain online crimes."),
                 ["MX"] = new("MX", "Mexico",
@@ -150,13 +150,13 @@ namespace Sentinel.Core
 
         public static readonly PortalEntry EuropolDirectory = new(
             "EU", "European Union (directory)",
-            "Europol — Report cybercrime online (per-country links)",
+            "Europol - Report cybercrime online (per-country links)",
             "https://www.europol.europa.eu/report-a-crime/report-cybercrime-online",
             "Europol does not accept direct public complaints. This page redirects to your national portal.");
 
         public static readonly PortalEntry InterpolInfo = new(
             "INT", "International (INTERPOL)",
-            "INTERPOL Cybercrime — individuals cannot report directly",
+            "INTERPOL Cybercrime - individuals cannot report directly",
             "https://www.interpol.int/en/Crimes/Cybercrime/Cybercrime-our-response",
             "INTERPOL FAQ: individuals cannot report cybercrime directly. File with local LE; they escalate via INTERPOL if needed.");
 

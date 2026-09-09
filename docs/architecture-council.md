@@ -1,8 +1,8 @@
-# Sentinel — Council of Elders Architecture
+# Sentinel - Council of Elders Architecture
 
 **Status:** Historical architecture rationale. **Runtime inventory and versions are authoritative in `design.md` (v2.2.9).** This document explains the President/Council mental model; do not treat monitor tables here as the live registration list.
 
-**Last updated note:** v2.5.6 — hardening is always-on; module identity unload (`ModuleIdentity` + `DllUnloadEngine`) is the live PE-map backbone; generic CVE-class monitors live in `design.md`. `ALLOCVM_REMOTE` added to `IsAttackClassTerminal` solo-confirm path. EDR-killer process names are **not** President's Law (LogOnly observe fuel). All monitor classes are `namespace Sentinel.Core`.
+**Last updated note:** v2.5.6 - hardening is always-on; module identity unload (`ModuleIdentity` + `DllUnloadEngine`) is the live PE-map backbone; generic CVE-class monitors live in `design.md`. `ALLOCVM_REMOTE` added to `IsAttackClassTerminal` solo-confirm path. EDR-killer process names are **not** President's Law (LogOnly observe fuel). All monitor classes are `namespace Sentinel.Core`.
 
 ---
 
@@ -10,8 +10,8 @@
 
 Sentinel is **GIDR**, with a council. GIDR is the President: it watches what
 processes **do** at runtime, and when behavior crosses the line, it kills the
-chain. Final word. The Council â€” all advisory detection modules built into
-Sentinel's C# codebase â€” advises with signals, weight, and context. The Council
+chain. Final word. The Council " all advisory detection modules built into
+Sentinel's C# codebase " advises with signals, weight, and context. The Council
 **never** authorizes a kill on its own. The Council **never** vetoes the
 President. Two specific signals carry significant weight: the 3-API ADS file
 verdict, and any detector targeting the user directly (audio/webcam hijack,
@@ -22,33 +22,33 @@ external PowerShell scripts required. The `ConsultantSignalIngestor` remains
 for optional external integration but is not needed for core functionality.
 
 ```
-        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-        â”‚            PRESIDENT â€” GIDR core               â”‚
-        â”‚     runtime behavioral detection (closed list) â”‚
-        â”‚     final word on kill / quarantine / chain    â”‚
-        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
-                 consults â”‚ before non-catastrophic kills
-                          â–¼
-        â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
-        â”‚              COUNCIL OF ELDERS                 â”‚
-        â”‚                                                â”‚
-        â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”‚
-        â”‚  â”‚ ADS verdict   â”‚  â”‚ Attack-on-user (high  â”‚  â”‚
-        â”‚  â”‚ (3 APIs HMAC) â”‚  â”‚ weight): audio/webcam â”‚  â”‚
-        â”‚  â”‚  significant  â”‚  â”‚ /keylog/UAC/cursor    â”‚  â”‚
-        â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â”‚
-        â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
-        â”‚  â”‚ Consultants (PS / C# / YARA / IoCs)       â”‚ â”‚
-        â”‚  â”‚ contribute confidence, never decide       â”‚ â”‚
-        â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
-        â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+        """"""""""""""""""""""""""""""""""""""""""""""""""
+        "'            PRESIDENT " GIDR core               "'
+        "'     runtime behavioral detection (closed list) "'
+        "'     final word on kill / quarantine / chain    "'
+        """""""""""""""""""""""""""""""""""""""""""""""""""
+                 consults "' before non-catastrophic kills
+                          -1/4
+        """"""""""""""""""""""""""""""""""""""""""""""""""
+        "'              COUNCIL OF ELDERS                 "'
+        "'                                                "'
+        "'  """""""""""""""""  """""""""""""""""""""""""  "'
+        "'  "' ADS verdict   "'  "' Attack-on-user (high  "'  "'
+        "'  "' (3 APIs HMAC) "'  "' weight): audio/webcam "'  "'
+        "'  "'  significant  "'  "' /keylog/UAC/cursor    "'  "'
+        "'  """"""""""""""""""  """"""""""""""""""""""""""  "'
+        "'  """"""""""""""""""""""""""""""""""""""""""""" "'
+        "'  "' Consultants (PS / C# / YARA / IoCs)       "' "'
+        "'  "' contribute confidence, never decide       "' "'
+        "'  """""""""""""""""""""""""""""""""""""""""""""" "'
+        """""""""""""""""""""""""""""""""""""""""""""""""""
 ```
 
 ---
 
-## The President's law (kill triggers â€” closed list)
+## The President's law (kill triggers " closed list)
 
-GIDR's behavioral set, ported as-is. **Any one of these alone â†’ kill chain.**
+GIDR's behavioral set, ported as-is. **Any one of these alone ' kill chain.**
 Nothing else kills.
 
 | Behavior | Detector |
@@ -60,7 +60,7 @@ Nothing else kills.
 | Process injection / hollowing | `MemoryExecutionDetection` |
 | Fileless / in-memory execution | `MemoryExecutionDetection` |
 | Audio routed to mic (hypno / impersonation) | `AudioHijackDetection` |
-| Webcam hijack by unverified parent | `WebcamHijackDetection` (new â€” mirror) |
+| Webcam hijack by unverified parent | `WebcamHijackDetection` (new " mirror) |
 | ETW / AMSI tampering | `EtwTampering` checks |
 | Autonomous malware phoning home from temp/appdata | `NetworkMonitor` + path heuristic |
 | DLL hijacking with module integrity mismatch | `ModuleValidationDetection` |
@@ -97,15 +97,15 @@ is the most dangerous edit possible to Sentinel.
 ### Two privileged Councilors (significant weight)
 
 **1. ADS Verdict (the 3-API consultant, HMAC-signed on disk)**
-- `unsafe` from CIRCL / Cymru / MalwareBazaar consensus â†’ behaves as a
+- `unsafe` from CIRCL / Cymru / MalwareBazaar consensus ' behaves as a
   President's-law signal (kills on exec). This is the only Councilor whose
   signal alone authorizes a kill.
-- `safe` from all three â†’ reduces correlation weight on demoted Tier1 signals
+- `safe` from all three ' reduces correlation weight on demoted Tier1 signals
   for that PID. Does **not** suppress President's-law kills (a signed binary
   doing ransomware still dies).
-- `unknown` / API outage â†’ no effect, never implicit `safe`.
+- `unknown` / API outage ' no effect, never implicit `safe`.
 
-**2. Attack-on-user detectors (weight Ã—2 in scoring & correlation)**
+**2. Attack-on-user detectors (weight -2 in scoring & correlation)**
 The following Councilors get doubled weight because their false-positive risk
 is low and their target (the user) is high-value:
 
@@ -119,26 +119,26 @@ is low and their target (the user) is high-value:
 - `CookieMonitor` (session theft attempt)
 - `NeuroBehaviorMonitor` anomaly score
 - `RansomwareScarewareDetection` scareware patterns
-- `Guard` (unsigned DLL detected â€” user data at risk)
-- `Retaliate` (browser phoning home â€” user data exfiltration)
+- `Guard` (unsigned DLL detected " user data at risk)
+- `Retaliate` (browser phoning home " user data exfiltration)
 
-Two of these Councilors weighted-correlating on one PID within 30 s â†’
-Composite-grade detection â†’ kill via the v2.0 composite path.
+Two of these Councilors weighted-correlating on one PID within 30 s '
+Composite-grade detection ' kill via the v2.0 composite path.
 
 ---
 
-## Council roster (complete inventory â€” verified May 2026)
+## Council roster (complete inventory " verified May 2026)
 
-### Already integrated (EDR core â€” in-process C#)
+### Already integrated (EDR core " in-process C#)
 | Project | Artifacts | Role |
 |---------|-----------|------|
-| `Antivirus` | 1 .ps1 | 3-API hash reputation (â†’ `HashReputationService`) |
+| `Antivirus` | 1 .ps1 | 3-API hash reputation (' `HashReputationService`) |
 | `EDR` | 5 .ps1 + JSON | IOC tables, scripted detections |
 | `GEdr` | 32 .cs + 18 .yar | Detection rule library, YARA signatures |
 | `GIDR` | 28 .cs + 18 .yar | Reference architecture, ChainTracer, YARA |
 | `LocalEDR` | 14 .cs | Additional detection rules |
 
-### v2.0.0 â€” DLL Analysis & Active Response (ported from Antivirus.ps1)
+### v2.0.0 " DLL Analysis & Active Response (ported from Antivirus.ps1)
 | Component | Role |
 |-----------|------|
 | `DllUnloadEngine` | Active response: unloads malicious DLLs via CreateRemoteThread+FreeLibrary. Rate-limited (10/min), never touches system-critical processes. |
@@ -148,7 +148,7 @@ Composite-grade detection â†’ kill via the v2.0 composite path.
 | `BrowserDllMonitor` | ELF Catcher: browser-specific DLL injection detection. Scans chrome/edge/firefox/brave/opera for injected modules. Active unload for ELF-pattern DLLs. |
 | `DiskWideDllScanner` | Disk-wide scan: all drives for unsigned/suspicious DLLs not yet loaded. Feeds HashReputationService for live threat intel. Active unload on IoC match. |
 
-### Detection consultants (PowerShell â†’ JSONL drop)
+### Detection consultants (PowerShell ' JSONL drop)
 Each drops `%ProgramData%\Sentinel\consultants\<name>.jsonl`, ingested by
 `ConsultantSignalIngestor` (new component). All emit **Tier2 only** unless
 correlated via `BehavioralCorrelationEngine`.
@@ -156,16 +156,16 @@ correlated via `BehavioralCorrelationEngine`.
 | Consultant | Signal | Weight |
 |-----------|--------|--------|
 | `DragonBreathHunter` | Campaign IOC hits (RONINGLOADER, Gh0st RAT, NSIS trojans, rogue DLLs, C2 ports, persistence) | Normal |
-| `NeuroBehaviorMonitor` | Focus abuse, flash stimulus, topmost abuse, cursor jitter, color distortion/inversion | **Ã—2** (attack-on-user) |
-| `RansomwareScarewareDetection` | Window titles with 2+ scareware keywords (encrypted, bitcoin, ransom, etc.) | **Ã—2** |
-| `FakeUacDetection` | Non-trusted process with UAC/system dialog window title | **Ã—2** |
-| `CursorTakeoverDetection` | Low-variance non-zero cursor velocity (automated movement) | **Ã—2** |
-| `CookieMonitor` | Chrome Cookies DB hash change â†’ session theft | **Ã—2** |
-| `LNKProtection` | UNC-path .lnk files on Desktop/Start Menu/Taskbar | **Ã—2** |
+| `NeuroBehaviorMonitor` | Focus abuse, flash stimulus, topmost abuse, cursor jitter, color distortion/inversion | **-2** (attack-on-user) |
+| `RansomwareScarewareDetection` | Window titles with 2+ scareware keywords (encrypted, bitcoin, ransom, etc.) | **-2** |
+| `FakeUacDetection` | Non-trusted process with UAC/system dialog window title | **-2** |
+| `CursorTakeoverDetection` | Low-variance non-zero cursor velocity (automated movement) | **-2** |
+| `CookieMonitor` | Chrome Cookies DB hash change ' session theft | **-2** |
+| `LNKProtection` | UNC-path .lnk files on Desktop/Start Menu/Taskbar | **-2** |
 | `Guard` | Unsigned DLL detected in Program Files/AppData | Normal |
 | `Retaliate` | Browser connection to non-standard port without recent navigation | Normal |
 | `GShield` | Memory scan (shellcode/injection APIs), browser unsigned module unload, deep file scan (entropy/packer/shellcode IOCs), rootkit HTTP-active unsigned process | Normal |
-| `KeyScrambler` | Keylogger attempted / scrambling triggered (event consumer only) | **Ã—2** |
+| `KeyScrambler` | Keylogger attempted / scrambling triggered (event consumer only) | **-2** |
 
 ### Install-time hardening Councilors (apply config, no runtime kill output)
 These run once at Sentinel install or on-demand. They produce no runtime
@@ -190,11 +190,11 @@ detection events but Sentinel monitors for regression of their settings.
 | `GShield` | 1 .ps1 (994 lines) | Also does install-time: password rotator, self-protection |
 | `GS` | Setup.bat + GSecurity.inf | LGPO security template import |
 | `Troll/Unbridge` | Unbridge.cmd | Network registry ACL hardening, bridge removal |
-| `MiniFilterDrivers` | MiniFilterDrivers.cmd | Removes bfs.sys, unionfs.sys (kernel drivers â€” Sentinel is userland but this is safe install-time cleanup) |
+| `MiniFilterDrivers` | MiniFilterDrivers.cmd | Removes bfs.sys, unionfs.sys (kernel drivers " Sentinel is userland but this is safe install-time cleanup) |
 | `Pac` | 1 .reg | Proxy auto-config |
 
 ### Out of scope (not Councilors)
-**Offensive/evasion:** `Unhooker` (AMSI/ETW/Defender patching â€” would be killed by Sentinel's own ETW tampering rule).
+**Offensive/evasion:** `Unhooker` (AMSI/ETW/Defender patching " would be killed by Sentinel's own ETW tampering rule).
 **Anti-security:** `Bios.cmd` (disables DEP, integrity services, TPM, ELAM, hypervisor, VSM).
 **Maintenance/cleanup:** `RamCleaner`, `Vacuum`, `Riddance`, `PDQ`, `BCDCleanup`, `Stripper`, `Debloat`, `Provisioning`, `Persistance`, `PhantomRemover` (login diagnostics).
 **Performance/gaming:** `GPerf`, `GameCache`, `GamingScripts`, `Benchmark`.
@@ -217,18 +217,18 @@ In strict order; each step is independently shippable.
 | M7 | Wire `NeuroBehaviorMonitor` to emit Tier1 on anomaly threshold | Promotes existing service into a Councilor |
 | M8 | Add `ConsultantSignalIngestor` (tails JSONL drop directory) | Plumbing for PowerShell Councilors |
 | M9 | Port PowerShell Councilors one by one to drop JSONL | Each ships independently |
-| M10 | Apply attack-on-user weight Ã—2 in `ScoringEngine` / correlation | Honors "attacks on the user have significant weight" |
+| M10 | Apply attack-on-user weight -2 in `ScoringEngine` / correlation | Honors "attacks on the user have significant weight" |
 
 After **M2**, the Steam/Windsurf regression is fixed. Everything after M2 is
 additive Councilor wiring.
 
 ---
 
-## Constraints (hard rules â€” never violate)
+## Constraints (hard rules " never violate)
 
 - No vendor / publisher / signer / process-name allowlists. Trust is per-file
   via the ADS verdict, signed with a per-machine HMAC key.
-- All-3-APIs-failed â‰  `safe`. Outage resolves to `unknown`.
+- All-3-APIs-failed   `safe`. Outage resolves to `unknown`.
 - No static-signal kill (entropy / unsigned / YARA / IoC / hash alone).
 - No Council member kills directly.
 - Adding a behavior to the President's-law list requires this doc to be
@@ -243,19 +243,19 @@ additive Councilor wiring.
 
 - **Demotion contract:** synthetic `BeaconingRule` / `AttackToolsRule` /
   `ReverseShellRule` (heuristic match) / `HollowProcessRule` / `CampaignIocRule`
-  detection at confidence 1.0 with active response on â†’ `LogOnly`.
+  detection at confidence 1.0 with active response on ' `LogOnly`.
 - **President's-law:** synthetic `CredentialDumpDetection`,
   `RansomwareDetection` (mass-write subset), `AudioHijackDetection`,
-  `MemoryExecutionDetection`, `VerdictGateRule(unsafe)` at confidence â‰¥ 0.85 â†’
+  `MemoryExecutionDetection`, `VerdictGateRule(unsafe)` at confidence  0.85 '
   `KillProcess` via chain trace.
 - **Composite kill preserved:** all single rules demoted, but `Active
-  Ransomware Chain` (0.99) composite â†’ `KillProcess`.
-- **Council single-signal:** any Councilor signal at confidence 1.0 alone â†’
+  Ransomware Chain` (0.99) composite ' `KillProcess`.
+- **Council single-signal:** any Councilor signal at confidence 1.0 alone '
   `LogOnly`.
 - **Attack-on-user weighting:** two attack-on-user Councilors correlating on
-  one PID within 30 s â†’ composite â†’ `KillProcess`.
+  one PID within 30 s ' composite ' `KillProcess`.
 - **ADS round-trip / HMAC tamper / expiry** as standard.
 - **Signed-doing-ransomware:** ADS-`safe` PID exhibiting
-  `RansomwareDetection` mass-write â†’ still killed.
+  `RansomwareDetection` mass-write ' still killed.
 
 

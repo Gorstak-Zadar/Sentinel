@@ -87,8 +87,8 @@ namespace Sentinel.Agent
             _contextMenu.Items.Add("Open Quarantine Folder", null, OnOpenQuarantine);
             _contextMenu.Items.Add("Open Event Log", null, OnOpenEventLog);
             _contextMenu.Items.Add("Open Data Folder", null, OnOpenDataFolder);
-            // No Exit Agent — service owns lifetime; tray exit was a soft self-stop that confused users.
-            // No Report to Police on tray — filing stays under Settings → Report to Police.
+            // No Exit Agent - service owns lifetime; tray exit was a soft self-stop that confused users.
+            // No Report to Police on tray - filing stays under Settings -> Report to Police.
 
             System.Drawing.Icon? appIcon = null;
             try
@@ -109,7 +109,7 @@ namespace Sentinel.Agent
             {
                 Icon = appIcon ?? System.Drawing.SystemIcons.Shield,
                 ContextMenuStrip = _contextMenu,
-                Text = $"Sentinel v{_version} — Protection Active",
+                Text = $"Sentinel v{_version} - Protection Active",
                 Visible = true
             };
 
@@ -369,7 +369,7 @@ namespace Sentinel.Agent
                                             {
                                                 if (_notifyIcon != null)
                                                 {
-                                                    var tip = $"Sentinel v{_version} — last: {ruleName}";
+                                                    var tip = $"Sentinel v{_version} - last: {ruleName}";
                                                     if (tip.Length > 63) tip = tip[..63];
                                                     _notifyIcon.Text = tip;
                                                 }

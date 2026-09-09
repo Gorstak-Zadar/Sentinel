@@ -1,4 +1,4 @@
-// NetworkIntegrity — userland coverage for UDP, ICMP, WFP net-event subscription,
+// NetworkIntegrity - userland coverage for UDP, ICMP, WFP net-event subscription,
 // non-TCP/UDP IP protocols, and VoIP signaling/RTP-like binds.
 // No kernel driver, no WinDivert, no raw sniffer, no audit-policy mutation.
 
@@ -18,7 +18,7 @@ namespace Sentinel.Core
 {
     /// <summary>
     /// Pure functions for UDP / ICMP / WFP / VoIP classification.
-    /// InternalsVisibleTo Sentinel.Tests — no live sockets, no elevation.
+    /// InternalsVisibleTo Sentinel.Tests - no live sockets, no elevation.
     /// </summary>
     internal static class UserlandProtocolHeuristics
     {
@@ -129,7 +129,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Install trees for the real comms/browser/Steam/OBS apps. Name-only
-        /// is not identity — discord.exe in Temp is the attack.
+        /// is not identity - discord.exe in Temp is the attack.
         /// </summary>
         internal static readonly string[] CommsInstallPathFragments =
         {
@@ -190,14 +190,14 @@ namespace Sentinel.Core
         };
 
         /// <summary>
-        /// Real Discord/Chrome/Steam — name AND install path (or live Authenticode).
+        /// Real Discord/Chrome/Steam - name AND install path (or live Authenticode).
         /// Missing path, Temp/Downloads, or unsigned plant in a stolen folder: not a civilian.
         /// </summary>
         public static bool IsKnownCommsIdentity(string? processName, string? imagePath)
             => IsVerifiedInstallIdentity(processName, imagePath, KnownCommsProcesses, CommsInstallPathFragments);
 
         /// <summary>
-        /// Real Tailscale/WireGuard/IKE — not tailscale.exe in Temp, not fake svchost.
+        /// Real Tailscale/WireGuard/IKE - not tailscale.exe in Temp, not fake svchost.
         /// </summary>
         public static bool IsVpnOrIkeIdentity(string? processName, string? imagePath)
         {
@@ -244,7 +244,7 @@ namespace Sentinel.Core
                 catch { return false; }
             }
 
-            // Path looks civilian. If the file is on disk, it must still be signed —
+            // Path looks civilian. If the file is on disk, it must still be signed -
             // unsigned plant in AppData\Local\Discord is the costume.
             if (!exists)
                 return true;
@@ -281,7 +281,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Even ports in the classic RTP even/RTCP-odd band. Too broad to alert on
-        /// alone — combine with process identity.
+        /// alone - combine with process identity.
         /// </summary>
         public static bool IsClassicRtpPort(int port) =>
             port >= 16384 && port <= 32767 && (port % 2 == 0);
@@ -508,7 +508,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Names used by userspace WireGuard / magicsock / DERP overlays.
-        /// Enrichment only — never a President's-law kill. Official
+        /// Enrichment only - never a President's-law kill. Official
         /// <c>tailscale</c>/<c>wireguard</c> NICs are skipped via <see cref="IsVpnOrIkeProcess"/>.
         /// </summary>
         internal static readonly HashSet<string> CovertMeshProcessNames = new(StringComparer.OrdinalIgnoreCase)
@@ -536,7 +536,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// DERP / tailcat / magicsock bootstrap hosts. Official Tailscale
-        /// clients still talk here — those PIDs are skipped separately.
+        /// clients still talk here - those PIDs are skipped separately.
         /// </summary>
         public static bool IsCovertMeshDomain(string? host)
         {
@@ -602,7 +602,7 @@ namespace Sentinel.Core
             if (nonAmbientUdpBinds <= 0)
                 return CovertMeshKind.None;
 
-            // Host-wide DERP DNS is not enough — require this PID also has HTTPS (DERP)
+            // Host-wide DERP DNS is not enough - require this PID also has HTTPS (DERP)
             // or is already in a staging path / script host.
             if (meshDnsRecently && (hasHttps || IsSuspiciousPath(imagePath) || IsScriptHost(processName)))
                 return CovertMeshKind.DerpRelay;
@@ -734,7 +734,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Stealers POST to Discord/Telegram/Slack webhooks or disposable
-        /// callback hosts. No TLS intercept — host identity + process context.
+        /// callback hosts. No TLS intercept - host identity + process context.
         /// Browsers and the official comms apps are skipped.
         /// </summary>
         public static WebhookKind ClassifyWebhook(
@@ -746,7 +746,7 @@ namespace Sentinel.Core
             bool urlInContent)
         {
             // Identity skip (real Discord/Chrome/games). URL-in-content still
-            // wins for curl/IWR in Downloads — those are not comms identity.
+            // wins for curl/IWR in Downloads - those are not comms identity.
             if (IsKnownCommsIdentity(processName, imagePath) ||
                 IsVpnOrIkeIdentity(processName, imagePath) ||
                 AlwaysOnPolicies.IsProtectedGamePath(imagePath) ||
@@ -899,10 +899,10 @@ namespace Sentinel.Core
         public string WfpEventType { get; set; } = string.Empty;
     }
 
-    // ──────────────────────────────────────────────
-    // UDP Flow Monitor — GetExtendedUdpTable OWNER_PID
+    // 
+    // UDP Flow Monitor - GetExtendedUdpTable OWNER_PID
     // (bind table; remote peers come from Kernel-Network ETW)
-    // ──────────────────────────────────────────────
+    // 
     public sealed class UdpFlowMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -929,7 +929,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[UdpFlowMonitor] Started — UDP bind table (no kernel driver)");
+            _logger.LogInformation("[UdpFlowMonitor] Started - UDP bind table (no kernel driver)");
             try { await Task.Delay(TimeSpan.FromSeconds(8), ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
 
@@ -1021,7 +1021,7 @@ namespace Sentinel.Core
                     UserlandProtocolHeuristics.UdpVerdictKind.ClassicMalwarePort =>
                         $"UDP port {port} is a classic malware/legacy-service port (TFTP/SNMP/Slammer/RAT). Weak indicator.",
                     UserlandProtocolHeuristics.UdpVerdictKind.SocketExplosion =>
-                        "One process holds an unusually large UDP bind set — scan, stun-harvest, or datagram C2 fan-out. LogOnly.",
+                        "One process holds an unusually large UDP bind set - scan, stun-harvest, or datagram C2 fan-out. LogOnly.",
                     _ => "UDP bind anomaly.",
                 },
                 Confidence = UserlandProtocolHeuristics.ConfidenceFor(kind),
@@ -1046,9 +1046,9 @@ namespace Sentinel.Core
         }
     }
 
-    // ──────────────────────────────────────────────
-    // ICMP Anomaly Monitor — GetIcmpStatisticsEx (IPv4+IPv6)
-    // ──────────────────────────────────────────────
+    // 
+    // ICMP Anomaly Monitor - GetIcmpStatisticsEx (IPv4+IPv6)
+    // 
     public sealed class IcmpAnomalyMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -1069,7 +1069,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[IcmpAnomalyMonitor] Started — ICMP type counters (no kernel driver)");
+            _logger.LogInformation("[IcmpAnomalyMonitor] Started - ICMP type counters (no kernel driver)");
             try { await Task.Delay(TimeSpan.FromSeconds(10), ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
 
@@ -1147,7 +1147,7 @@ namespace Sentinel.Core
                         "ICMP echo rate exceeded the observe threshold. Could be a ping flood, ICMP tunnel, or a " +
                         "noisy diagnostic. Games and user pings are common; LogOnly.",
                     UserlandProtocolHeuristics.IcmpVerdictKind.UnreachableStorm =>
-                        "Destination-unreachable storm — port/host scan residue or path failure. LogOnly.",
+                        "Destination-unreachable storm - port/host scan residue or path failure. LogOnly.",
                     _ => "ICMP anomaly.",
                 },
                 Confidence = UserlandProtocolHeuristics.ConfidenceFor(kind),
@@ -1182,11 +1182,11 @@ namespace Sentinel.Core
         private static uint SaturatingAdd(uint a, uint b) => a > uint.MaxValue - b ? uint.MaxValue : a + b;
     }
 
-    // ──────────────────────────────────────────────
-    // WFP Net Event Monitor — FwpmNetEventSubscribe0 (user-mode BFE)
+    // 
+    // WFP Net Event Monitor - FwpmNetEventSubscribe0 (user-mode BFE)
     // Covers TCP/UDP/ICMP plus GRE/ESP/AH/SCTP/L2TP/encap.
     // Does not add filters, does not enable audit policy.
-    // ──────────────────────────────────────────────
+    // 
     public sealed class WfpNetEventMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -1220,7 +1220,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[WfpNetEventMonitor] Started — WFP net-event subscribe (fwpuclnt, no callout driver)");
+            _logger.LogInformation("[WfpNetEventMonitor] Started - WFP net-event subscribe (fwpuclnt, no callout driver)");
             try { await Task.Delay(TimeSpan.FromSeconds(12), ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
 
@@ -1265,7 +1265,7 @@ namespace Sentinel.Core
                 uint err = FwpmNative.FwpmEngineOpen0(null, FwpmNative.RpcCAuthnWinnt, IntPtr.Zero, IntPtr.Zero, out _engine);
                 if (err != 0 || _engine == IntPtr.Zero)
                 {
-                    _logger.LogDebug("[WfpNetEventMonitor] FwpmEngineOpen0 failed 0x{Err:X8} — will retry; ICMP/UDP monitors still cover datagrams", err);
+                    _logger.LogDebug("[WfpNetEventMonitor] FwpmEngineOpen0 failed 0x{Err:X8} - will retry; ICMP/UDP monitors still cover datagrams", err);
                     return;
                 }
 
@@ -1282,7 +1282,7 @@ namespace Sentinel.Core
                     _engine, ref sub, Marshal.GetFunctionPointerForDelegate(_callback), IntPtr.Zero, out _subscription);
                 if (err != 0)
                 {
-                    _logger.LogDebug("[WfpNetEventMonitor] FwpmNetEventSubscribe0 failed 0x{Err:X8} — BFE net events unavailable on this host", err);
+                    _logger.LogDebug("[WfpNetEventMonitor] FwpmNetEventSubscribe0 failed 0x{Err:X8} - BFE net events unavailable on this host", err);
                     FwpmNative.FwpmEngineClose0(_engine);
                     _engine = IntPtr.Zero;
                     _callback = null;
@@ -1295,7 +1295,7 @@ namespace Sentinel.Core
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "[WfpNetEventMonitor] subscribe failed — graceful degrade");
+                _logger.LogDebug(ex, "[WfpNetEventMonitor] subscribe failed - graceful degrade");
                 Unsubscribe();
             }
         }
@@ -1418,7 +1418,7 @@ namespace Sentinel.Core
             {
                 RuleName = rule,
                 Evidence = $"WFP type={ev.EventType} proto={proto}({ev.IpProtocol}) " +
-                           $"{ev.LocalAddress}:{ev.LocalPort} → {ev.RemoteAddress}:{ev.RemotePort} " +
+                           $"{ev.LocalAddress}:{ev.LocalPort} -> {ev.RemoteAddress}:{ev.RemotePort} " +
                            $"app='{name}' PID={ev.Pid}",
                 Reasoning = kind switch
                 {
@@ -1430,7 +1430,7 @@ namespace Sentinel.Core
                         "WFP reported an IPsec kernel drop. Can be a broken VPN or an attempt to inject into an " +
                         "IPsec SA. LogOnly.",
                     UserlandProtocolHeuristics.WfpVerdictKind.ClassifyDrop =>
-                        "Burst of WFP classify-drops for one app — scan, exploit spray, or a firewall fight. LogOnly.",
+                        "Burst of WFP classify-drops for one app - scan, exploit spray, or a firewall fight. LogOnly.",
                     _ => "WFP net event.",
                 },
                 Confidence = UserlandProtocolHeuristics.ConfidenceFor(kind),
@@ -1508,10 +1508,10 @@ namespace Sentinel.Core
         }
     }
 
-    // ──────────────────────────────────────────────
-    // VoIP Session Monitor — SIP/STUN/H.323/IAX/MGCP + RTP-like binds
+    // 
+    // VoIP Session Monitor - SIP/STUN/H.323/IAX/MGCP + RTP-like binds
     // Work-first: Discord/Teams/Zoom/Steam/browsers never emit.
-    // ──────────────────────────────────────────────
+    // 
     public sealed class VoipSessionMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -1536,7 +1536,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[VoipSessionMonitor] Started — SIP/STUN/RTP-like UDP binds (no packet capture)");
+            _logger.LogInformation("[VoipSessionMonitor] Started - SIP/STUN/RTP-like UDP binds (no packet capture)");
             _subscription = _bus?.Subscribe<ProtocolFlowSignal>(OnProtocolFlowAsync, nameof(VoipSessionMonitor));
 
             try { await Task.Delay(TimeSpan.FromSeconds(10), ct).ConfigureAwait(false); }
@@ -1662,7 +1662,7 @@ namespace Sentinel.Core
     /// Tailcat-class userspace mesh: WireGuard-go + magicsock STUN + DERP HTTPS
     /// with no virtual NIC and no Tailscale control plane. Same shape as
     /// wireproxy, boringtun, sliver WG C2, innernet, renamed binaries.
-    /// No packet capture — UDP bind table + TCP 443 + DNS sightings.
+    /// No packet capture - UDP bind table + TCP 443 + DNS sightings.
     /// </summary>
     public sealed class CovertMeshMonitor : BackgroundService
     {
@@ -1684,7 +1684,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[CovertMeshMonitor] Started — userspace WireGuard/DERP/STUN overlays (tailcat-class)");
+            _logger.LogInformation("[CovertMeshMonitor] Started - userspace WireGuard/DERP/STUN overlays (tailcat-class)");
             try { await Task.Delay(TimeSpan.FromSeconds(10), ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
 
@@ -1765,8 +1765,8 @@ namespace Sentinel.Core
                 Reasoning = kind switch
                 {
                     UserlandProtocolHeuristics.CovertMeshKind.NamedTool =>
-                        "A userspace mesh/overlay binary (tailcat, wireproxy, boringtun, sliver WG, innernet, …) " +
-                        "is running. WireGuard in-process, no TAP/Wintun, no Tailscale control plane — covert C2. " +
+                        "A userspace mesh/overlay binary (tailcat, wireproxy, boringtun, sliver WG, innernet, ...) " +
+                        "is running. WireGuard in-process, no TAP/Wintun, no Tailscale control plane - covert C2. " +
                         "Official tailscale.exe is not this rule. Kill-grade C2.",
                     UserlandProtocolHeuristics.CovertMeshKind.DerpRelay =>
                         "UDP overlay plus DERP/tailcat bootstrap DNS from this PID. Magicsock C2, not the " +
@@ -1775,7 +1775,7 @@ namespace Sentinel.Core
                         "STUN/TURN plus UDP from a process that is not a browser, game, or comms app. " +
                         "Userspace hole-punch tunnel. Kill-grade C2.",
                     UserlandProtocolHeuristics.CovertMeshKind.UserWritableOverlay =>
-                        "Temp/Downloads/script-host UDP overlay with HTTPS — tailcat-class bootstrap. Kill-grade C2.",
+                        "Temp/Downloads/script-host UDP overlay with HTTPS - tailcat-class bootstrap. Kill-grade C2.",
                     _ => "Userspace mesh overlay.",
                 },
                 Confidence = UserlandProtocolHeuristics.ConfidenceFor(kind),
@@ -1826,7 +1826,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[CovertWebhookMonitor] Started — webhook/bot-API exfil from unexpected processes");
+            _logger.LogInformation("[CovertWebhookMonitor] Started - webhook/bot-API exfil from unexpected processes");
             try { await Task.Delay(TimeSpan.FromSeconds(12), ct).ConfigureAwait(false); }
             catch (OperationCanceledException) { return; }
 

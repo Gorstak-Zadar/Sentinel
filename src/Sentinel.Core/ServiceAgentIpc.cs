@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v2.0 RT-HIGH-4 — Authenticated local named-pipe IPC between Service (SYSTEM) and Agent (user).
+    /// v2.0 RT-HIGH-4 - Authenticated local named-pipe IPC between Service (SYSTEM) and Agent (user).
     ///
     /// Auth model:
     ///   1. Service generates a random 32-byte token at start, writes
@@ -111,7 +111,7 @@ namespace Sentinel.Core
             using (var rng = RandomNumberGenerator.Create())
                 rng.GetBytes(token);
 
-            // v2.0.3 RT-MED-1: Atomic token write — create temp file with restricted ACL
+            // v2.0.3 RT-MED-1: Atomic token write - create temp file with restricted ACL
             // BEFORE writing bytes, then rename into place. Eliminates the window where
             // the token file exists with inherited (potentially world-readable) permissions.
             var tempPath = path + "." + Guid.NewGuid().ToString("N").Substring(0, 8) + ".tmp";
@@ -177,7 +177,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// v2.0.3 / v2.0.8: Lock Secure directory to SYSTEM + Admins only.
-        /// v2.0.8: Removed Authenticated Users from the directory — listing Secure
+        /// v2.0.8: Removed Authenticated Users from the directory - listing Secure
         /// must not be possible for standard users (entropy / machine_secret live here).
         /// Token file gets a separate Interactive-user read ACE via <see cref="LockTokenAcl"/>.
         /// </summary>
@@ -211,7 +211,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// SYSTEM + Admins full; Interactive Users read (tray Agent in console session).
-        /// v2.0.8: No longer grants Authenticated Users — service accounts and non-interactive
+        /// v2.0.8: No longer grants Authenticated Users - service accounts and non-interactive
         /// malware cannot read the IPC token for recon of ops/health.
         /// </summary>
         public static void LockTokenAcl(string path)
@@ -232,7 +232,7 @@ namespace Sentinel.Core
                 security.AddAccessRule(new FileSystemAccessRule(
                     admins, FileSystemRights.FullControl, AccessControlType.Allow));
 
-                // Interactive logon sessions only (S-1-5-4) — the human desktop Agent
+                // Interactive logon sessions only (S-1-5-4) - the human desktop Agent
                 var interactive = new SecurityIdentifier(WellKnownSidType.InteractiveSid, null);
                 security.AddAccessRule(new FileSystemAccessRule(
                     interactive, FileSystemRights.Read, AccessControlType.Allow));
@@ -317,7 +317,7 @@ namespace Sentinel.Core
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[IPC] Failed to create IPC token — host disabled");
+                _logger.LogWarning(ex, "[IPC] Failed to create IPC token - host disabled");
                 return;
             }
 
@@ -452,7 +452,7 @@ namespace Sentinel.Core
                         });
                         break;
                     case "scan":
-                        // Trigger a one-time system scan (non-blocking — returns immediately)
+                        // Trigger a one-time system scan (non-blocking - returns immediately)
                         if (_scanEngine.IsRunning)
                         {
                             response = JsonSerializer.Serialize(new { ok = true, status = "already_running" });

@@ -5,11 +5,11 @@ using System.Linq;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// Typed terminal-outcome families — the single source of truth for the attack
+    /// Typed terminal-outcome families - the single source of truth for the attack
     /// outcome taxonomy used by <see cref="ResponsePolicy"/>. Historically these were
-    /// bare string literals ("CredentialDump", "C2Beacon", …) scattered across the kill
+    /// bare string literals ("CredentialDump", "C2Beacon", ...) scattered across the kill
     /// classifier, the kill-grade set, and consumer metadata. A typo in any one of those
-    /// literals could silently drop a family out of kill-grade authority — the highest
+    /// literals could silently drop a family out of kill-grade authority - the highest
     /// consequence bug class on a SYSTEM-level responder.
     ///
     /// This enum + the <see cref="TerminalFamilies"/> helpers make the taxonomy and the
@@ -22,7 +22,7 @@ namespace Sentinel.Core
         /// <summary>Bring-your-own-vulnerable-driver. Terminal but NOT solo kill-grade.</summary>
         Byovd,
 
-        /// <summary>Credential dumping (LSASS, SAM/SECURITY hive, DCSync, …). Kill-grade.</summary>
+        /// <summary>Credential dumping (LSASS, SAM/SECURITY hive, DCSync, ...). Kill-grade.</summary>
         CredentialDump,
 
         /// <summary>Token theft / impersonation / potato-family EoP. Kill-grade.</summary>

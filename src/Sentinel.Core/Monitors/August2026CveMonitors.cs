@@ -42,7 +42,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[DreamJobCampaignMonitor] Started — Lazarus / Operation Dream Job userland IOCs");
+            _logger.LogInformation("[DreamJobCampaignMonitor] Started - Lazarus / Operation Dream Job userland IOCs");
             SeedHashes();
 
             while (!ct.IsCancellationRequested)
@@ -102,7 +102,7 @@ namespace Sentinel.Core
                                 "Dream Job: FudModule LPE module",
                                 $"Process '{name}' (PID {pid}) matches FudModule / Afd4Eop12 path='{path ?? "?"}'",
                                 "Lazarus FudModule 3.1 (Afd4Eop12_x64.dll) is the userland loader for CVE-2026-68820. " +
-                                "Does not patch afd.sys — stops the exploit host. Apply KB5121003.",
+                                "Does not patch afd.sys - stops the exploit host. Apply KB5121003.",
                                 0.93, DetectionTier.Tier1Behavioral, ResponseAction.KillProcessTree,
                                 name, pid, path, SignalType.SecurityEvasion, weak: false).ConfigureAwait(false);
                             continue;
@@ -206,7 +206,7 @@ namespace Sentinel.Core
                         "Dream Job: Smart App Control tamper",
                         "VerifiedAndReputablePolicyState is 0 (Smart App Control / code integrity policy unloaded).",
                         "FudModule 3.1 zeroes this value from a SYSTEM msiexec stub after CVE-2026-68820. " +
-                        "Users can also disable SAC — WeakObserveSeed, never a solo nuke.",
+                        "Users can also disable SAC - WeakObserveSeed, never a solo nuke.",
                         0.62, DetectionTier.Tier2Indicator, ResponseAction.LogOnly,
                         "SYSTEM", 0, null, SignalType.AntiTamper, weak: true).ConfigureAwait(false);
                 }
@@ -273,7 +273,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[LegacyHiveMonitor] Started — CVE-2026-62832 user hive load");
+            _logger.LogInformation("[LegacyHiveMonitor] Started - CVE-2026-62832 user hive load");
             while (!ct.IsCancellationRequested)
             {
                 try
@@ -501,7 +501,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[CloudFilesHydrationMonitor] Started — CfApi sync roots / ShieldBreak placeholders");
+            _logger.LogInformation("[CloudFilesHydrationMonitor] Started - CfApi sync roots / ShieldBreak placeholders");
             try { SnapshotSyncRoots(_baselineRoots); _baselined = true; }
             catch { }
 

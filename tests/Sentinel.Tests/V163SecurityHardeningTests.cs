@@ -64,7 +64,7 @@ namespace Sentinel.Tests
 
             if (!File.Exists(systemPs))
             {
-                // Host may be broken (exactly the production bug) — still assert the gate
+                // Host may be broken (exactly the production bug) - still assert the gate
                 Assert.True(SecurityValidation.IsOsCriticalPath(systemPs));
                 return;
             }
@@ -82,7 +82,7 @@ namespace Sentinel.Tests
             var qm = new QuarantineManager(qDir);
 
             var drop = Path.Combine(_tempDir, "unsigned-drop.exe");
-            // Minimal MZ stub — unsigned
+            // Minimal MZ stub - unsigned
             File.WriteAllBytes(drop, new byte[] { 0x4D, 0x5A, 0x90, 0x00, 0x03, 0x00 });
 
             var result = await qm.QuarantineFileAtomicAsync(drop);

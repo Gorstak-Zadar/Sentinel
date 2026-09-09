@@ -8,9 +8,9 @@ namespace Sentinel.Tests
 {
     public class EventGraphTests
     {
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // AddNode
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void AddNode_StoresNode()
@@ -27,7 +27,7 @@ namespace Sentinel.Tests
             graph.AddNode("proc:100", "PROCESS");
             System.Threading.Thread.Sleep(20);
             graph.AddNode("proc:100", "PROCESS");
-            // Second add updates LastSeen — node is not duplicated
+            // Second add updates LastSeen - node is not duplicated
         }
 
         [Fact]
@@ -46,9 +46,9 @@ namespace Sentinel.Tests
             graph.AddNode("proc:300", "PROCESS", null);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // AddEdge
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void AddEdge_StoresEdge_WithCorrectRelation()
@@ -90,9 +90,9 @@ namespace Sentinel.Tests
             Assert.Single(edges);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Edge cap enforcement
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void AddEdge_CapsPerNode_At300_TrimsTo150()
@@ -107,14 +107,14 @@ namespace Sentinel.Tests
             // After hitting 300 cap, trims to 150. Adding more brings it up.
             // Final count should be 150 + (350 - 300) = 200 at most, but trimming may occur multiple times
             Assert.True(edges.Count <= 200, $"Edge count {edges.Count} exceeds expected cap behavior");
-            Assert.True(edges.Count >= 50, $"Edge count {edges.Count} is too low — trimming too aggressive");
+            Assert.True(edges.Count >= 50, $"Edge count {edges.Count} is too low - trimming too aggressive");
         }
 
         [Fact]
         public void AddEdge_OldestEdgesAreRemoved_WhenCapped()
         {
             var graph = new EventGraph();
-            // Add 301 edges — should trigger trim
+            // Add 301 edges - should trigger trim
             for (int i = 0; i < 301; i++)
             {
                 graph.AddEdge("proc:trim", $"file:f{i}", "WROTE");
@@ -127,9 +127,9 @@ namespace Sentinel.Tests
             Assert.DoesNotContain(edges, e => e.TargetKey == "file:f0");
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // GetProcessEdges
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void GetProcessEdges_ReturnsEmpty_ForUnknownNode()
@@ -153,9 +153,9 @@ namespace Sentinel.Tests
             Assert.Equal(edges1.Count, edges2.Count);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // GetProcessDiversity (v2.0 weighted scoring support)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void GetProcessDiversity_ReturnsZero_ForUnknownPid()
@@ -235,14 +235,14 @@ namespace Sentinel.Tests
             var score = graph.GetProcessDiversity(9000, "maxdiv.exe");
 
             // WeightBoost = min(8, relations*3) + min(10, endpoints) + min(7, files/2)
-            // 3 relations → min(8, 9) = 8; 20 endpoints → min(10,20) = 10; 20 files → min(7, 10) = 7
+            // 3 relations -> min(8, 9) = 8; 20 endpoints -> min(10,20) = 10; 20 files -> min(7, 10) = 7
             // Total max = 8 + 10 + 7 = 25
             Assert.True(score.WeightBoost <= 25, $"WeightBoost {score.WeightBoost} exceeds theoretical max of 25");
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Prune
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void Prune_RemovesOldNodes()
@@ -275,7 +275,7 @@ namespace Sentinel.Tests
             var graph = new EventGraph();
             graph.AddEdge("proc:willdie", "file:a.txt", "WROTE");
 
-            // Wait briefly then prune with very short retention — node will be stale
+            // Wait briefly then prune with very short retention - node will be stale
             System.Threading.Thread.Sleep(20);
             graph.Prune(TimeSpan.FromMilliseconds(1));
 
@@ -283,9 +283,9 @@ namespace Sentinel.Tests
             Assert.Empty(edges);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Concurrent access safety
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void EventGraph_ConcurrentAccess_DoesNotThrow()
@@ -338,9 +338,9 @@ namespace Sentinel.Tests
             // No deadlock, no crash
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // GraphDiversityScore model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void GraphDiversityScore_DefaultValues()

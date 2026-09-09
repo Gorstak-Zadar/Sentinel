@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v1.8.2: Supply-chain runtime — package managers spawning LOLBins / writing
+    /// v1.8.2: Supply-chain runtime - package managers spawning LOLBins / writing
     /// executables under package trees (postinstall, slopsquatting, TrapDoor-class).
     /// </summary>
     public sealed class PackageRuntimeMonitor : BackgroundService
@@ -68,7 +68,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[PackageRuntimeMonitor] Started — package/dev-config supply-chain runtime");
+            _logger.LogInformation("[PackageRuntimeMonitor] Started - package/dev-config supply-chain runtime");
             StartDevConfigWatchers();
 
             while (!ct.IsCancellationRequested)
@@ -141,7 +141,7 @@ namespace Sentinel.Core
                 if (!DevConfigNames.Any(n => name.Equals(n) ||
                                             name.Equals(".cursorrules")))
                     return;
-                // Ignore huge trees noise: only shallow-ish paths (≤6 segments under profile)
+                // Ignore huge trees noise: only shallow-ish paths (<=6 segments under profile)
                 var parts = e.FullPath.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 if (parts.Length > 12) return;
                 _configPoisonEvents.Enqueue(e.FullPath);

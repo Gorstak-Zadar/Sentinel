@@ -14,16 +14,16 @@ namespace Sentinel.Core
     /// Walking the export table achieves the same result with no suspicious IL signature:
     /// it is entirely composed of Marshal.Read* calls on known PE structure offsets.
     ///
-    /// This class is intentionally read-only — it never calls, hooks, or modifies
+    /// This class is intentionally read-only - it never calls, hooks, or modifies
     /// any function. It only computes the virtual address of an export entry so that
     /// callers can copy a few prologue bytes for baseline comparison.
     ///
     /// Supported: PE32 and PE32+ (x64). Forward-only exports (those that redirect to
-    /// another DLL) return IntPtr.Zero — callers must handle that gracefully.
+    /// another DLL) return IntPtr.Zero - callers must handle that gracefully.
     /// </summary>
     internal static class PeExportResolver
     {
-        // ── PE header magic constants ─────────────────────────────────────────────
+        //  PE header magic constants 
 
         private const ushort DosSignature  = 0x5A4D; // "MZ"
         private const uint   PeSignature   = 0x00004550; // "PE\0\0"
@@ -68,12 +68,12 @@ namespace Sentinel.Core
             }
             catch
             {
-                // Any access violation or structure read error → fail safe
+                // Any access violation or structure read error -> fail safe
                 return IntPtr.Zero;
             }
         }
 
-        // ── Core walk ─────────────────────────────────────────────────────────────
+        //  Core walk 
 
         private static IntPtr ResolveExport(IntPtr moduleBase, string exportName)
         {
@@ -81,7 +81,7 @@ namespace Sentinel.Core
             if (Marshal.ReadInt16(moduleBase) != (short)DosSignature)
                 return IntPtr.Zero;
 
-            // e_lfanew → RVA of IMAGE_NT_HEADERS
+            // e_lfanew -> RVA of IMAGE_NT_HEADERS
             int ntHeadersRva = Marshal.ReadInt32(moduleBase + DosElfanewOffset);
             IntPtr ntHeaders = moduleBase + ntHeadersRva;
 
@@ -133,7 +133,7 @@ namespace Sentinel.Core
                 if (!string.Equals(name, exportName, StringComparison.Ordinal))
                     continue;
 
-                // Found matching name — read the ordinal (biased by Base, but EAT index is 0-based)
+                // Found matching name - read the ordinal (biased by Base, but EAT index is 0-based)
                 ushort ordinalIndex = (ushort)Marshal.ReadInt16(ordinalsBase + i * 2);
 
                 int funcRva = Marshal.ReadInt32(eatBase + ordinalIndex * 4);
@@ -141,7 +141,7 @@ namespace Sentinel.Core
                     return IntPtr.Zero;
 
                 // Forward exports: the RVA points inside the export directory itself.
-                // We don't resolve forwarders — return IntPtr.Zero to let callers skip.
+                // We don't resolve forwarders - return IntPtr.Zero to let callers skip.
                 if (funcRva >= exportDirRva && funcRva < exportDirRva + exportDirSize)
                     return IntPtr.Zero;
 

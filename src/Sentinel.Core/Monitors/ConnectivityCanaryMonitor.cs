@@ -1,5 +1,5 @@
-// Connectivity Canary Monitor — detects network silencing of Sentinel (EDRSilencer, WFP blocking, DNS poisoning)
-// v1.5.0: New monitor. Critical Group — restarts indefinitely.
+// Connectivity Canary Monitor - detects network silencing of Sentinel (EDRSilencer, WFP blocking, DNS poisoning)
+// v1.5.0: New monitor. Critical Group - restarts indefinitely.
 
 using System;
 using System.Collections.Generic;
@@ -26,11 +26,11 @@ namespace Sentinel.Core
     /// Behavior:
     ///   - Every 45 seconds: lightweight HEAD request to proxy endpoint
     ///   - Every 5 minutes: full hash lookup with known-bad hash (EICAR test)
-    ///   - 3 consecutive failures → Tier1 "Anti-Tamper: Network Silencing Detected"
+    ///   - 3 consecutive failures -> Tier1 "Anti-Tamper: Network Silencing Detected"
     ///   - On failure: attempts direct-IP fallback to detect DNS poisoning vs WFP block
     ///   - Records last-successful-contact timestamp for forensic trail
     ///
-    /// v1.5.0: New. Addresses the #1 finding from the red team audit — commoditized
+    /// v1.5.0: New. Addresses the #1 finding from the red team audit - commoditized
     /// EDRSilencer tool can permanently blind Sentinel's cloud intelligence with zero alerts.
     /// </summary>
     public sealed class ConnectivityCanaryMonitor : BackgroundService
@@ -44,7 +44,7 @@ namespace Sentinel.Core
             Timeout = TimeSpan.FromSeconds(10)
         };
 
-        // Endpoints to probe — ordered by priority
+        // Endpoints to probe - ordered by priority
         private static readonly string[] FallbackEndpoints = new[]
         {
             "https://hashlookup.circl.lu/",              // CIRCL hash lookup
@@ -76,7 +76,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[ConnectivityCanaryMonitor] Started — monitoring Sentinel cloud connectivity every 45s");
+            _logger.LogInformation("[ConnectivityCanaryMonitor] Started - monitoring Sentinel cloud connectivity every 45s");
 
             // Initial grace period for network to stabilize after boot
             await Task.Delay(30000, ct);
@@ -154,7 +154,7 @@ namespace Sentinel.Core
             // If this succeeds but HTTP failed, DNS is poisoned
             if (await TryRawTcpConnectAsync(ct))
             {
-                _logger.LogWarning("[ConnectivityCanaryMonitor] Raw TCP succeeded but HTTP failed — possible DNS poisoning");
+                _logger.LogWarning("[ConnectivityCanaryMonitor] Raw TCP succeeded but HTTP failed - possible DNS poisoning");
                 return false; // Still report as failure since HTTP intelligence APIs are unreachable
             }
 

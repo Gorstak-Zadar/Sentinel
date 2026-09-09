@@ -9,9 +9,9 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// Maps Windows service short names ↔ hosting process IDs (including shared svchost).
+    /// Maps Windows service short names <-> hosting process IDs (including shared svchost).
     /// Enables privacy/outbound attribution without killing shared hosts.
-    /// v1.9.9 — observe-first; map is read-only attribution.
+    /// v1.9.9 - observe-first; map is read-only attribution.
     /// </summary>
     public sealed class ServiceProcessMap
     {

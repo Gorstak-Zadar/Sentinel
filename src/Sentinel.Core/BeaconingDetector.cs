@@ -23,14 +23,14 @@ namespace Sentinel.Core
     /// Algorithm:
     ///   1. Track outbound connection timestamps per (ProcessId, RemoteAddress, RemotePort).
     ///   2. After N observations, compute CV of inter-arrival intervals.
-    ///   3. If CV &lt; threshold AND mean interval is in beacon range (5s–30min), fire detection.
+    ///   3. If CV &lt; threshold AND mean interval is in beacon range (5s-30min), fire detection.
     ///   4. Jitter-aware: even with 30% jitter, CV stays below ~0.35 for beacons.
     ///      Legitimate software typically has CV &gt; 1.0.
     ///
     /// Trust demotion (v0.8.2):
     ///   The detector demotes response actions from Kill to NetworkIsolate (or LogOnly)
     ///   when a process passes MULTIPLE independent trust checks simultaneously:
-    ///     - Authenticode signature verification (WinVerifyTrust — not spoofable without the private key)
+    ///     - Authenticode signature verification (WinVerifyTrust - not spoofable without the private key)
     ///     - Binary resides at its original install path (not copied/renamed to temp)
     ///     - Process exhibits multi-destination diversity (real apps talk to many IPs; C2 beacons one)
     ///     - Behavioral baseline confirms the process is established
@@ -62,7 +62,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Windows-protected installation directories. Files here require admin/TrustedInstaller
         /// to write, so presence in these paths is a strong (but not sole) trust signal.
-        /// We combine this with cryptographic hash verification — never trust path alone.
+        /// We combine this with cryptographic hash verification - never trust path alone.
         /// </summary>
         private static readonly string[] ProtectedInstallPaths = new[]
         {
@@ -96,7 +96,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Called by NetworkMonitor for every observed connection.
         /// Records the timestamp for statistical analysis.
-        /// No name-based exemptions — trust is verified cryptographically at analysis time.
+        /// No name-based exemptions - trust is verified cryptographically at analysis time.
         /// </summary>
         public void RecordConnection(string remoteAddress, int remotePort, int processId, string processName, string? imagePath, string state)
         {
@@ -172,7 +172,7 @@ namespace Sentinel.Core
                 double confidence = Math.Min(0.95, 0.70 + cvFactor * 0.20 + countFactor * 0.08);
 
                 // Determine response action using multi-factor trust verification.
-                // This combines Authenticode, path, diversity, and baseline — not any single signal.
+                // This combines Authenticode, path, diversity, and baseline - not any single signal.
                 var responseAction = DetermineResponseAction(history);
                 var tier = DetectionTier.Tier1Behavioral;
 
@@ -234,20 +234,20 @@ namespace Sentinel.Core
         ///   6. Process is established in the behavioral baseline
         ///
         /// Response escalation:
-        ///   - No image path resolvable → KillProcess (hollowed/ghost)
-        ///   - Hash marked Unsafe → KillProcess
-        ///   - Valid Authenticode + (protected path OR diversity OR baseline) → NetworkIsolate (v1.5.9: never LogOnly)
-        ///   - Protected path + unknown hash + (diversity OR baseline) → NetworkIsolate
-        ///   - Protected path + unknown hash, no other signals → NetworkIsolate
-        ///   - Unprotected path + valid Authenticode + diversity → NetworkIsolate
-        ///   - Unprotected path + no Authenticode → KillProcess
+        ///   - No image path resolvable -> KillProcess (hollowed/ghost)
+        ///   - Hash marked Unsafe -> KillProcess
+        ///   - Valid Authenticode + (protected path OR diversity OR baseline) -> NetworkIsolate (v1.5.9: never LogOnly)
+        ///   - Protected path + unknown hash + (diversity OR baseline) -> NetworkIsolate
+        ///   - Protected path + unknown hash, no other signals -> NetworkIsolate
+        ///   - Unprotected path + valid Authenticode + diversity -> NetworkIsolate
+        ///   - Unprotected path + no Authenticode -> KillProcess
         ///
         /// Why this is NOT exploitable even with source code access:
         ///   - Authenticode requires the publisher's private key (HSM-protected, not extractable)
         ///   - Diversity requires connecting to 3+ distinct IPs, increasing forensic surface
         ///   - Baseline requires surviving multiple cycles without triggering other rules
         ///   - Even if ALL demotion conditions are met, the detection still fires and is logged
-        ///   - v1.5.9: The response never drops below NetworkIsolate — C2 channel is always blocked
+        ///   - v1.5.9: The response never drops below NetworkIsolate - C2 channel is always blocked
         ///   - This prevents supply-chain attacks (SolarWinds-style) from maintaining C2 connectivity
         /// </summary>
         private ResponseAction DetermineResponseAction(ConnectionHistory history)
@@ -259,21 +259,21 @@ namespace Sentinel.Core
                 imagePath = ResolveImagePath(history.ProcessId);
             }
 
-            // Step 2: No image path → likely hollowed or already-exited process
+            // Step 2: No image path -> likely hollowed or already-exited process
             if (string.IsNullOrEmpty(imagePath))
             {
                 _logger.LogInformation(
-                    "[BeaconingDetector] PID {Pid}: Cannot resolve image path — treating as hollowed process, authorizing kill",
+                    "[BeaconingDetector] PID {Pid}: Cannot resolve image path - treating as hollowed process, authorizing kill",
                     history.ProcessId);
                 return ResponseAction.KillProcess;
             }
 
-            // Step 3: Check hash reputation — Unsafe always kills regardless of other signals
+            // Step 3: Check hash reputation - Unsafe always kills regardless of other signals
             var verdict = GetFileVerdict(imagePath!);
             if (verdict == HashVerdict.Unsafe)
             {
                 _logger.LogWarning(
-                    "[BeaconingDetector] PID {Pid}: Image '{Path}' has UNSAFE hash verdict — authorizing kill",
+                    "[BeaconingDetector] PID {Pid}: Image '{Path}' has UNSAFE hash verdict - authorizing kill",
                     history.ProcessId, imagePath);
                 return ResponseAction.KillProcess;
             }
@@ -295,22 +295,22 @@ namespace Sentinel.Core
                 int totalDestinations = GetDestinationDiversityCount(history.ProcessId);
                 if (totalDestinations <= 4)
                 {
-                    // Minimal diversity — likely manufactured. Revoke the signal.
+                    // Minimal diversity - likely manufactured. Revoke the signal.
                     hasDestinationDiversity = false;
                     _logger.LogInformation(
-                        "[BeaconingDetector] PID {Pid}: Diversity count {Count} is too low to be meaningful — revoking diversity trust",
+                        "[BeaconingDetector] PID {Pid}: Diversity count {Count} is too low to be meaningful - revoking diversity trust",
                         history.ProcessId, totalDestinations);
                 }
             }
 
             // HARDENING: If a DLL sideloading detection has already fired for this image path,
             // never demote below KillProcess regardless of trust score. The signed binary is
-            // compromised via sideloading — its Authenticode signature is irrelevant since the
+            // compromised via sideloading - its Authenticode signature is irrelevant since the
             // malicious code runs in its address space.
             if (isProtectedPath && hasValidAuthenticode && IsSideloadCompromised(history.ProcessId, imagePath!))
             {
                 _logger.LogWarning(
-                    "[BeaconingDetector] PID {Pid}: Signed binary at protected path BUT has sideload detection — forcing Kill",
+                    "[BeaconingDetector] PID {Pid}: Signed binary at protected path BUT has sideload detection - forcing Kill",
                     history.ProcessId);
                 return ResponseAction.KillProcess;
             }
@@ -325,31 +325,31 @@ namespace Sentinel.Core
             // Step 5: Map trust score to response action
             // HARDENING v1.5.9: Never demote confirmed statistical beaconing below NetworkIsolate.
             // A supply-chain compromised binary (SolarWinds-style) is signed by the legitimate
-            // publisher and installed in Program Files — it would achieve trustScore >= 5 and
+            // publisher and installed in Program Files - it would achieve trustScore >= 5 and
             // previously got LogOnly, meaning its C2 channel was never blocked.
             // Now: highest trust = NetworkIsolate (C2 IP is always firewall-blocked).
             // The detection is still logged for analyst review.
             // Score 0-2: Kill (no meaningful trust signals)
             // Score 3-4: NetworkIsolate (some trust, but not enough for full demotion)
-            // Score 5+:  NetworkIsolate (strong trust — likely legitimate but C2 channel still blocked)
+            // Score 5+:  NetworkIsolate (strong trust - likely legitimate but C2 channel still blocked)
             if (trustScore >= 5)
             {
                 _logger.LogInformation(
-                    "[BeaconingDetector] PID {Pid}: Multi-factor trust verified (score={Score}, authenticode={Auth}, protected={Prot}, diversity={Div}, baseline={Base}) — demoting to NetworkIsolate (never LogOnly for confirmed beaconing)",
+                    "[BeaconingDetector] PID {Pid}: Multi-factor trust verified (score={Score}, authenticode={Auth}, protected={Prot}, diversity={Div}, baseline={Base}) - demoting to NetworkIsolate (never LogOnly for confirmed beaconing)",
                     history.ProcessId, trustScore, hasValidAuthenticode, isProtectedPath, hasDestinationDiversity, isBaselineEstablished);
                 return ResponseAction.NetworkIsolate;
             }
             else if (trustScore >= 3)
             {
                 _logger.LogInformation(
-                    "[BeaconingDetector] PID {Pid}: Partial trust (score={Score}, authenticode={Auth}, protected={Prot}, diversity={Div}, baseline={Base}) — demoting to NetworkIsolate",
+                    "[BeaconingDetector] PID {Pid}: Partial trust (score={Score}, authenticode={Auth}, protected={Prot}, diversity={Div}, baseline={Base}) - demoting to NetworkIsolate",
                     history.ProcessId, trustScore, hasValidAuthenticode, isProtectedPath, hasDestinationDiversity, isBaselineEstablished);
                 return ResponseAction.NetworkIsolate;
             }
             else
             {
                 _logger.LogInformation(
-                    "[BeaconingDetector] PID {Pid}: Low trust (score={Score}, authenticode={Auth}, protected={Prot}, diversity={Div}, baseline={Base}) — authorizing kill",
+                    "[BeaconingDetector] PID {Pid}: Low trust (score={Score}, authenticode={Auth}, protected={Prot}, diversity={Div}, baseline={Base}) - authorizing kill",
                     history.ProcessId, trustScore, hasValidAuthenticode, isProtectedPath, hasDestinationDiversity, isBaselineEstablished);
                 return ResponseAction.KillProcess;
             }
@@ -383,19 +383,19 @@ namespace Sentinel.Core
         /// <summary>
         /// Checks if a PID has been flagged by DLL sideloading detection rules.
         /// If a sideloading detection has fired for this process, its Authenticode signature
-        /// is meaningless — the malicious code executes in the signed process's address space.
+        /// is meaningless - the malicious code executes in the signed process's address space.
         /// We check the detection engine's recent history for sideload alerts on this PID.
         /// </summary>
         private bool IsSideloadCompromised(int processId, string imagePath)
         {
             // Check if the connection history for this PID was previously flagged
             // by cross-referencing with any DLL sideloading detection in the history buffer.
-            // The detection engine maintains recent detections — check for sideload rules on this PID.
+            // The detection engine maintains recent detections - check for sideload rules on this PID.
             foreach (var kvp in _history)
             {
                 if (kvp.Value.ProcessId == processId && kvp.Value.HasFired)
                 {
-                    // This PID already had a beaconing detection fire — check if the process
+                    // This PID already had a beaconing detection fire - check if the process
                     // directory contains any known sideload target DLLs (quick heuristic)
                     try
                     {

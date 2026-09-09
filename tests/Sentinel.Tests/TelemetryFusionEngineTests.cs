@@ -139,7 +139,7 @@ namespace Sentinel.Tests
         [Fact]
         public void FeedEvent_BoundedChain_DoesNotGrowUnbounded()
         {
-            // Feed 600 events (max is 500 per chain) — should not crash
+            // Feed 600 events (max is 500 per chain) - should not crash
             for (int i = 0; i < 600; i++)
             {
                 _engine.FeedEvent(new ProcessTelemetry

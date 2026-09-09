@@ -9,7 +9,7 @@ namespace Sentinel.Core
     /// </summary>
     public enum ExpectedShutdownReason
     {
-        /// <summary>No expected-stop was recorded — treat exit as unexpected/suspicious.</summary>
+        /// <summary>No expected-stop was recorded - treat exit as unexpected/suspicious.</summary>
         None = 0,
 
         /// <summary>Service Control Manager issued a normal Stop (e.g. admin `sc stop`, host StopAsync).</summary>
@@ -29,7 +29,7 @@ namespace Sentinel.Core
     /// Process-lifetime signal that records whether the current process is being stopped for a
     /// <i>legitimate</i> reason. The exit hook (<see cref="AntiTamperGuard"/>) reads this to decide
     /// whether an exit is a normal lifecycle event or a suspicious stop worth a durable tamper
-    /// record (threat-model bypass B1 — "alert before suppression").
+    /// record (threat-model bypass B1 - "alert before suppression").
     ///
     /// This is deliberate <b>process-lifetime lifecycle metadata</b>, not application state: it is
     /// a single last-writer-wins reason plus timestamp, set only by the cooperative shutdown paths.

@@ -16,7 +16,7 @@ namespace Sentinel.Core
     ///
     /// Problem: The Agent is a user-session process launched via the HKLM Run key.
     /// Unlike the Service (which has SCM failure-restart configured), the Agent has no
-    /// automatic recovery — if it crashes or is killed it stays dead until the next login.
+    /// automatic recovery - if it crashes or is killed it stays dead until the next login.
     /// The Service runs as SYSTEM and has no direct visibility into the user session,
     /// so a simple Process.Start won't land in the correct session.
     ///
@@ -24,16 +24,16 @@ namespace Sentinel.Core
     ///   1. Check for the Agent immediately on service start (no multi-second grace),
     ///      then poll every 10 seconds.
     ///   2. If absent, launch it in the active console session via CreateProcessAsUser
-    ///      (WTSQueryUserToken → CreateEnvironmentBlock → CreateProcessAsUser).
+    ///      (WTSQueryUserToken -> CreateEnvironmentBlock -> CreateProcessAsUser).
     ///   3. Rate-limit relaunches (max 1 per 15s, 5 in 5 minutes before backing off)
     ///      to avoid restart storms on systematic crash loops.
     ///   4. Fire a Tier1 detection if the Agent is killed more than 3 times in 5 minutes
-    ///      (anti-tamper signal — attacker is trying to blind the user-facing monitor).
+    ///      (anti-tamper signal - attacker is trying to blind the user-facing monitor).
     ///
     /// Security note: CreateProcessAsUser requires SE_ASSIGNPRIMARYTOKEN_NAME and
     /// SE_INCREASE_QUOTA_NAME privileges. The Service already runs as LocalSystem which
     /// holds both. The Agent token obtained from WTSQueryUserToken is a restricted user
-    /// token (not elevated), so the relaunched agent runs as the logged-in user — identical
+    /// token (not elevated), so the relaunched agent runs as the logged-in user - identical
     /// to what the HKLM Run key produces.
     /// </summary>
     public sealed class AgentWatchdog : BackgroundService
@@ -73,10 +73,10 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("[AgentWatchdog] Started — will monitor {Agent} liveness", AgentProcessName);
+            _logger.LogInformation("[AgentWatchdog] Started - will monitor {Agent} liveness", AgentProcessName);
 
             // Optional zero-cost yield only (StartupGrace is Zero). Check FIRST so tray
-            // appears immediately after install / service start when agent is absent —
+            // appears immediately after install / service start when agent is absent -
             // never sit idle for PollInterval before the first relaunch attempt.
             if (StartupGrace > TimeSpan.Zero)
                 await Task.Delay(StartupGrace, stoppingToken);
@@ -102,7 +102,7 @@ namespace Sentinel.Core
             if (IsAgentRunning())
                 return;
 
-            // Agent is gone — track kills for anti-tamper alerting
+            // Agent is gone - track kills for anti-tamper alerting
             var now = DateTimeOffset.UtcNow;
             if (now - _firstKillInWindow > KillWindowDuration)
             {
@@ -113,7 +113,7 @@ namespace Sentinel.Core
             }
 
             _killCount++;
-            _logger.LogWarning("[AgentWatchdog] Agent not running — kill #{Count} in current window", _killCount);
+            _logger.LogWarning("[AgentWatchdog] Agent not running - kill #{Count} in current window", _killCount);
 
             if (_killCount >= KillThresholdForAlert && !_alertFired)
             {
@@ -144,13 +144,13 @@ namespace Sentinel.Core
             // Enforce relaunch cooldown to avoid storm on systematic crash
             if (now - _lastRelaunchTime < RelaunchCooldown)
             {
-                _logger.LogDebug("[AgentWatchdog] Relaunch cooldown active — skipping");
+                _logger.LogDebug("[AgentWatchdog] Relaunch cooldown active - skipping");
                 return;
             }
 
             if (_killCount > MaxRelaunchesInWindow)
             {
-                _logger.LogWarning("[AgentWatchdog] Relaunch rate limit reached ({Count}/{Max}) — backing off",
+                _logger.LogWarning("[AgentWatchdog] Relaunch rate limit reached ({Count}/{Max}) - backing off",
                     _killCount, MaxRelaunchesInWindow);
                 return;
             }
@@ -166,7 +166,7 @@ namespace Sentinel.Core
 
             if (!File.Exists(agentPath))
             {
-                _logger.LogError("[AgentWatchdog] Agent binary not found at {Path} — cannot relaunch", agentPath);
+                _logger.LogError("[AgentWatchdog] Agent binary not found at {Path} - cannot relaunch", agentPath);
                 return;
             }
 
@@ -175,7 +175,7 @@ namespace Sentinel.Core
             // between existence check and CreateProcessAsUser.
             if (!VerifyAgentBinaryIntegrity(agentPath))
             {
-                _logger.LogError("[AgentWatchdog] Agent binary FAILED integrity check — refusing to launch");
+                _logger.LogError("[AgentWatchdog] Agent binary FAILED integrity check - refusing to launch");
                 await _detectionEngine.EmitAsync(new DetectionEvent
                 {
                     RuleName = "Anti-Tamper: Agent Binary Integrity Failure",
@@ -183,7 +183,7 @@ namespace Sentinel.Core
                                "The binary may have been replaced with a malicious copy.",
                     Reasoning = "Before relaunching the Agent process, Sentinel verifies the binary is " +
                                 "Authenticode-signed or matches the known install hash. A verification failure " +
-                                "means the agent binary was tampered with — this is a critical indicator of compromise.",
+                                "means the agent binary was tampered with - this is a critical indicator of compromise.",
                     Confidence = 0.97,
                     Tier = DetectionTier.Tier1Behavioral,
                     AuthorizedResponse = ResponseAction.LogOnly,
@@ -201,7 +201,7 @@ namespace Sentinel.Core
 
             _lastRelaunchTime = DateTimeOffset.UtcNow;
 
-            // Try privileged launch (SYSTEM service → user session) first
+            // Try privileged launch (SYSTEM service -> user session) first
             bool launched = TryLaunchInUserSession(agentPath);
 
             if (!launched)
@@ -227,9 +227,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Process Detection
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private bool IsAgentRunning()
         {
@@ -250,7 +250,7 @@ namespace Sentinel.Core
                     }
                     catch
                     {
-                        // Access denied on MainModule — ignore this PID
+                        // Access denied on MainModule - ignore this PID
                     }
                 }
                 return false;
@@ -268,13 +268,13 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // User-Session Launch (SYSTEM → console user)
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // User-Session Launch (SYSTEM -> console user)
+        // 
 
         /// <summary>
         /// Launches the agent in the active console user's session using
-        /// WTSQueryUserToken → CreateEnvironmentBlock → CreateProcessAsUser.
+        /// WTSQueryUserToken -> CreateEnvironmentBlock -> CreateProcessAsUser.
         ///
         /// This is the standard Windows pattern for services that need to spawn
         /// processes visible to the logged-in user (e.g., Task Scheduler "run in user context").
@@ -284,7 +284,7 @@ namespace Sentinel.Core
             var sessionId = WTSGetActiveConsoleSessionId();
             if (sessionId == 0xFFFFFFFF)
             {
-                _logger.LogDebug("[AgentWatchdog] No active console session — skipping user-session launch");
+                _logger.LogDebug("[AgentWatchdog] No active console session - skipping user-session launch");
                 return false;
             }
 
@@ -298,7 +298,7 @@ namespace Sentinel.Core
                 if (!WTSQueryUserToken(sessionId, out userToken))
                 {
                     var err = Marshal.GetLastWin32Error();
-                    _logger.LogDebug("[AgentWatchdog] WTSQueryUserToken failed (err={Err}) — user may not be logged in", err);
+                    _logger.LogDebug("[AgentWatchdog] WTSQueryUserToken failed (err={Err}) - user may not be logged in", err);
                     return false;
                 }
 
@@ -379,9 +379,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Binary Integrity Verification (v2.1.7 RT-2026-H1 Fix)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// v2.1.7: Verifies the Agent binary is trustworthy before launching it.
@@ -400,16 +400,16 @@ namespace Sentinel.Core
 
                 if (agentSigned && serviceSigned)
                 {
-                    // v2.2.0: any trusted publisher is not enough — Agent must match Service signer.
+                    // v2.2.0: any trusted publisher is not enough - Agent must match Service signer.
                     if (SecurityValidation.VerifySameAuthenticodePublisher(agentPath, servicePath!))
                         return true;
-                    _logger.LogError("[AgentWatchdog] Agent signer does not match Service signer — refusing launch");
+                    _logger.LogError("[AgentWatchdog] Agent signer does not match Service signer - refusing launch");
                     return false;
                 }
 
                 if (agentSigned && !serviceSigned)
                 {
-                    _logger.LogError("[AgentWatchdog] Service unsigned but Agent signed — refusing launch");
+                    _logger.LogError("[AgentWatchdog] Service unsigned but Agent signed - refusing launch");
                     return false;
                 }
 
@@ -417,7 +417,7 @@ namespace Sentinel.Core
                 // Unsigned pair is allowed only in Debug builds (local dev).
                 if (!agentSigned && !serviceSigned)
                 {
-                    _logger.LogWarning("[AgentWatchdog] Both Service and Agent are unsigned — DEBUG build. Allowing launch.");
+                    _logger.LogWarning("[AgentWatchdog] Both Service and Agent are unsigned - DEBUG build. Allowing launch.");
                     return true;
                 }
 #endif
@@ -432,9 +432,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // P/Invoke
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [DllImport("kernel32.dll")]
         private static extern uint WTSGetActiveConsoleSessionId();

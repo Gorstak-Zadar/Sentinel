@@ -4,14 +4,14 @@ using Sentinel.Core;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for CriticalMonitors — verifies SyscallStubMonitor Hell's Gate matching,
+    /// Tests for CriticalMonitors - verifies SyscallStubMonitor Hell's Gate matching,
     /// IPSecIntegrityGuard backoff computation, and detection model behavior.
     /// </summary>
     public class CriticalMonitorsTests
     {
-        // ═══════════════════════════════════════════════════════════════
-        // SyscallStubMonitor — well-formed Hell's Gate table (no name skip)
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // SyscallStubMonitor - well-formed Hell's Gate table (no name skip)
+        // 
 
         [Fact]
         public void HellsGate_ThreeDistinctWellFormedStubs_IsHit()
@@ -43,7 +43,7 @@ namespace Sentinel.Tests.Monitors
         [Fact]
         public void HellsGate_SsnZero_IsNotHit()
         {
-            // SSN=0 is never a real Windows syscall — must be rejected
+            // SSN=0 is never a real Windows syscall - must be rejected
             var buffer = new byte[]
             {
                 0x4C, 0x8B, 0xD1, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xC3, 0x90,
@@ -71,7 +71,7 @@ namespace Sentinel.Tests.Monitors
         [Fact]
         public void HellsGate_SparseStubs_DensityFilterRejects()
         {
-            // Three valid stubs but spread 200+ bytes apart — not a real table
+            // Three valid stubs but spread 200+ bytes apart - not a real table
             var buffer = new byte[700];
             // Stub 1 at offset 0
             buffer[0]  = 0x4C; buffer[1]  = 0x8B; buffer[2]  = 0xD1; buffer[3]  = 0xB8;
@@ -88,7 +88,7 @@ namespace Sentinel.Tests.Monitors
 
             var hits = SyscallStubMonitor.FindSyscallStubs(buffer, buffer.Length);
             Assert.Equal(3, hits.Count); // found by pattern matcher
-            // But density filter must reject them — they are too far apart
+            // But density filter must reject them - they are too far apart
             Assert.False(SyscallStubMonitor.IsHellsGateEvidence(
                 SyscallStubMonitor.FilterByDensityPublic(hits, 48)));
         }
@@ -96,7 +96,7 @@ namespace Sentinel.Tests.Monitors
         [Fact]
         public void HellsGate_DenseStubs_DensityFilterAccepts()
         {
-            // Three valid stubs packed within 48 bytes — real table
+            // Three valid stubs packed within 48 bytes - real table
             var buffer = new byte[]
             {
                 0x4C, 0x8B, 0xD1, 0xB8, 0x18, 0x00, 0x00, 0x00, 0x0F, 0x05, 0xC3, 0x90,
@@ -108,9 +108,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(SyscallStubMonitor.IsHellsGateEvidence(dense));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Syscall stub detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void SyscallStub_DetectionModel()
@@ -136,9 +136,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(ScoringEngine.IsPresidentsLawRule("Process Injection: Indirect Syscall Stubs Detected"));
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // IPSecIntegrityGuard — backoff computation
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // IPSecIntegrityGuard - backoff computation
+        // 
 
         [Fact]
         public void Backoff_IncreasesWithFailures()
@@ -165,9 +165,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(backoff.TotalMinutes <= 60, $"Backoff {backoff} exceeds 60min cap");
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // AsrPolicyGuard — detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // AsrPolicyGuard - detection model
+        // 
 
         [Fact]
         public void AsrPolicy_DetectionModel()
@@ -186,9 +186,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(DetectionCategory.AntiTamper, category);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helper re-implementations
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static System.TimeSpan ComputeBackoff(int consecutiveFailures)
         {

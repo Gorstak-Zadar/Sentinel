@@ -51,7 +51,7 @@ namespace Sentinel.Core
                         {
                             if (proc.Id <= 4 || _alerted.Contains(proc.Id)) continue;
 
-                            // Name-based allowlist — but verify path is from a legitimate location.
+                            // Name-based allowlist - but verify path is from a legitimate location.
                             // An attacker naming malware "obs64.exe" from C:\Temp should NOT be skipped.
                             if (AllowedCapture.Contains(proc.ProcessName))
                             {
@@ -68,13 +68,13 @@ namespace Sentinel.Core
                                 }
                                 else
                                 {
-                                    continue; // Can't read path — give benefit of doubt for known names
+                                    continue; // Can't read path - give benefit of doubt for known names
                                 }
-                                // Name matches but path is suspicious — fall through to detection
+                                // Name matches but path is suspicious - fall through to detection
                             }
 
                             var path = SecurityValidation.GetProcessImagePath(proc.Id);
-                            // Games only — DXGI module scan stays armed for everything else
+                            // Games only - DXGI module scan stays armed for everything else
                             if (!NativeProcessMemory.CanInspect(proc.Id, path))
                                 continue;
 
@@ -97,7 +97,7 @@ namespace Sentinel.Core
                                 await _detectionEngine.EmitAsync(new DetectionEvent
                                 {
                                     RuleName = "Screen Capture: DXGI Desktop Duplication",
-                                    Evidence = $"Process '{proc.ProcessName}' (PID {proc.Id}) loaded DXGI + D3D11 — potential screen capture",
+                                    Evidence = $"Process '{proc.ProcessName}' (PID {proc.Id}) loaded DXGI + D3D11 - potential screen capture",
                                     Reasoning = "Non-standard process loaded DXGI desktop duplication modules.",
                                     Confidence = 0.55, Tier = DetectionTier.Tier2Indicator,
                                     ProcessName = proc.ProcessName, ProcessId = proc.Id
@@ -204,7 +204,7 @@ namespace Sentinel.Core
     }
 
     /// <summary>
-    /// Detects audio routing hijacks — processes registering as audio endpoints
+    /// Detects audio routing hijacks - processes registering as audio endpoints
     /// or inserting audio processing objects into the render/capture pipelines.
     /// </summary>
     public sealed class AudioHijackMonitor : BackgroundService
@@ -290,7 +290,7 @@ namespace Sentinel.Core
                 try
                 {
                     await Task.Delay(10000, ct);
-                    // Check ConsentStore for microphone — apps with LastUsedTimeStop == 0 are actively using mic
+                    // Check ConsentStore for microphone - apps with LastUsedTimeStop == 0 are actively using mic
                     try
                     {
                         using var key = Registry.CurrentUser.OpenSubKey(
@@ -328,7 +328,7 @@ namespace Sentinel.Core
     }
 
     /// <summary>
-    /// Visual behavior analysis — detects suspicious overlay/transparent windows
+    /// Visual behavior analysis - detects suspicious overlay/transparent windows
     /// that could be used for phishing overlays or keylogger UI, and monitors for
     /// user session anomalies (focus steals, brightness oscillations, programmatic cursor jumps).
     /// </summary>
@@ -482,7 +482,7 @@ namespace Sentinel.Core
 
                     // 5. Anomaly score evaluation
                     // Focus steals, cursor jumps, and brightness changes alone are NOT proof of maliciousness.
-                    // They are normal user behavior. Log only — never kill for this.
+                    // They are normal user behavior. Log only - never kill for this.
                     if (_anomalyScore >= 60)
                     {
                         string procName = "unknown";
@@ -618,7 +618,7 @@ namespace Sentinel.Core
     }
 
     /// <summary>
-    /// Detects phantom keystrokes — keypress injection from non-HID sources.
+    /// Detects phantom keystrokes - keypress injection from non-HID sources.
     /// Installs a low-level keyboard hook (WH_KEYBOARD_LL) and checks the
     /// LLKHF_INJECTED flag to detect software-injected keystrokes via SendInput.
     /// Blocks injected keystrokes and emits detection events.

@@ -27,7 +27,7 @@ namespace Sentinel.Tests
             };
         }
 
-        // ── IsChainConfirmedOrComposite ─────────────────────────────────
+        //  IsChainConfirmedOrComposite 
 
         [Fact]
         public void IsChainConfirmedOrComposite_ReturnsFalse_ForSimpleDetection()
@@ -52,7 +52,7 @@ namespace Sentinel.Tests
             Assert.True(AutoIncidentReporter.IsChainConfirmedOrComposite(d));
         }
 
-        // ── IsAttackCharacter ───────────────────────────────────────────
+        //  IsAttackCharacter 
 
         [Fact]
         public void IsAttackCharacter_ReturnsTrue_ForHighConfidenceKill()
@@ -68,7 +68,7 @@ namespace Sentinel.Tests
             Assert.False(AutoIncidentReporter.IsAttackCharacter(d));
         }
 
-        // ── RuleNameLooksLikeAttack ─────────────────────────────────────
+        //  RuleNameLooksLikeAttack 
 
         [Theory]
         [InlineData("LSASS Memory Dump")]
@@ -90,7 +90,7 @@ namespace Sentinel.Tests
             Assert.False(AutoIncidentReporter.RuleNameLooksLikeAttack(ruleName));
         }
 
-        // ── ExtractIndicators ───────────────────────────────────────────
+        //  ExtractIndicators 
 
         [Fact]
         public void ExtractIndicators_ExtractsProcessInfo()
@@ -113,7 +113,7 @@ namespace Sentinel.Tests
             Assert.NotNull(indicators);
         }
 
-        // ── IsTokenTheftOsFalsePositive ─────────────────────────────────
+        //  IsTokenTheftOsFalsePositive 
 
         [Fact]
         public void IsTokenTheftOsFalsePositive_ReturnsFalse_ForNonTokenTheftRule()
@@ -122,7 +122,7 @@ namespace Sentinel.Tests
             Assert.False(AutoIncidentReporter.IsTokenTheftOsFalsePositive(d));
         }
 
-        // ── VerifyPackIntegrity ─────────────────────────────────────────
+        //  VerifyPackIntegrity 
 
         [Fact]
         public void VerifyPackIntegrity_NonExistentDirectory_ReturnsFailure()
@@ -147,7 +147,7 @@ namespace Sentinel.Tests
             }
         }
 
-        // ── HMAC helpers ────────────────────────────────────────────────
+        //  HMAC helpers 
 
         [Fact]
         public void ComputeSha256Hex_ProducesConsistentHash()

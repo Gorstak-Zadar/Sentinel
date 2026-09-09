@@ -26,13 +26,13 @@ namespace Sentinel.Core
     /// </summary>
     public static class ProxyAuthHelper
     {
-        // v2.0.8: Base64(SHA-256(SubjectPublicKeyInfo)) — correct SPKI pins.
+        // v2.0.8: Base64(SHA-256(SubjectPublicKeyInfo)) - correct SPKI pins.
         // Plus legacy GetPublicKey()-style pins retained as secondary match for continuity
         // until operators regenerate pins after CA rotation.
         // Pin format docs: https://www.rfc-editor.org/rfc/rfc7469#section-2.4 (SPKI).
         private static readonly string[] PinnedSpkiHashes = new[]
         {
-            // Cloudflare Inc ECC CA-3 (SPKI) — Workers intermediate
+            // Cloudflare Inc ECC CA-3 (SPKI) - Workers intermediate
             "Lgav0MBe0RVNHGOV2aCGLSCj4F8XJGI1YMPgWGMFnuM=",
             // Cloudflare Inc RSA CA-2 (SPKI)
             "jQJTbIh0grw0/1TkHSumWb+Fs0Ggogr621gT3PvPKG0=",
@@ -47,7 +47,7 @@ namespace Sentinel.Core
         };
 
         // v2.3.8: live-chain SPKI pins (Base64 SHA-256 SPKI) for direct CIRCL / MalwareBazaar HTTPS.
-        // Captured 2026-09-02 from the presented TLS chain — not invented hashes.
+        // Captured 2026-09-02 from the presented TLS chain - not invented hashes.
         // Leaf pins rotate; intermediates/roots keep coverage across cert renewal.
         public static readonly string[] CirclHashlookupPins = new[]
         {

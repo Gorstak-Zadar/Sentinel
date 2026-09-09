@@ -16,10 +16,10 @@ using Microsoft.Win32;
 
 namespace Sentinel.Core
 {
-    // ──────────────────────────────────────────────
-    // Hardware Security Guard — monitors IOMMU/VT-d, Secure Boot, and BitLocker state
+    // 
+    // Hardware Security Guard - monitors IOMMU/VT-d, Secure Boot, and BitLocker state
     // Detects disabled hardware security features that enable firmware/DMA attacks
-    // ──────────────────────────────────────────────
+    // 
     public sealed class HardwareSecurityGuard : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -230,10 +230,10 @@ namespace Sentinel.Core
         }
     }
 
-    // ──────────────────────────────────────────────
-    // DNS Cross Validator — detects router-level DNS poisoning by comparing
+    // 
+    // DNS Cross Validator - detects router-level DNS poisoning by comparing
     // system resolver results against a direct DNS query to Cloudflare (1.1.1.1)
-    // ──────────────────────────────────────────────
+    // 
     public sealed class DnsCrossValidator : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -275,7 +275,7 @@ namespace Sentinel.Core
                 {
                     systemResults = await DnsNet48.GetHostAddressesAsync(TestDomain, ct);
                 }
-                catch { return; } // No network — skip
+                catch { return; } // No network - skip
 
                 if (systemResults.Length == 0) return;
 
@@ -299,11 +299,11 @@ namespace Sentinel.Core
                 // If there's ANY overlap in /16 subnets, it's legitimate CDN rotation
                 if (systemSubnets.Overlaps(directSubnets)) return;
 
-                // No subnet overlap — possible DNS poisoning at the router level
+                // No subnet overlap - possible DNS poisoning at the router level
                 await _detectionEngine.EmitAsync(new DetectionEvent
                 {
                     RuleName = "DNS Poisoning: Router-Level DNS Manipulation Detected",
-                    Evidence = $"Domain '{TestDomain}' — System resolver: [{string.Join(", ", systemResults.Select(a => a.ToString()))}] " +
+                    Evidence = $"Domain '{TestDomain}' - System resolver: [{string.Join(", ", systemResults.Select(a => a.ToString()))}] " +
                                $"(subnets: {string.Join(",", systemSubnets)}), " +
                                $"Direct 1.1.1.1: [{string.Join(", ", directResults.Select(a => a.ToString()))}] " +
                                $"(subnets: {string.Join(",", directSubnets)})",
@@ -352,7 +352,7 @@ namespace Sentinel.Core
                 var result = await receiveTask;
                 var response = result.Buffer;
 
-                // Parse response — extract A records
+                // Parse response - extract A records
                 results = ParseDnsResponse(response);
             }
             catch { }
@@ -461,10 +461,10 @@ namespace Sentinel.Core
         }
     }
 
-    // ──────────────────────────────────────────────
-    // USB HID Whitelist — detects and disables unauthorized HID devices (BadUSB defense)
+    // 
+    // USB HID Whitelist - detects and disables unauthorized HID devices (BadUSB defense)
     // Baselines connected HID devices at startup, alerts and disables new unknown devices
-    // ──────────────────────────────────────────────
+    // 
     public sealed class UsbHidWhitelist : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -474,7 +474,7 @@ namespace Sentinel.Core
         private readonly HashSet<string> _baselineDevices = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _alertedDevices = new(StringComparer.OrdinalIgnoreCase);
 
-        // Built-in HID receivers — extended at runtime from Sentinel:TrustedUsbDevices
+        // Built-in HID receivers - extended at runtime from Sentinel:TrustedUsbDevices
         private static readonly HashSet<string> BuiltInTrustedDevices = new(StringComparer.OrdinalIgnoreCase)
         {
             "VID_046D&PID_C52B", // Logitech Unifying Receiver
@@ -627,10 +627,10 @@ namespace Sentinel.Core
         }
     }
 
-    // ──────────────────────────────────────────────
-    // Traffic Volume Baseline — detects anomalous upload spikes from NIC-level implants
+    // 
+    // Traffic Volume Baseline - detects anomalous upload spikes from NIC-level implants
     // Monitors raw network interface BytesSent to catch exfiltration invisible to process monitoring
-    // ──────────────────────────────────────────────
+    // 
     public sealed class TrafficVolumeBaseline : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -642,7 +642,7 @@ namespace Sentinel.Core
         private bool _baselineComplete;
         private double _baselineAverage;
 
-        private const int BaselinePeriodSamples = 10; // 10 samples × 30s = 5 minutes
+        private const int BaselinePeriodSamples = 10; // 10 samples x 30s = 5 minutes
         private const double SpikeMultiplier = 3.0;
 
         public TrafficVolumeBaseline(DetectionEngine de, SentinelConfig config, ILogger<TrafficVolumeBaseline> l)
@@ -687,7 +687,7 @@ namespace Sentinel.Core
                     if (_baselineAverage > 0 && delta > _baselineAverage * SpikeMultiplier)
                     {
                         // v1.9.9: Torrent seeding / P2P / downloaders explain most home-user spikes.
-                        // Observe only — never Exfil terminal, never Tier1.
+                        // Observe only - never Exfil terminal, never Tier1.
                         if (BulkTransferNoise.IsAnyBulkTransferProcessRunning(out var bulkClient))
                         {
                             await _detectionEngine.EmitAsync(new DetectionEvent
@@ -698,7 +698,7 @@ namespace Sentinel.Core
                                     $"(baseline avg: {_baselineAverage:N0}).",
                                 Reasoning =
                                     "Upload volume spike coincides with a known torrent/P2P/downloader. " +
-                                    "Seeding and bulk transfers are normal user activity — observe only.",
+                                    "Seeding and bulk transfers are normal user activity - observe only.",
                                 Confidence = 0.40,
                                 Tier = DetectionTier.Tier2Indicator,
                                 AuthorizedResponse = ResponseAction.LogOnly,
@@ -726,7 +726,7 @@ namespace Sentinel.Core
                                            $"threshold: {_baselineAverage * SpikeMultiplier:N0}, ratio: {delta / _baselineAverage:F1}x)",
                                 Reasoning =
                                     "Network upload volume exceeded 3x the baseline average (no known bulk-transfer client detected). " +
-                                    "Observe-only host-wide signal — not process-attributed. " +
+                                    "Observe-only host-wide signal - not process-attributed. " +
                                     "May indicate heavy upload or rare process-invisible stack abuse; does not alone authorize response.",
                                 Confidence = 0.55,
                                 Tier = DetectionTier.Tier2Indicator,
@@ -772,10 +772,10 @@ namespace Sentinel.Core
         }
     }
 
-    // ──────────────────────────────────────────────
-    // Outbound Connection Whitelist — enforces or monitors outbound connections
+    // 
+    // Outbound Connection Whitelist - enforces or monitors outbound connections
     // against a whitelist of allowed subnets. Nuclear option for implant exfiltration.
-    // ──────────────────────────────────────────────
+    // 
     public sealed class OutboundConnectionWhitelist : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -784,7 +784,7 @@ namespace Sentinel.Core
 
         private readonly ConcurrentDictionary<string, DateTime> _alertedIps = new();
 
-        // Hardcoded defaults — in production, read from Sentinel.AllowedOutboundSubnets
+        // Hardcoded defaults - in production, read from Sentinel.AllowedOutboundSubnets
         private static readonly (uint Network, uint Mask)[] AllowedSubnets = new[]
         {
             ParseCidr("142.250.0.0/16"),   // Google
@@ -830,12 +830,12 @@ namespace Sentinel.Core
 
             if (_enforcementMode)
             {
-                _logger.LogWarning("[OutboundConnectionWhitelist] ENFORCEMENT MODE — creating firewall block rule");
+                _logger.LogWarning("[OutboundConnectionWhitelist] ENFORCEMENT MODE - creating firewall block rule");
                 CreateFirewallBlockRule();
             }
             else
             {
-                _logger.LogInformation("[OutboundConnectionWhitelist] Monitor-only mode — scanning netstat");
+                _logger.LogInformation("[OutboundConnectionWhitelist] Monitor-only mode - scanning netstat");
             }
 
             while (!ct.IsCancellationRequested)
@@ -900,7 +900,7 @@ namespace Sentinel.Core
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
                         RuleName = "Outbound Whitelist: Connection to Non-Whitelisted IP",
-                        Evidence = $"Established TCP connection to {remoteEndpoint} — IP not in allowed subnets",
+                        Evidence = $"Established TCP connection to {remoteEndpoint} - IP not in allowed subnets",
                         Reasoning = "An outbound connection was established to an IP address not in the configured " +
                                     "whitelist of allowed subnets. This may indicate implant C2 communication, " +
                                     "data exfiltration, or unauthorized network activity.",

@@ -10,7 +10,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// v1.8.2 — Agentic AI + package supply-chain runtime monitors.
+    /// v1.8.2 - Agentic AI + package supply-chain runtime monitors.
     /// </summary>
     public class V182FeatureTests : IDisposable
     {

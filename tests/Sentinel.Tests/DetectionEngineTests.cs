@@ -198,7 +198,7 @@ namespace Sentinel.Tests
                 engine.SubmitTelemetry(context);
                 engine.SubmitTelemetry(context);
 
-                // Poll for the first detection to land instead of a fixed delay — under full-suite
+                // Poll for the first detection to land instead of a fixed delay - under full-suite
                 // CPU contention the single-reader channel drain can lag past any fixed timeout,
                 // which previously made this test flaky (count observed as 0).
                 int count = 0;
@@ -289,7 +289,7 @@ namespace Sentinel.Tests
         [Fact]
         public async Task SubmitTelemetry_MultipleRules_AllEvaluated()
         {
-            // Register multiple rules — both should fire on their respective inputs
+            // Register multiple rules - both should fire on their respective inputs
             var rules = new List<IDetectionRule>
             {
                 new LsassAccessRule(),

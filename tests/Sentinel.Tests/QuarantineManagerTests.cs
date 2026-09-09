@@ -9,7 +9,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for QuarantineManager — verifies file quarantine, atomic move,
+    /// Tests for QuarantineManager - verifies file quarantine, atomic move,
     /// signed binary protection, and restoration logic.
     /// </summary>
     public class QuarantineManagerTests : IDisposable

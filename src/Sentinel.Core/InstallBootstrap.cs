@@ -113,7 +113,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Stop the running service, kill leftover agent, and unlock install-dir ACLs
         /// so Setup can overwrite binaries and Inno <c>unins000.*</c> stubs.
-        /// Older installed builds only stopped the service — Setup also unlocks via icacls.
+        /// Older installed builds only stopped the service - Setup also unlocks via icacls.
         /// </summary>
         public static int RunPrepareUpgrade()
         {

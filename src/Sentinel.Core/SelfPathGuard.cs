@@ -6,7 +6,7 @@ using System.Text;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v2.0 RT-HIGH-2 — Hardlink-aware self-path exclusion.
+    /// v2.0 RT-HIGH-2 - Hardlink-aware self-path exclusion.
     /// Path.GetFullPath alone does not resolve hardlinks; an attacker could hardlink
     /// malware to a path under the install directory string-prefix and skip reputation.
     /// We compare final NT path when available, plus require our known binary names.

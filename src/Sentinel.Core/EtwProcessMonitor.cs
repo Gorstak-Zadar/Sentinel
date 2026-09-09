@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// Process monitoring via ETW — delegates to UnifiedEtwSession when active.
+    /// Process monitoring via ETW - delegates to UnifiedEtwSession when active.
     /// 
     /// When UnifiedEtwSession.IsActive is true:
     ///   - ETW provides process events at ~50ms latency
@@ -41,12 +41,12 @@ namespace Sentinel.Core
             {
                 _wmiProcessMonitor?.Disable();
                 _logger.LogInformation(
-                    "[{Monitor}] UnifiedEtwSession active — process events at ~50ms. WMI disabled.", Name);
+                    "[{Monitor}] UnifiedEtwSession active - process events at ~50ms. WMI disabled.", Name);
             }
             else
             {
                 _logger.LogInformation(
-                    "[{Monitor}] UnifiedEtwSession inactive — WmiProcessMonitor provides fallback (~1-2s).", Name);
+                    "[{Monitor}] UnifiedEtwSession inactive - WmiProcessMonitor provides fallback (~1-2s).", Name);
             }
 
             return Task.CompletedTask;

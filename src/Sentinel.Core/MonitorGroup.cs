@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// Configuration for a monitor group — controls startup timing, restart policy,
+    /// Configuration for a monitor group - controls startup timing, restart policy,
     /// and resource budget for a set of related monitors.
     /// </summary>
     public sealed class MonitorGroupConfig
@@ -28,7 +28,7 @@ namespace Sentinel.Core
         /// <summary>Cooldown between restart attempts.</summary>
         public TimeSpan RestartCooldown { get; set; } = TimeSpan.FromSeconds(10);
 
-        /// <summary>Health check interval — how often to verify monitors are alive.</summary>
+        /// <summary>Health check interval - how often to verify monitors are alive.</summary>
         public TimeSpan HealthCheckInterval { get; set; } = TimeSpan.FromSeconds(30);
 
         /// <summary>If true, restart indefinitely (critical monitors).</summary>
@@ -126,7 +126,7 @@ namespace Sentinel.Core
             _logger.LogInformation("[MonitorGroup:{Group}] All monitors started ({Running}/{Total} running)",
                 _config.Name, RunningCount, _monitors.Count);
 
-            // Health check loop — restart failed monitors per group policy
+            // Health check loop - restart failed monitors per group policy
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
@@ -149,7 +149,7 @@ namespace Sentinel.Core
                     }
                     if (state.Failed && !ShouldRestart(state)) continue;
 
-                    _logger.LogWarning("[MonitorGroup:{Group}] Monitor {Monitor} is not running — attempting restart (attempt {Attempt})",
+                    _logger.LogWarning("[MonitorGroup:{Group}] Monitor {Monitor} is not running - attempting restart (attempt {Attempt})",
                         _config.Name, GetMonitorName(monitor), state.RestartAttempts + 1);
 
                     await RestartMonitorAsync(monitor, state, stoppingToken);

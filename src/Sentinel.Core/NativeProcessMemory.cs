@@ -6,7 +6,7 @@ namespace Sentinel.Core
 {
     /// <summary>
     /// Remote process inspection primitives used by the EDR engine.
-    /// Standard read-only inspection and handle operations — transparent to AV scanners.
+    /// Standard read-only inspection and handle operations - transparent to AV scanners.
     /// </summary>
     internal static class NativeProcessMemory
     {
@@ -44,7 +44,7 @@ namespace Sentinel.Core
         }
 
         // CloseHandle stays here; process-inspection APIs go through NativeResolver
-        // (plain [DllImport] — no GetProcAddress hiding; see NativeResolver remarks).
+        // (plain [DllImport] - no GetProcAddress hiding; see NativeResolver remarks).
 
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern bool CloseHandle(IntPtr hObject);
@@ -56,7 +56,7 @@ namespace Sentinel.Core
             if (SecurityValidation.IsGameOrAntiCheatProcess(pid, imagePath))
                 return false;
             imagePath ??= SecurityValidation.GetProcessImagePath(pid);
-            // Fail closed: unresolved path → no VM_READ (PPL / anti-cheat / startup race).
+            // Fail closed: unresolved path -> no VM_READ (PPL / anti-cheat / startup race).
             // Prefer missing a scan over killing interactive games.
             if (string.IsNullOrEmpty(imagePath))
                 return false;

@@ -6,7 +6,7 @@ namespace Sentinel.Tests
 {
     public class ModelsTests
     {
-        // ── DetectionEvent structured verdicts ──────────────────────────────
+        //  DetectionEvent structured verdicts 
 
         [Fact]
         public void DetectionEvent_LogOnly_IsNotKillAuthorized()
@@ -75,7 +75,7 @@ namespace Sentinel.Tests
             Assert.Empty(evt.Metadata);
         }
 
-        // ── ResponseAction enum values ──────────────────────────────────────
+        //  ResponseAction enum values 
 
         [Fact]
         public void ResponseAction_LogOnly_IsSmallestValue()
@@ -93,7 +93,7 @@ namespace Sentinel.Tests
             Assert.True(ResponseAction.QuarantineAndKill < ResponseAction.RemoveCertAndKillAdder);
         }
 
-        // ── ThreatScore ─────────────────────────────────────────────────────
+        //  ThreatScore 
 
         [Fact]
         public void ThreatScore_RequiresAction_OnMalicious()
@@ -132,7 +132,7 @@ namespace Sentinel.Tests
             Assert.Contains("150", str);
         }
 
-        // ── ProcessTelemetry ────────────────────────────────────────────────
+        //  ProcessTelemetry 
 
         [Fact]
         public void ProcessTelemetry_DefaultsAreEmpty()
@@ -144,7 +144,7 @@ namespace Sentinel.Tests
             Assert.Equal(0, pt.ParentProcessId);
         }
 
-        // ── SentinelConfig ──────────────────────────────────────────────────
+        //  SentinelConfig 
 
         [Fact]
         public void SentinelConfig_ActiveResponse_DefaultTrue()
@@ -153,7 +153,7 @@ namespace Sentinel.Tests
             Assert.True(config.ActiveResponse);
         }
 
-        // ── ConnectionHistory (BeaconingDetector support type) ──────────────
+        //  ConnectionHistory (BeaconingDetector support type) 
 
         [Fact]
         public void ConnectionHistory_RecordsTimestamps()

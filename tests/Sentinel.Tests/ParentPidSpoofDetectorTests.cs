@@ -5,7 +5,7 @@ namespace Sentinel.Tests
 {
     public class ParentPidSpoofDetectorTests
     {
-        // ── ShouldDemotePpidToLogOnly ───────────────────────────────────
+        //  ShouldDemotePpidToLogOnly 
 
         [Theory]
         [InlineData("conhost", @"C:\Windows\System32\conhost.exe", false)]
@@ -22,7 +22,7 @@ namespace Sentinel.Tests
             Assert.False(ParentPidSpoofDetector.ShouldDemotePpidToLogOnly(name, path, selfSigned));
         }
 
-        // ── IsStockWindowsConsoleHost ───────────────────────────────────
+        //  IsStockWindowsConsoleHost 
 
         [Theory]
         [InlineData("conhost", @"C:\Windows\System32\conhost.exe")]

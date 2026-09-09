@@ -1,5 +1,5 @@
-// WFP Integrity Monitor — detects Windows Filtering Platform filter manipulation targeting Sentinel
-// v1.5.0: New monitor. Critical Group — restarts indefinitely.
+// WFP Integrity Monitor - detects Windows Filtering Platform filter manipulation targeting Sentinel
+// v1.5.0: New monitor. Critical Group - restarts indefinitely.
 
 using System;
 using System.Collections.Generic;
@@ -35,7 +35,7 @@ namespace Sentinel.Core
     ///   - Bulk WFP filter additions (>10 BLOCK filters in one scan)
     ///   - Filters targeting common EDR process names (broader detection)
     ///
-    /// v1.5.0: Addresses critical gap — EDRSilencer is open-source and trivial to deploy.
+    /// v1.5.0: Addresses critical gap - EDRSilencer is open-source and trivial to deploy.
     /// </summary>
     public sealed class WfpIntegrityMonitor : BackgroundService
     {
@@ -90,9 +90,9 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[WfpIntegrityMonitor] Started — scanning WFP filters for EDRSilencer activity every 30s");
+            _logger.LogInformation("[WfpIntegrityMonitor] Started - scanning WFP filters for EDRSilencer activity every 30s");
 
-            // Initial delay — let the system stabilize
+            // Initial delay - let the system stabilize
             await Task.Delay(20000, ct);
 
             while (!ct.IsCancellationRequested)
@@ -165,7 +165,7 @@ namespace Sentinel.Core
         {
             if (string.IsNullOrEmpty(filterXml)) return;
 
-            // Split into individual filter blocks (rough parse — WFP output is structured XML)
+            // Split into individual filter blocks (rough parse - WFP output is structured XML)
             var filterBlocks = filterXml.Split(new[] { "<item>" }, StringSplitOptions.RemoveEmptyEntries);
 
             int currentBlockFilters = 0;
@@ -215,7 +215,7 @@ namespace Sentinel.Core
                 return;
             }
 
-            // ─── Detection 1: Filter directly targeting Sentinel ───
+            //  Detection 1: Filter directly targeting Sentinel 
             if (sentinelTargetingFilters.Count > 0)
             {
                 var alertKey = $"WFP_Sentinel:{string.Join(",", sentinelTargetingFilters.Take(3))}";
@@ -233,7 +233,7 @@ namespace Sentinel.Core
                                     "from making outbound network connections. This is the exact technique used by " +
                                     "EDRSilencer (open-source tool) to blind EDR products without terminating them. " +
                                     "The EDR continues running but cannot reach any threat intelligence API. " +
-                                    "This is a critical self-protection tampering event — investigate immediately.",
+                                    "This is a critical self-protection tampering event - investigate immediately.",
                         Confidence = 0.97,
                         Tier = DetectionTier.Tier1Behavioral,
                         AuthorizedResponse = ResponseAction.KillProcessTree,
@@ -253,7 +253,7 @@ namespace Sentinel.Core
                 }
             }
 
-            // ─── Detection 2: Bulk BLOCK filter addition (EDRKillShifter targeting many tools) ───
+            //  Detection 2: Bulk BLOCK filter addition (EDRKillShifter targeting many tools) 
             if (currentBlockFilters > _baselineBlockFilterCount + 10)
             {
                 var alertKey = $"WFP_Bulk:{currentBlockFilters}";
@@ -290,7 +290,7 @@ namespace Sentinel.Core
                 }
             }
 
-            // ─── Detection 3: EDR processes being blocked (even if not Sentinel) ───
+            //  Detection 3: EDR processes being blocked (even if not Sentinel) 
             if (edrTargetingFilters.Count >= 3 && sentinelTargetingFilters.Count == 0)
             {
                 var alertKey = $"WFP_EDR:{edrTargetingFilters.Count}";
@@ -322,16 +322,16 @@ namespace Sentinel.Core
                 }
             }
 
-            // Update baseline (only increase — decreases might be our own remediation)
+            // Update baseline (only increase - decreases might be our own remediation)
             if (currentBlockFilters > _baselineBlockFilterCount + 10)
             {
-                // Don't update baseline on surge — keep original for continued detection
+                // Don't update baseline on surge - keep original for continued detection
             }
         }
 
         /// <summary>
         /// Attempts to remove WFP filters targeting Sentinel by resetting the WFP engine.
-        /// This is a defensive action — if an attacker adds filters, we try to remove them.
+        /// This is a defensive action - if an attacker adds filters, we try to remove them.
         /// </summary>
         private async Task AttemptFilterRemovalAsync(List<string> targetingFilters, CancellationToken ct)
         {
@@ -339,7 +339,7 @@ namespace Sentinel.Core
             {
                 _logger.LogWarning("[WfpIntegrityMonitor] Attempting to reset WFP filters blocking Sentinel...");
 
-                // Use netsh to reset WFP — this removes all non-persistent filters
+                // Use netsh to reset WFP - this removes all non-persistent filters
                 // Persistent filters added by legitimate software (firewall) survive this
                 var psi = new ProcessStartInfo
                 {
@@ -369,7 +369,7 @@ namespace Sentinel.Core
                     CreateNoWindow = true,
                 };
 
-                // Note: Stopping BFE is aggressive — only do it when confirmed under attack
+                // Note: Stopping BFE is aggressive - only do it when confirmed under attack
                 // For now, just log the recommendation
                 _logger.LogWarning(
                     "[WfpIntegrityMonitor] To remove EDRSilencer filters, restart the BFE service: " +

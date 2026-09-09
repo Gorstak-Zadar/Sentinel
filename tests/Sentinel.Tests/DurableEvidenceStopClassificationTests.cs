@@ -7,7 +7,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// B1 (durable evidence survival) — stop classification (R1/R3).
+    /// B1 (durable evidence survival) - stop classification (R1/R3).
     /// Verifies ShutdownContext lifecycle signalling and the append-only audit records
     /// written by JsonlEventLogger for expected vs suspicious service stops.
     /// </summary>
@@ -123,7 +123,7 @@ namespace Sentinel.Tests
             }
         }
 
-        // ── helpers ─────────────────────────────────────────────────────
+        //  helpers 
 
         private static (JsonlEventLogger logger, string tempDir) MakeLogger()
         {
@@ -137,7 +137,7 @@ namespace Sentinel.Tests
         {
             var auditFile = Directory.GetFiles(tempDir, "audit-*.jsonl").FirstOrDefault();
             Assert.NotNull(auditFile);
-            // File is opened with FileShare.Read — safe to read while the writer holds it.
+            // File is opened with FileShare.Read - safe to read while the writer holds it.
             using var fs = new FileStream(auditFile!, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             using var sr = new StreamReader(fs);
             return sr.ReadToEnd();

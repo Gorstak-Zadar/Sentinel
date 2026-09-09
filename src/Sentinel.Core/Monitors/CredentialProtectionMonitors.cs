@@ -1,4 +1,4 @@
-// Credential Protection Monitor Group — canary files, browser credential guards, account guards, and password rotation
+// Credential Protection Monitor Group - canary files, browser credential guards, account guards, and password rotation
 
 using System;
 using System.Collections.Concurrent;
@@ -19,9 +19,9 @@ using Microsoft.Win32;
 
 namespace Sentinel.Core
 {
-    // ──────────────────────────────────────────────
-    // Canary File Monitor — honeypot files in sensitive directories
-    // ──────────────────────────────────────────────
+    // 
+    // Canary File Monitor - honeypot files in sensitive directories
+    // 
     public sealed class CanaryFileMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -89,10 +89,10 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Browser Credential Guard — unified monitor for browser credential/session theft
+    // 
+    // Browser Credential Guard - unified monitor for browser credential/session theft
     // Covers Chrome, Edge, and Firefox credential stores and cookie databases
-    // ──────────────────────────────────────────────
+    // 
     public sealed class BrowserCredentialGuard : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -120,7 +120,7 @@ namespace Sentinel.Core
                 targets.Add(("Edge", Path.Combine(localAppData, @"Microsoft\Edge\User Data\Default\Network\Cookies"), "msedge", "session theft"));
             }
 
-            // Firefox logins.json — multiple profiles possible
+            // Firefox logins.json - multiple profiles possible
             if (!string.IsNullOrEmpty(roamingAppData))
             {
                 var profilesDir = Path.Combine(roamingAppData, @"Mozilla\Firefox\Profiles");
@@ -164,9 +164,9 @@ namespace Sentinel.Core
                                     RuleName = $"Browser {dataType} Theft: {browserName} {fileName} Modified While Browser Closed",
                                     Evidence = $"{browserName} {fileName} modified at {current:O} while {processName}.exe is not running",
                                     Reasoning = $"{browserName} {description} store was modified while the browser was not running, indicating {description}. " +
-                                                "No browser process is running to attribute the access — check recent process history for credential theft tools.",
+                                                "No browser process is running to attribute the access - check recent process history for credential theft tools.",
                                     Confidence = 0.85, Tier = DetectionTier.Tier1Behavioral,
-                                    // Cannot kill PID 0 — the accessor process has already exited or was not identified.
+                                    // Cannot kill PID 0 - the accessor process has already exited or was not identified.
                                     // Log the event for correlation; the analyst or a follow-up scan should identify the stealer.
                                     AuthorizedResponse = ResponseAction.LogOnly,
                                     ProcessName = "SYSTEM", ProcessId = 0
@@ -183,10 +183,10 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // ──────────────────────────────────────────────
-    // Microsoft Account Guard — watches for token files
-    // ──────────────────────────────────────────────
+    // 
+    // 
+    // Microsoft Account Guard - watches for token files
+    // 
     public sealed class MicrosoftAccountGuardMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -270,11 +270,11 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Null Session Guard — actively blocks blank-password network logon exposure
+    // 
+    // Null Session Guard - actively blocks blank-password network logon exposure
     // by enforcing security policy that restricts network access without credentials.
     // Also hardens against FCM push-triggered tab opens following MitM cert attacks.
-    // ──────────────────────────────────────────────
+    // 
     public sealed class NullSessionGuard : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -312,7 +312,7 @@ namespace Sentinel.Core
                              && (_config.MitmDefense?.BlockFcmPushChannel ?? true));
 
             _logger.LogInformation(
-                "[NullSessionGuard] Started — blank-password network restrictions; FCM block={Fcm} (MitmDefense={Mitm})",
+                "[NullSessionGuard] Started - blank-password network restrictions; FCM block={Fcm} (MitmDefense={Mitm})",
                 fcmOn ? "ON (post-incident / MitM suite)" : "OFF (observe-only default)",
                 ProductPosture.AllowsMitmDefenseMutations(_config));
 
@@ -364,7 +364,7 @@ namespace Sentinel.Core
 
                         if (removed)
                             _logger.LogWarning(
-                                "[NullSessionGuard] Removed leftover {Rule} (BlockFcmPushChannel=false — no preemptive FCM block)",
+                                "[NullSessionGuard] Removed leftover {Rule} (BlockFcmPushChannel=false - no preemptive FCM block)",
                                 FcmFirewallRuleName);
                     }
                 }
@@ -384,10 +384,10 @@ namespace Sentinel.Core
         /// Enforces Windows security policies that prevent blank-password accounts from
         /// being accessed over the network. This is the ACTIVE protection:
         /// 
-        /// 1. LimitBlankPasswordUse = 1 — blocks network logon for accounts with empty passwords
+        /// 1. LimitBlankPasswordUse = 1 - blocks network logon for accounts with empty passwords
         ///    (prevents SMB null-session, RDP without password, WinRM without password)
-        /// 2. RestrictAnonymous = 1 — prevents anonymous enumeration of SAM accounts and shares
-        /// 3. EveryoneIncludesAnonymous = 0 — anonymous tokens excluded from Everyone group
+        /// 2. RestrictAnonymous = 1 - prevents anonymous enumeration of SAM accounts and shares
+        /// 3. EveryoneIncludesAnonymous = 0 - anonymous tokens excluded from Everyone group
         ///
         /// If an attacker reverts these, the monitor detects and re-applies within 60s.
         /// </summary>
@@ -461,7 +461,7 @@ namespace Sentinel.Core
             }
             else if (anyChanged)
             {
-                // Policy was reverted by something — attacker or GPO. Re-applied.
+                // Policy was reverted by something - attacker or GPO. Re-applied.
                 await _detectionEngine.EmitAsync(new DetectionEvent
                 {
                     RuleName = "Anti-Tamper: Null Session Policy Reverted and Re-Applied",
@@ -483,9 +483,9 @@ namespace Sentinel.Core
         /// Blocks outbound traffic to Google FCM port 5228 via Windows Firewall.
         ///
         /// Attack chain:
-        ///   1. Attacker plants MitM root cert → intercepts HTTPS → steals Chrome sync tokens
+        ///   1. Attacker plants MitM root cert -> intercepts HTTPS -> steals Chrome sync tokens
         ///   2. With stolen tokens, attacker uses "Send Tab to Self" via FCM push
-        ///   3. Chrome receives FCM push on port 5228 → opens attacker-controlled URL
+        ///   3. Chrome receives FCM push on port 5228 -> opens attacker-controlled URL
         ///   4. URL exploits browser or phishes credentials
         ///
         /// By blocking port 5228, we sever the FCM push channel completely.
@@ -541,14 +541,14 @@ namespace Sentinel.Core
 
                         policy.Rules.Add(newRule);
 
-                        _logger.LogWarning("[NullSessionGuard] BLOCKED outbound port {Port} (Google FCM push) — prevents remote tab injection", FcmPort);
+                        _logger.LogWarning("[NullSessionGuard] BLOCKED outbound port {Port} (Google FCM push) - prevents remote tab injection", FcmPort);
 
                         await _detectionEngine.EmitAsync(new DetectionEvent
                         {
                             RuleName = "Hardening: FCM Push Channel Blocked",
                             Evidence = $"Firewall rule '{FcmFirewallRuleName}' created blocking outbound TCP port {FcmPort}",
                             Reasoning = "Blocked Google Firebase Cloud Messaging (FCM) port 5228 outbound. " +
-                                        "Attack chain: MitM cert → HTTPS intercept → Chrome token theft → FCM 'Send Tab to Self' → " +
+                                        "Attack chain: MitM cert -> HTTPS intercept -> Chrome token theft -> FCM 'Send Tab to Self' -> " +
                                         "arbitrary URL opens on this machine. Blocking FCM severs this attack vector permanently. " +
                                         "Chrome browsing, bookmark sync, and password sync continue to work normally via HTTPS (port 443). " +
                                         "Only real-time push notifications are disabled.",
@@ -604,8 +604,8 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Builtin Admin Guard — detects and disables the built-in Administrator account.
+    // 
+    // Builtin Admin Guard - detects and disables the built-in Administrator account.
     // The built-in Administrator account (RID 500) should NEVER be active on a
     // personal workstation. Attackers enable it for backdoor access because it:
     //   1. Has a blank password by default on many installs
@@ -613,7 +613,7 @@ namespace Sentinel.Core
     //   3. Survives user profile deletion
     //   4. Is visible on the login screen, inviting interactive logon
     // v1.4.1: Introduced after an active intrusion enabled it to establish persistence.
-    // ──────────────────────────────────────────────
+    // 
     public sealed class BuiltinAdminGuard : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -629,7 +629,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[BuiltinAdminGuard] Started — monitoring built-in Administrator account state");
+            _logger.LogInformation("[BuiltinAdminGuard] Started - monitoring built-in Administrator account state");
 
             // Check immediately at startup
             await CheckAndDisableBuiltinAdmin("Startup", ct);
@@ -659,7 +659,7 @@ namespace Sentinel.Core
 
                 if (isActive)
                 {
-                    _logger.LogWarning("[BuiltinAdminGuard] Built-in Administrator account is ENABLED (trigger: {Trigger}) — disabling immediately", trigger);
+                    _logger.LogWarning("[BuiltinAdminGuard] Built-in Administrator account is ENABLED (trigger: {Trigger}) - disabling immediately", trigger);
 
                     // Disable it
                     if (ResponsePolicy.MayPerformInlineHostMutation(_config))
@@ -671,7 +671,7 @@ namespace Sentinel.Core
                     {
                         RuleName = "Account Tampering: Built-in Administrator Enabled",
                         Evidence = $"The built-in Administrator account (RID 500) was found ACTIVE (trigger: {trigger}). " +
-                                   (ResponsePolicy.MayPerformInlineHostMutation(_config) ? "Account has been disabled." : "Active response is off — account remains enabled."),
+                                   (ResponsePolicy.MayPerformInlineHostMutation(_config) ? "Account has been disabled." : "Active response is off - account remains enabled."),
                         Reasoning = "The built-in Administrator account should never be active on a personal workstation. " +
                                     "It has no UAC restrictions, may have a blank password, and is a common attacker backdoor. " +
                                     "An attacker with admin/SYSTEM access enables it via 'net user Administrator /active:yes' " +
@@ -710,7 +710,7 @@ namespace Sentinel.Core
     }
 
     /// <summary>
-    /// SAM query/set for RID 500 via NetUser APIs — no net.exe.
+    /// SAM query/set for RID 500 via NetUser APIs - no net.exe.
     /// USER_INFO_1008 updates flags only (does not touch the password).
     /// </summary>
     internal static class BuiltinAdminAccount
@@ -798,16 +798,16 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Password Rotation Guard — rotates the local account password every 10 minutes
+    // 
+    // Password Rotation Guard - rotates the local account password every 10 minutes
     // and enforces UAC ConsentPromptBehaviorAdmin = 5 (consent, not a password prompt).
     //
     // Design constraints:
     //   - User must be able to log in at boot, restart, hibernate, and lock screen
     //   - Solution: Windows auto-logon is configured with the current rotated password
     //     so boot/restart/hibernate log in seamlessly without user input.
-    //   - For lock screen: user should set up a Windows Hello PIN (Settings → Accounts →
-    //     Sign-in options → PIN). PIN works independently of the account password.
+    //   - For lock screen: user should set up a Windows Hello PIN (Settings -> Accounts ->
+    //     Sign-in options -> PIN). PIN works independently of the account password.
     //   - If no PIN is configured: Sentinel sets the screen lock timeout to "Never"
     //     to prevent lockout scenarios. The machine won't auto-lock.
     //
@@ -820,8 +820,8 @@ namespace Sentinel.Core
     //
     // IMPORTANT: Only applies to LOCAL accounts. Microsoft accounts are skipped.
     //
-    // v1.4.2: New monitor — response to active intrusion via blank-password local account.
-    // ──────────────────────────────────────────────
+    // v1.4.2: New monitor - response to active intrusion via blank-password local account.
+    // 
     public sealed class PasswordRotationGuard : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -841,7 +841,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[PasswordRotationGuard] Started — rotating local account passwords every 10 minutes, UAC=5");
+            _logger.LogInformation("[PasswordRotationGuard] Started - rotating local account passwords every 10 minutes, UAC=5");
 
             // Initial enforcement
             EnforceUacPolicy();
@@ -916,7 +916,7 @@ namespace Sentinel.Core
                 winlogon.SetValue("DefaultUserName", username, RegistryValueKind.String);
                 winlogon.SetValue("DefaultDomainName", Environment.MachineName, RegistryValueKind.String);
 
-                // Disable Ctrl+Alt+Del requirement — needed for seamless auto-logon
+                // Disable Ctrl+Alt+Del requirement - needed for seamless auto-logon
                 winlogon.SetValue("DisableCAD", 1, RegistryValueKind.DWord);
 
                 // Remove values that block seamless auto-logon
@@ -928,7 +928,7 @@ namespace Sentinel.Core
                 // Remove any plaintext DefaultPassword that may exist from prior versions.
                 winlogon.DeleteValue("DefaultPassword", throwOnMissingValue: false);
 
-                // Store via LSA secret — only SYSTEM can read it, Windows uses it for auto-logon
+                // Store via LSA secret - only SYSTEM can read it, Windows uses it for auto-logon
                 StoreAutoLogonPasswordAsLsaSecret(password);
 
                 _logger.LogDebug("[PasswordRotationGuard] Auto-logon configured for '{User}' (LSA secret)", username);
@@ -987,7 +987,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Stores the auto-logon password as an LSA secret named "DefaultPassword".
-        /// This is the same mechanism Windows uses internally — the password is encrypted
+        /// This is the same mechanism Windows uses internally - the password is encrypted
         /// and only accessible to SYSTEM.
         /// </summary>
         private void StoreAutoLogonPasswordAsLsaSecret(string password)
@@ -1071,7 +1071,7 @@ namespace Sentinel.Core
                     @"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{D6886603-9D2F-4EB2-B667-1971041FA96B}");
                 if (key != null)
                 {
-                    // PIN credential provider is registered — check if it has enrolled credentials
+                    // PIN credential provider is registered - check if it has enrolled credentials
                     using var logonKey = Registry.CurrentUser.OpenSubKey(
                         @"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\NgcPin");
                     return logonKey != null;
@@ -1099,7 +1099,7 @@ namespace Sentinel.Core
                 }
 
                 // Disable console lock display off timeout via power policy
-                // (this is a best-effort — power settings are complex)
+                // (this is a best-effort - power settings are complex)
                 using var powerKey = Registry.LocalMachine.OpenSubKey(
                     @"SYSTEM\CurrentControlSet\Control\Power\PowerSettings\7516b95f-f776-4464-8c53-06167f40cc99\8EC4B3A5-6868-48c2-BE75-4F3044BE88A7",
                     writable: true);

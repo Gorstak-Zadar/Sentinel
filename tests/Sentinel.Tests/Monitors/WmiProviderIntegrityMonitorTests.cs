@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for WmiProviderIntegrityMonitor — validates detection of malicious WMI provider DLLs.
+    /// Tests for WmiProviderIntegrityMonitor - validates detection of malicious WMI provider DLLs.
     ///
     /// Scenario: A performance-throttling rootkit registers a WMI provider DLL in a sensitive
     /// namespace (root\WMI, root\Intel\DTT, root\CIMV2\power) to intercept thermal/power
@@ -26,7 +26,7 @@ namespace Sentinel.Tests.Monitors
     /// </summary>
     public class WmiProviderIntegrityMonitorTests
     {
-        // ── Lifecycle Tests ────────────────────────────────────────────────
+        //  Lifecycle Tests 
 
         [Fact]
         public async Task Monitor_StartsAndStopsCleanly()
@@ -78,7 +78,7 @@ namespace Sentinel.Tests.Monitors
                 engine.Stop();
                 await logger.DisposeAsync();
 
-                // Read events — should have NO Tier1 alerts for standard Windows providers
+                // Read events - should have NO Tier1 alerts for standard Windows providers
                 var logContent = "";
                 if (File.Exists(logger.LogFilePath))
                     logContent = File.ReadAllText(logger.LogFilePath);
@@ -92,13 +92,13 @@ namespace Sentinel.Tests.Monitors
             }
         }
 
-        // ── Detection Emission Tests ──────────────────────────────────────
+        //  Detection Emission Tests 
 
         [Fact]
         public async Task DetectionEngine_EmitAsync_ProducesEventForMaliciousProvider()
         {
             // Simulate what the monitor would emit when it finds an unsigned provider
-            // in a sensitive namespace — test the detection pipeline end-to-end
+            // in a sensitive namespace - test the detection pipeline end-to-end
             var (engine, logger, tempDir) = CreateDetectionEngine();
             try
             {
@@ -217,7 +217,7 @@ namespace Sentinel.Tests.Monitors
             }
         }
 
-        // ── Detection Property Validation ─────────────────────────────────
+        //  Detection Property Validation 
 
         [Fact]
         public void RootkitDetection_HasCorrectTier()
@@ -265,7 +265,7 @@ namespace Sentinel.Tests.Monitors
                            $"Provider: 'FakeThrottler', Namespace: '{ns}', " +
                            $"CLSID: {{DEADBEEF-0000-0000-0000-000000000000}}, " +
                            $"DLL: 'C:\\Windows\\Temp\\throttle.dll', NewAtRuntime: True",
-                Reasoning = "Unsigned DLL in power/thermal namespace — performance throttling rootkit.",
+                Reasoning = "Unsigned DLL in power/thermal namespace - performance throttling rootkit.",
                 Confidence = 0.88,
                 Tier = DetectionTier.Tier1Behavioral,
                 AuthorizedResponse = ResponseAction.KillProcess,
@@ -277,13 +277,13 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(DetectionTier.Tier1Behavioral, detection.Tier);
         }
 
-        // ── Scenario Tests: Real-World Rootkit Patterns ───────────────────
+        //  Scenario Tests: Real-World Rootkit Patterns 
 
         [Fact]
         public void Scenario_IntelDttThrottleRootkit()
         {
             // Scenario: Rootkit registers as Intel DTT provider to fake thermal readings
-            // Result: CPU thinks it's overheating → throttles to lowest P-state
+            // Result: CPU thinks it's overheating -> throttles to lowest P-state
             var detection = new DetectionEvent
             {
                 RuleName = "WMI Provider Integrity: Unsigned Provider in Sensitive Namespace",
@@ -313,7 +313,7 @@ namespace Sentinel.Tests.Monitors
         public void Scenario_PowerPolicyManipulationRootkit()
         {
             // Scenario: Rootkit registers in root\CIMV2\power to intercept Win32_PowerPlan queries
-            // Result: Returns fake EPP values → Windows sends "power save" hints → CPU clocks down
+            // Result: Returns fake EPP values -> Windows sends "power save" hints -> CPU clocks down
             var detection = new DetectionEvent
             {
                 RuleName = "WMI Provider Integrity: Unsigned Provider in Sensitive Namespace",
@@ -409,19 +409,19 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(expectedSystem, isSystem);
         }
 
-        // ── Confidence Ladder Tests ───────────────────────────────────────
+        //  Confidence Ladder Tests 
 
         [Fact]
         public void ConfidenceLadder_SensitiveNamespace_Highest()
         {
-            // Unsigned in sensitive namespace → 0.88 (highest for this monitor)
+            // Unsigned in sensitive namespace -> 0.88 (highest for this monitor)
             Assert.Equal(0.88, CreateRootkitDetection().Confidence);
         }
 
         [Fact]
         public void ConfidenceLadder_NonSystemPath_RuntimeNew()
         {
-            // New at runtime + unsigned + non-system path → 0.82
+            // New at runtime + unsigned + non-system path -> 0.82
             var detection = new DetectionEvent
             {
                 RuleName = "WMI Provider Integrity: Unsigned Provider from Non-System Path",
@@ -438,7 +438,7 @@ namespace Sentinel.Tests.Monitors
         [Fact]
         public void ConfidenceLadder_NonSystemPath_Baseline()
         {
-            // Already in baseline + unsigned + non-system path → 0.75
+            // Already in baseline + unsigned + non-system path -> 0.75
             var detection = new DetectionEvent
             {
                 RuleName = "WMI Provider Integrity: Unsigned Provider from Non-System Path",
@@ -454,7 +454,7 @@ namespace Sentinel.Tests.Monitors
         [Fact]
         public void ConfidenceLadder_RuntimeNewUnsigned_Tier2()
         {
-            // New at runtime + unsigned + system path → 0.70 (Tier2)
+            // New at runtime + unsigned + system path -> 0.70 (Tier2)
             var detection = new DetectionEvent
             {
                 RuleName = "WMI Provider Integrity: New Unsigned Provider at Runtime",
@@ -467,7 +467,7 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(DetectionTier.Tier2Indicator, detection.Tier);
         }
 
-        // ── Helper Methods ────────────────────────────────────────────────
+        //  Helper Methods 
 
         private static DetectionEvent CreateRootkitDetection()
         {

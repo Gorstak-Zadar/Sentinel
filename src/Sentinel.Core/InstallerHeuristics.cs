@@ -8,7 +8,7 @@ namespace Sentinel.Core
     /// <summary>
     /// Shared installer / packager heuristics used by PPID spoof, ransomware IO,
     /// ephemeral process, and token monitors to avoid treating official installs as malware.
-    /// Name patterns alone are never sufficient for kill decisions — callers must also
+    /// Name patterns alone are never sufficient for kill decisions - callers must also
     /// require Authenticode or path context where trust is granted.
     /// </summary>
     public static class InstallerHeuristics
@@ -115,7 +115,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// v1.8.1 RT-LOW-2: Path must look like a real install/download location before
-        /// HighRisk→Tier2 demotion applies. Blocks evasion via ChromeSetup.exe in
+        /// HighRisk->Tier2 demotion applies. Blocks evasion via ChromeSetup.exe in
         /// AppData\Roaming or arbitrary Temp without installer-extractor context.
         /// </summary>
         public static bool IsLikelyInstallerPath(string? imagePath)
@@ -185,7 +185,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Steam / game DirectX, VC++/XNA redistributables, GPU runtime drops.
         /// These write System32 DLLs and look "suspicious" but must never be kill-grade
-        /// or composite legs — at most Tier2 observe noise.
+        /// or composite legs - at most Tier2 observe noise.
         /// </summary>
         public static bool IsDirectXOrRuntimeRedist(string? processName, string? imagePath = null)
         {
@@ -243,7 +243,7 @@ namespace Sentinel.Core
         /// Portable download / archive / offline-image tools used by UUP dump converters,
         /// Chocolatey, winget scripts, MSMG Toolkit, NTLite, etc.
         /// These commonly run from Downloads/Temp and may inherit SeImpersonatePrivilege from
-        /// an elevated parent shell — that is NOT potato-class token theft.
+        /// an elevated parent shell - that is NOT potato-class token theft.
         /// Name alone is weak trust: pair with path checks when granting broad exemptions.
         /// </summary>
         private static readonly HashSet<string> PortableDownloadArchiveTools = new(StringComparer.OrdinalIgnoreCase)

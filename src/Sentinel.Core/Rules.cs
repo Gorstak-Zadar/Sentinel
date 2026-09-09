@@ -122,7 +122,7 @@ namespace Sentinel.Core
 
                     if (hasEscalationIndicator)
                     {
-                        // Combined with evasion flags or network indicators → Tier1 + Kill
+                        // Combined with evasion flags or network indicators -> Tier1 + Kill
                         return new DetectionEvent
                         {
                             RuleName = Name,
@@ -139,7 +139,7 @@ namespace Sentinel.Core
                     }
                     else
                     {
-                        // Encoded command alone → Tier2 (log only, no kill)
+                        // Encoded command alone -> Tier2 (log only, no kill)
                         return new DetectionEvent
                         {
                             RuleName = Name,
@@ -180,7 +180,7 @@ namespace Sentinel.Core
             if (!ThreatIntelMap.IsRemoteInjection(tit.ApiName))
                 return null;
 
-            // Browser sandbox: chrome→chrome is normal. chrome→lsass is not.
+            // Browser sandbox: chrome->chrome is normal. chrome->lsass is not.
             if (KnownBrowserProcesses.Contains(tit.ProcessName) &&
                 tit.TargetProcessId != 4 &&
                 !IsSensitiveTargetName(tit.TargetProcessId))
@@ -269,7 +269,7 @@ namespace Sentinel.Core
                     if (cmd.Contains(pattern) ||
                         image.Contains(pattern))
                     {
-                        // Skip legitimate uses — these only trigger when spawned by non-explorer parents
+                        // Skip legitimate uses - these only trigger when spawned by non-explorer parents
                         if (pattern.EndsWith(".exe") && pt.ParentProcessName?.Equals("explorer") == true)
                             continue;
 
@@ -323,7 +323,7 @@ namespace Sentinel.Core
         private static readonly (string Pattern, string Category)[] ToolSignatures = new[]
         {
             // C2 frameworks. Plaintext: the C# spec folds "co" + "balt" back to "cobalt"
-            // in the compiled PE anyway, so source-splitting is cosmetic — and the split
+            // in the compiled PE anyway, so source-splitting is cosmetic - and the split
             // PATTERN itself is what ML AV (Kaspersky/Defender) scores as evasion. Plaintext
             // in a signed binary reads as a security product; obfuscation reads as malware.
             ("cobalt", "C2"), ("cobeacon", "C2"), ("beacon.dll", "C2"),
@@ -483,7 +483,7 @@ namespace Sentinel.Core
                             // Check for word boundary in command line: pattern preceded/followed by non-alphanumeric
                             bool hasWordBoundary = HasWordBoundaryMatch(cmd, pattern);
                             if (!isExactFilename && !hasWordBoundary)
-                                continue; // Substring match without boundary — skip
+                                continue; // Substring match without boundary - skip
                         }
 
                         return new DetectionEvent
@@ -522,7 +522,7 @@ namespace Sentinel.Core
             "windowsupdate.exe", "windowsdefender.exe",
             "chrome_update.exe", "firefox_update.exe",
             "system32.exe", "kernel32.exe",
-            // Lazarus Operation Dream Job (Aug 2026) — distinctive names only
+            // Lazarus Operation Dream Job (Aug 2026) - distinctive names only
             "securitypdf.exe", "afd4eop12_x64.dll",
         };
 
@@ -730,8 +730,8 @@ namespace Sentinel.Core
 
     /// <summary>
     /// Detects ClickFix / FakeCAPTCHA paste-and-run tradecraft.
-    /// Intel 2025–2026 (Microsoft, ESET +500%, Malwarebytes, Krebs): fake reCAPTCHA/Turnstile
-    /// pages instruct users to Win+R → paste PowerShell/cmd that downloads stealers/RATs.
+    /// Intel 2025-2026 (Microsoft, ESET +500%, Malwarebytes, Krebs): fake reCAPTCHA/Turnstile
+    /// pages instruct users to Win+R -> paste PowerShell/cmd that downloads stealers/RATs.
     /// </summary>
     [RuleCategory(DetectionCategory.ReverseShell)]
     public class ClickFixDetectionRule : IDetectionRule
@@ -772,7 +772,7 @@ namespace Sentinel.Core
             if (!isExplorerOrBrowserParent || !isSuspiciousShell)
                 return null;
 
-            // v1.6.1: Expanded payload signatures from 2025–26 ClickFix campaigns
+            // v1.6.1: Expanded payload signatures from 2025-26 ClickFix campaigns
             bool isClickFixPayload =
                 cmd.Contains("frombase64string") ||
                 cmd.Contains("downloadstring") ||
@@ -887,7 +887,7 @@ namespace Sentinel.Core
                 Evidence = $"Node/npm parent spawned shell with download/encode payload: {pt.CommandLine}",
                 Reasoning =
                     "Package-manager process (node/npm/yarn/pnpm) launched a shell with network download or " +
-                    "encoded execution — consistent with malicious postinstall/preinstall scripts in npm " +
+                    "encoded execution - consistent with malicious postinstall/preinstall scripts in npm " +
                     "supply-chain attacks (e.g. 2025 Shai-Hulud/Tinycolor waves)."
             };
         }
@@ -915,12 +915,12 @@ namespace Sentinel.Core
                 var cmd = (pt.CommandLine ?? "").ToLowerInvariant();
                 if (cmd.Contains("--remote-debugging-port"))
                 {
-                    // Check who launched it — if parent is a known browser (self-spawn), skip
+                    // Check who launched it - if parent is a known browser (self-spawn), skip
                     if (!string.IsNullOrEmpty(pt.ParentProcessName))
                     {
                         var parentName = Sentinel.Core.StringNet48.ReplaceIgnoreCase(pt.ParentProcessName, ".exe", "");
                         if (BrowserProcesses.Contains(parentName))
-                            return null; // Browser spawning its own subprocess with debug port — normal
+                            return null; // Browser spawning its own subprocess with debug port - normal
                     }
 
                     return new DetectionEvent
@@ -999,21 +999,21 @@ namespace Sentinel.Core
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
+    // 
     // Full-Path Parent-Child Verification Rule  (SENT-003)
     // Ported from GorstaksProtection SuspiciousParentChildRule.cs
-    // ─────────────────────────────────────────────────────────────────────────
+    // 
 
     /// <summary>
     /// Detects Office apps, browsers, and PDF readers spawning shells / scripting
-    /// engines — with FULL PATH verification of the parent binary.
+    /// engines - with FULL PATH verification of the parent binary.
     ///
     /// Why full-path? Sentinel's AttackToolsRule matches parent by process name only,
     /// which an attacker can trivially spoof by naming malware "winword.exe".
     /// This rule also verifies that the parent lives in a known legitimate install
-    /// path before firing — a winword.exe in C:\Temp\ is NOT a genuine Office install.
+    /// path before firing - a winword.exe in C:\Temp\ is NOT a genuine Office install.
     ///
-    /// Confidence: 0.75  →  Tier2 / LogOnly (feeds BehavioralCorrelationEngine).
+    /// Confidence: 0.75  ->  Tier2 / LogOnly (feeds BehavioralCorrelationEngine).
     /// The correlation engine promotes to Tier1 once additional signals arrive.
     /// </summary>
     [RuleCategory(DetectionCategory.AttackOnUser)]
@@ -1021,7 +1021,7 @@ namespace Sentinel.Core
     {
         public string Name => "FullPathParentChildRule";
 
-        // Map: parent exe name (lowercase) → known legitimate install path fragments (lowercase)
+        // Map: parent exe name (lowercase) -> known legitimate install path fragments (lowercase)
         // If the parent's ImagePath contains NONE of these, the binary is not a genuine install.
         private static readonly Dictionary<string, string[]> ParentExpectedPaths =
             new(StringComparer.OrdinalIgnoreCase)
@@ -1045,7 +1045,7 @@ namespace Sentinel.Core
             ["cscript.exe"]  = new[] { "\\system32\\", "\\syswow64\\" },
         };
 
-        // Map: parent exe name → child exe names that are suspicious for THIS parent
+        // Map: parent exe name -> child exe names that are suspicious for THIS parent
         private static readonly Dictionary<string, HashSet<string>> ChildrenByParent =
             new(StringComparer.OrdinalIgnoreCase)
         {
@@ -1082,7 +1082,7 @@ namespace Sentinel.Core
             if (!suspiciousChildren.Contains(pt.ProcessName))
                 return null;
 
-            // 3. FULL PATH VERIFICATION — confirm the parent binary lives in a known
+            // 3. FULL PATH VERIFICATION - confirm the parent binary lives in a known
             //    legitimate install directory. This is the key improvement over the
             //    existing AttackToolsRule which checks name only.
             //    If we have no path for this parent, fall through (fail-open for coverage).
@@ -1090,7 +1090,7 @@ namespace Sentinel.Core
             {
                 // We need the parent's image path. It may be in ImagePath if ETW provided it,
                 // or we can derive it from the ProcessAncestryCache if available.
-                // For now we use ParentProcessName as the fallback path check key — the
+                // For now we use ParentProcessName as the fallback path check key - the
                 // real image path comparison requires ETW parent path, stored in pt.ImagePath
                 // for the parent. We use a conservative check: if the process is a child of
                 // a well-known app but the child process name alone matched, still validate
@@ -1103,7 +1103,7 @@ namespace Sentinel.Core
                     if (parentPath.Contains(fragment))
                     { pathLegitimate = true; break; }
                 }
-                // If the parent path is NOT in a known location, skip — not a genuine install
+                // If the parent path is NOT in a known location, skip - not a genuine install
                 if (!pathLegitimate) return null;
             }
 
@@ -1122,7 +1122,7 @@ namespace Sentinel.Core
                                     $"Command line: {pt.CommandLine ?? "unknown"}",
                 Reasoning         = "A legitimate application (Office / browser / PDF reader) spawned a " +
                                     "shell or scripting engine. Parent binary path was verified against known " +
-                                    "install locations — a spoofed parent name at an unexpected path is rejected. " +
+                                    "install locations - a spoofed parent name at an unexpected path is rejected. " +
                                     "Feeding correlation engine; auto-kill requires chain confirmation.",
                 Metadata          = new Dictionary<string, string>
                 {

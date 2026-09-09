@@ -30,7 +30,7 @@ namespace Sentinel.Core
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("[PseudoSandbox] Started — ready to contain suspicious executions");
+            _logger.LogInformation("[PseudoSandbox] Started - ready to contain suspicious executions");
             return Task.CompletedTask;
         }
 

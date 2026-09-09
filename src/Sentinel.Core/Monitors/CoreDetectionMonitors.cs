@@ -1,4 +1,4 @@
-// Core Detection Monitor Group — DLL scanning, entropy analysis, load failure detection, and module integrity
+// Core Detection Monitor Group - DLL scanning, entropy analysis, load failure detection, and module integrity
 
 using System;
 using System.Collections.Concurrent;
@@ -20,9 +20,9 @@ using Microsoft.Win32;
 
 namespace Sentinel.Core
 {
-    // ──────────────────────────────────────────────
-    // DiskWideDllScanner — finds DLLs planted outside trusted directories
-    // ──────────────────────────────────────────────
+    // 
+    // DiskWideDllScanner - finds DLLs planted outside trusted directories
+    // 
     public sealed class DiskWideDllScanner : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -82,9 +82,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // DLL Entropy Analyzer — detects packed/encrypted DLLs
-    // ──────────────────────────────────────────────
+    // 
+    // DLL Entropy Analyzer - detects packed/encrypted DLLs
+    // 
     public sealed class DllEntropyAnalyzer : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -135,7 +135,7 @@ namespace Sentinel.Core
                                     {
                                         RuleName = "DLL Entropy: High Entropy DLL",
                                         Evidence = $"DLL '{file}' has entropy {entropy:F2} (threshold 7.2)",
-                                        Reasoning = "A DLL with abnormally high entropy was found, suggesting it is packed or encrypted — common for malware payloads.",
+                                        Reasoning = "A DLL with abnormally high entropy was found, suggesting it is packed or encrypted - common for malware payloads.",
                                         Confidence = 0.70, Tier = DetectionTier.Tier2Indicator,
                                         ProcessName = "SYSTEM", ProcessId = 0
                                     });
@@ -178,9 +178,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // DLL Load Failure Monitor — watches Windows event log for load failures
-    // ──────────────────────────────────────────────
+    // 
+    // DLL Load Failure Monitor - watches Windows event log for load failures
+    // 
     public sealed class DllLoadFailureMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -201,7 +201,7 @@ namespace Sentinel.Core
                 {
                     await Task.Delay(15000, ct);
                     // Use EventLogQuery with a time-bounded XPath filter instead of iterating
-                    // all entries — avoids O(N) scan on large Application logs every 15s.
+                    // all entries - avoids O(N) scan on large Application logs every 15s.
                     try
                     {
                         var cutoff = DateTime.UtcNow.AddSeconds(-20).ToUniversalTime()
@@ -246,9 +246,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Module Validation Monitor — checks loaded DLL integrity via hash
-    // ──────────────────────────────────────────────
+    // 
+    // Module Validation Monitor - checks loaded DLL integrity via hash
+    // 
     public sealed class ModuleValidationMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -317,9 +317,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // Runtime Module Integrity Monitor — checks loaded module paths
-    // ──────────────────────────────────────────────
+    // 
+    // Runtime Module Integrity Monitor - checks loaded module paths
+    // 
     public sealed class RuntimeModuleIntegrityMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
@@ -370,9 +370,9 @@ namespace Sentinel.Core
     }
 
 
-    // ──────────────────────────────────────────────
-    // ADS Data Staging Monitor — detects NTFS Alternate Data Streams abuse
-    // ──────────────────────────────────────────────
+    // 
+    // ADS Data Staging Monitor - detects NTFS Alternate Data Streams abuse
+    // 
     public sealed class AdsDataStagingMonitor : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;

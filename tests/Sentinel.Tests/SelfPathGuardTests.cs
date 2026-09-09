@@ -65,7 +65,7 @@ namespace Sentinel.Tests
         [Fact]
         public void IsSentinelSelfBinary_ReturnsFalse_ForSentinelNameOutsideInstall()
         {
-            // Sentinel.Service.exe in a different directory — NOT trusted
+            // Sentinel.Service.exe in a different directory - NOT trusted
             Assert.False(SelfPathGuard.IsSentinelSelfBinary(@"C:\Temp\Sentinel.Service.exe"));
         }
 

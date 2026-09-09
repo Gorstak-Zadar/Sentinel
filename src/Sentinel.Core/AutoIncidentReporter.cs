@@ -70,7 +70,7 @@ namespace Sentinel.Core
             "MANIFEST.hmac",
             "evidence_manifest.json",
             "VERIFY.txt",
-            // Filled after seal by complainant / custodians — excluded on purpose.
+            // Filled after seal by complainant / custodians - excluded on purpose.
             "victim_affidavit.txt",
             "chain_of_custody.txt"
         };
@@ -140,7 +140,7 @@ namespace Sentinel.Core
 
                 if (!TryAcquireRateLimitSlot())
                 {
-                    _logger.LogDebug("[AutoIncidentReporter] Rate limit reached — skipping pack for {Rule}",
+                    _logger.LogDebug("[AutoIncidentReporter] Rate limit reached - skipping pack for {Rule}",
                         detection.RuleName);
                     return;
                 }
@@ -180,12 +180,12 @@ namespace Sentinel.Core
                     var portal = LawEnforcementPortals.Resolve(_config.CountryCode);
                     // 1.8.4 API: ShowCriticalToast (always delivers; CriticalOnly does not suppress)
                     var toastTitle = CoercionAbusePolicy.IsDigitalCoercionToolkit(detection)
-                        ? "Sentinel: Surveillance / remote-control abuse — evidence pack ready"
-                        : "Sentinel: Attack chain confirmed — evidence pack ready";
+                        ? "Sentinel: Surveillance / remote-control abuse - evidence pack ready"
+                        : "Sentinel: Attack chain confirmed - evidence pack ready";
                     var toastBody = CoercionAbusePolicy.IsDigitalCoercionToolkit(detection)
-                        ? $"{detection.RuleName} — technical indicators of device takeover or covert surveillance. " +
+                        ? $"{detection.RuleName} - technical indicators of device takeover or covert surveillance. " +
                           $"Sealed pack + affidavit for {portal.PrimaryPortalName}. Path: {packPath}"
-                        : $"{detection.RuleName} — integrity-sealed pack + affidavit template. " +
+                        : $"{detection.RuleName} - integrity-sealed pack + affidavit template. " +
                           $"File with {portal.PrimaryPortalName}. Path: {packPath}";
                     _toastService.ShowCriticalToast(toastTitle, toastBody);
                 }
@@ -406,7 +406,7 @@ namespace Sentinel.Core
         {
             if (_cooldown.TryGetValue(key, out var last))
             {
-                // v1.8.0: Token Theft packs use a longer cooldown (1h) even if config is 300s —
+                // v1.8.0: Token Theft packs use a longer cooldown (1h) even if config is 300s -
                 // prevents hundreds of near-identical packs from the same PID.
                 var seconds = Math.Max(30, _config.CooldownSeconds);
                 if (key.StartsWith("Token Theft"))
@@ -446,10 +446,10 @@ namespace Sentinel.Core
             var sealedAt = timestamp;
 
             var report = new StringBuilder();
-            report.AppendLine("╔══════════════════════════════════════════════════════════════════╗");
-            report.AppendLine("║     WINDOWS SENTINEL — REPORTABLE-GRADE EVIDENCE PACK          ║");
-            report.AppendLine("║     Integrity-sealed · High-confidence attack activity         ║");
-            report.AppendLine("╚══════════════════════════════════════════════════════════════════╝");
+            report.AppendLine("");
+            report.AppendLine("     WINDOWS SENTINEL - REPORTABLE-GRADE EVIDENCE PACK          ");
+            report.AppendLine("     Integrity-sealed - High-confidence attack activity         ");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine($"Report ID:        {reportId}");
             report.AppendLine($"Generated:        {timestamp:yyyy-MM-dd HH:mm:ss} UTC");
@@ -462,9 +462,9 @@ namespace Sentinel.Core
             report.AppendLine($"Incident Severity:{incident?.Severity.ToString() ?? "n/a"}");
             report.AppendLine($"Policy:           ReportableGradeOnly={_config.ReportableGradeOnly}; MinConfidence={_config.MinConfidence:F2}");
             report.AppendLine();
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
-            report.AppendLine("IMPORTANT — WHAT THIS PACK IS (AND IS NOT)");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
+            report.AppendLine("IMPORTANT - WHAT THIS PACK IS (AND IS NOT)");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine("  This package was generated AUTOMATICALLY by Sentinel for a");
             report.AppendLine("  REPORTABLE-GRADE detection (kill-class / C2 isolate / Tier1 attack).");
@@ -484,9 +484,9 @@ namespace Sentinel.Core
             {
                 report.Append(CoercionAbusePolicy.BuildPackSection(detection));
             }
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("DETECTION SUMMARY");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine($"  Rule:              {detection.RuleName}");
             report.AppendLine($"  Signal Type:       {detection.SignalType}");
@@ -508,9 +508,9 @@ namespace Sentinel.Core
 
             if (detection.Metadata is { Count: > 0 })
             {
-                report.AppendLine("────────────────────────────────────────────────────────────────────");
+                report.AppendLine("");
                 report.AppendLine("METADATA / INDICATORS");
-                report.AppendLine("────────────────────────────────────────────────────────────────────");
+                report.AppendLine("");
                 report.AppendLine();
                 foreach (var kv in detection.Metadata.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
                 {
@@ -519,16 +519,16 @@ namespace Sentinel.Core
                 report.AppendLine();
             }
 
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("PROCESS SNAPSHOT");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             AppendProcessSnapshot(report, detection.ProcessId);
             report.AppendLine();
 
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("NETWORK SNAPSHOT (time of report)");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             var networkLines = CaptureNetworkSnapshot(detection.ProcessId);
             foreach (var line in networkLines)
@@ -544,25 +544,25 @@ namespace Sentinel.Core
 
             if (incident?.Detections is { Count: > 0 })
             {
-                report.AppendLine("────────────────────────────────────────────────────────────────────");
+                report.AppendLine("");
                 report.AppendLine("RELATED DETECTIONS IN THIS INCIDENT");
-                report.AppendLine("────────────────────────────────────────────────────────────────────");
+                report.AppendLine("");
                 report.AppendLine();
                 foreach (var d in incident.Detections.Take(25))
                 {
                     report.AppendLine(
-                        $"  {d.ReceivedAt:yyyy-MM-dd HH:mm:ss} UTC — {d.DetectionEvent.RuleName} " +
+                        $"  {d.ReceivedAt:yyyy-MM-dd HH:mm:ss} UTC - {d.DetectionEvent.RuleName} " +
                         $"(conf={d.DetectionEvent.Confidence:F2}, pid={d.DetectionEvent.ProcessId})");
                 }
                 report.AppendLine();
             }
 
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("WHERE TO FILE A POLICE / CYBERCRIME REPORT");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine($"  Detected region:     {systemCountry}");
-            report.AppendLine($"  Recommended portal:  {portal.CountryName} — {portal.PrimaryPortalName}");
+            report.AppendLine($"  Recommended portal:  {portal.CountryName} - {portal.PrimaryPortalName}");
             report.AppendLine($"  URL:                 {portal.PrimaryPortalUrl}");
             report.AppendLine($"  Notes:               {portal.Notes}");
             report.AppendLine();
@@ -578,31 +578,31 @@ namespace Sentinel.Core
             report.AppendLine("    5. Attach pack + list hashes/IPs from indicators.txt.");
             report.AppendLine("    6. Quarantined binaries (if any): ProgramData\\Sentinel\\Quarantine.");
             report.AppendLine();
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("LEGAL CLASSIFICATION (INFORMATIONAL ONLY)");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine("  Depending on jurisdiction, this activity may relate to:");
-            report.AppendLine("  • Unauthorized access / modification of computer systems");
-            report.AppendLine("  • Malware deployment or computer fraud statutes");
-            report.AppendLine("  • Data interference / system interference (Budapest Convention style)");
-            report.AppendLine("  This is not legal advice — consult local law enforcement or counsel.");
+            report.AppendLine("  - Unauthorized access / modification of computer systems");
+            report.AppendLine("  - Malware deployment or computer fraud statutes");
+            report.AppendLine("  - Data interference / system interference (Budapest Convention style)");
+            report.AppendLine("  This is not legal advice - consult local law enforcement or counsel.");
             report.AppendLine();
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine("THREAT INTELLIGENCE AUTO-SHARE");
-            report.AppendLine("────────────────────────────────────────────────────────────────────");
+            report.AppendLine("");
             report.AppendLine();
             report.AppendLine(_config.ReportThreatIntel
                 ? "  Indicator auto-share to MalwareBazaar/URLhaus/AbuseIPDB is ENABLED when the"
                 : "  Indicator auto-share to TI platforms is DISABLED in configuration.");
             if (_config.ReportThreatIntel)
             {
-                report.AppendLine("  ThreatReporting proxy is configured (community malware intel — NOT police).");
+                report.AppendLine("  ThreatReporting proxy is configured (community malware intel - NOT police).");
             }
             report.AppendLine();
-            report.AppendLine("═══════════════════════════════════════════════════════════════════");
+            report.AppendLine("");
             report.AppendLine($"         Generated by Sentinel AutoIncidentReporter (v{_productVersion})");
-            report.AppendLine("═══════════════════════════════════════════════════════════════════");
+            report.AppendLine("");
 
             var reportPath = Path.Combine(reportDir, "incident_report.txt");
             await System.IO.FileNet48.WriteAllTextAsync(reportPath, report.ToString(), Encoding.UTF8).ConfigureAwait(false);
@@ -668,7 +668,7 @@ namespace Sentinel.Core
             string reportDir, string reportId, DetectionEvent detection, Incident? incident, DateTime sealedAt)
         {
             var sb = new StringBuilder();
-            sb.AppendLine("SENTINEL — CHAIN OF CUSTODY");
+            sb.AppendLine("SENTINEL - CHAIN OF CUSTODY");
             sb.AppendLine("==========================");
             sb.AppendLine();
             sb.AppendLine($"Report ID:           {reportId}");
@@ -687,12 +687,12 @@ namespace Sentinel.Core
             sb.AppendLine($"  {sealedAt:yyyy-MM-dd HH:mm:ss}  Evidence pack written and integrity seal applied");
             sb.AppendLine();
             sb.AppendLine("Handling notes:");
-            sb.AppendLine("  • Pack was generated automatically on the victim host.");
-            sb.AppendLine("  • Files listed in MANIFEST.sha256 should not be modified after seal time.");
-            sb.AppendLine("  • MANIFEST.hmac is machine-bound; verify on original host when possible.");
-            sb.AppendLine("  • Quarantined samples (if any) remain under ProgramData\\Sentinel\\Quarantine");
+            sb.AppendLine("  - Pack was generated automatically on the victim host.");
+            sb.AppendLine("  - Files listed in MANIFEST.sha256 should not be modified after seal time.");
+            sb.AppendLine("  - MANIFEST.hmac is machine-bound; verify on original host when possible.");
+            sb.AppendLine("  - Quarantined samples (if any) remain under ProgramData\\Sentinel\\Quarantine");
             sb.AppendLine("    (DPAPI machine-scope encrypted) and are available for forensic export.");
-            sb.AppendLine("  • Transfer: prefer the .zip + .zip.sha256 pair; record who received the pack.");
+            sb.AppendLine("  - Transfer: prefer the .zip + .zip.sha256 pair; record who received the pack.");
             sb.AppendLine();
             sb.AppendLine("Custodian log (fill in by hand as the pack changes hands):");
             sb.AppendLine("  Date/Time UTC | Name | Org | Action (created/copied/filed) | Signature");
@@ -723,7 +723,7 @@ namespace Sentinel.Core
             sb.AppendLine("=========================================");
             sb.AppendLine();
             sb.AppendLine("Complete this form before filing with police / your national cybercrime portal.");
-            sb.AppendLine("This is a voluntary statement template — not a court form for every jurisdiction.");
+            sb.AppendLine("This is a voluntary statement template - not a court form for every jurisdiction.");
             sb.AppendLine("Sign only if the contents are true to the best of your knowledge.");
             sb.AppendLine();
             sb.AppendLine($"Linked evidence pack:  {reportId}");
@@ -769,7 +769,7 @@ namespace Sentinel.Core
             sb.AppendLine();
             if (CoercionAbusePolicy.IsDigitalCoercionToolkit(detection))
             {
-                sb.AppendLine("4b. DEVICE / COERCION HARM (optional — complete only if true)");
+                sb.AppendLine("4b. DEVICE / COERCION HARM (optional - complete only if true)");
                 sb.AppendLine("   Sentinel only proved technical indicators on this PC. You decide what to report.");
                 sb.Append(CoercionAbusePolicy.BuildAffidavitHarmHints());
                 sb.AppendLine();
@@ -798,7 +798,7 @@ namespace Sentinel.Core
         /// <summary>
         /// B1: builds a minimal <see cref="EvidenceSummary"/> from a sealed pack and mirrors it
         /// off-host via the HMAC-signed ThreatReporting proxy. No file contents or secrets are
-        /// sent — only detection metadata, indicators, and the machine-bound manifest hashes as
+        /// sent - only detection metadata, indicators, and the machine-bound manifest hashes as
         /// origin proof. Fail-closed and never-throw (delegates to ThreatReportService).
         /// </summary>
         private async Task MirrorEvidenceOffHostAsync(DetectionEvent detection, string packDir)
@@ -940,7 +940,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Machine-bound HMAC key material — not a public PKI signature, but proves the
+        /// Machine-bound HMAC key material - not a public PKI signature, but proves the
         /// manifest was sealed on this host and detects post-seal manifest edits.
         /// </summary>
         internal static byte[] DeriveEvidenceHmacKey()
@@ -1112,7 +1112,7 @@ namespace Sentinel.Core
                 {
                     lines.Add(pid > 4
                         ? $"  No netstat rows for PID {pid} at report time (process may have exited)."
-                        : "  No offender PID — full snapshot omitted (see process metadata).");
+                        : "  No offender PID - full snapshot omitted (see process metadata).");
                 }
 
                 lines.Add("");

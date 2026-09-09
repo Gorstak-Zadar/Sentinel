@@ -14,7 +14,7 @@ namespace Sentinel.Core
     ///
     /// Problem solved: Previously, if a BackgroundService monitor crashed (unhandled
     /// exception in ExecuteAsync), nobody noticed until a manual health check 5 minutes
-    /// later — and even then, no recovery was attempted. The monitor just stayed dead.
+    /// later - and even then, no recovery was attempted. The monitor just stayed dead.
     ///
     /// MonitorRegistry provides:
     ///   - Heartbeat tracking: monitors call Heartbeat() periodically (piggybacks on existing loops)
@@ -66,7 +66,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Called by monitors to report they are alive and processing.
-        /// Monitors piggyback this onto their existing scan/poll loops — zero overhead.
+        /// Monitors piggyback this onto their existing scan/poll loops - zero overhead.
         /// </summary>
         public void Heartbeat(string name)
         {
@@ -150,9 +150,9 @@ namespace Sentinel.Core
                                          DateTimeOffset.UtcNow - m.Value.LastHeartbeat > HeartbeatTimeout)
         };
 
-        // ═══════════════════════════════════════════════════════════════
-        // Watchdog — crash detection and alerting
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // Watchdog - crash detection and alerting
+        // 
 
         private void WatchdogTick(object? state)
         {
@@ -165,11 +165,11 @@ namespace Sentinel.Core
 
                 var timeSinceHeartbeat = now - status.LastHeartbeat;
 
-                // Stale heartbeat → mark as failed if past critical timeout
+                // Stale heartbeat -> mark as failed if past critical timeout
                 if (status.State == MonitorState.Running && timeSinceHeartbeat > CriticalTimeout)
                 {
                     _logger.LogWarning(
-                        "[MonitorRegistry] WATCHDOG: Monitor '{Name}' has not heartbeated for {Seconds:F0}s — marking FAILED",
+                        "[MonitorRegistry] WATCHDOG: Monitor '{Name}' has not heartbeated for {Seconds:F0}s - marking FAILED",
                         name, timeSinceHeartbeat.TotalSeconds);
 
                     status.State = MonitorState.Failed;
@@ -177,7 +177,7 @@ namespace Sentinel.Core
                     status.FailureCount++;
                     status.LastFailure = now;
 
-                    // Fire a detection — monitor death could indicate attacker tampering
+                    // Fire a detection - monitor death could indicate attacker tampering
                     _ = _detectionEngine.EmitAsync(new DetectionEvent
                     {
                         RuleName = "Anti-Tamper: Monitor Crashed/Killed",
@@ -216,7 +216,7 @@ namespace Sentinel.Core
                 }
                 else if (status.State == MonitorState.Running && timeSinceHeartbeat > HeartbeatTimeout)
                 {
-                    // Warning level — heartbeat is stale but not yet critical
+                    // Warning level - heartbeat is stale but not yet critical
                     _logger.LogDebug(
                         "[MonitorRegistry] Monitor '{Name}' heartbeat stale ({Seconds:F0}s)",
                         name, timeSinceHeartbeat.TotalSeconds);
@@ -224,16 +224,16 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Auto-Restart
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void AttemptRestart(string name, MonitorStatus status)
         {
             // Only attempt restart if failure count is reasonable (prevent restart loops)
             if (status.FailureCount > 5)
             {
-                _logger.LogError("[MonitorRegistry] Monitor '{Name}' has failed {Count} times — giving up on restart",
+                _logger.LogError("[MonitorRegistry] Monitor '{Name}' has failed {Count} times - giving up on restart",
                     name, status.FailureCount);
                 return;
             }
@@ -304,7 +304,7 @@ namespace Sentinel.Core
             }
             else
             {
-                _logger.LogDebug("[MonitorRegistry] Cannot restart '{Name}' — no service instance registered", name);
+                _logger.LogDebug("[MonitorRegistry] Cannot restart '{Name}' - no service instance registered", name);
             }
         }
 
@@ -314,9 +314,9 @@ namespace Sentinel.Core
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Data Models
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     public enum MonitorState
     {

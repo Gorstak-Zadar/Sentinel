@@ -37,14 +37,14 @@ namespace Sentinel.Core
         /// No built-in name lists, no path guessing, no gaming exemptions.
         ///
         /// If a detection fires on a legitimate app, it means the behavioral
-        /// detection is wrong and needs fixing — not that the app needs allowlisting.
+        /// detection is wrong and needs fixing - not that the app needs allowlisting.
         ///
         /// President's Law rules (LSASS, ransomware, injection, etc.) are NEVER
         /// suppressed regardless of allowlist status.
         /// </summary>
         public bool ShouldSuppress(string processName, string? imagePath, string? ruleName)
         {
-            // President's Law rules are NEVER fully suppressed — even if user-allowlisted.
+            // President's Law rules are NEVER fully suppressed - even if user-allowlisted.
             // However, user-allowlisted processes get demoted in the response engine (LogOnly),
             // not suppressed at detection level. This ensures the detection is always logged.
             if (IsPresidentsLawRule(ruleName)) return false;
@@ -54,7 +54,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Gets a confidence reduction factor (0.0 to 0.3) based on trust signals.
-        /// Only reduces confidence — never suppresses. And only for user-allowlisted processes.
+        /// Only reduces confidence - never suppresses. And only for user-allowlisted processes.
         /// </summary>
         public double GetConfidenceReduction(string processName, string? imagePath, string? signerName, string? ruleName)
         {
@@ -64,9 +64,9 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Development process check — used only by ParentPidSpoofDetector to reduce
+        /// Development process check - used only by ParentPidSpoofDetector to reduce
         /// PPID false positives on tools with complex spawn chains. Requires path verification
-        /// at the call site — this method alone does NOT grant any suppression.
+        /// at the call site - this method alone does NOT grant any suppression.
         /// </summary>
         public bool IsDevelopmentProcess(string processName)
         {
@@ -96,7 +96,7 @@ namespace Sentinel.Core
                 AddedBy = "User"
             };
             SaveUserAllowlist();
-            _logger.LogInformation("Allowlist: Added '{Process}' — {Reason}", processName, reason);
+            _logger.LogInformation("Allowlist: Added '{Process}' - {Reason}", processName, reason);
         }
 
         public void RemoveFromUserAllowlist(string processName)
@@ -129,14 +129,14 @@ namespace Sentinel.Core
                 return false;
             }
 
-            // Verify strict path match on allowlisted entries (case-insensitive — Windows paths)
+            // Verify strict path match on allowlisted entries (case-insensitive - Windows paths)
             bool matchesEntry = _userAllowlist.Values.Any(e =>
                 !string.IsNullOrEmpty(e.ImagePath) &&
                 string.Equals(imagePath, e.ImagePath, StringComparison.OrdinalIgnoreCase));
 
             if (matchesEntry)
             {
-                // Only verify the binary is validly signed — no path-based trust
+                // Only verify the binary is validly signed - no path-based trust
                 if (_signerTrust.IsSignedFile(imagePath))
                 {
                     return true;

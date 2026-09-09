@@ -1,9 +1,9 @@
-# Sentinel — Roadmap
+# Sentinel - Roadmap
 
 **North star:** the best, most bulletproof userland protection an honest EDR can give on a
 real Windows desktop people actually use.
 
-This roadmap is deliberately grounded in Sentinel's own documented reality — the residual risks
+This roadmap is deliberately grounded in Sentinel's own documented reality - the residual risks
 in `THREAT_MODEL.md`, the known limitations marked in code, and the "intentionally out of scope"
 list in `requirements.md`. It is not a wishlist of features that would break the project's
 constraints. Anything here must still obey `docs/constraints.md` (userland only, no kernel
@@ -28,7 +28,7 @@ version numbers. Pick from the top of a theme when you want to move the needle.
 
 ---
 
-## Theme 1 — Close the documented residual-risk gaps
+## Theme 1 - Close the documented residual-risk gaps
 
 These come straight from `THREAT_MODEL.md` "Bypass Scenarios" where residual risk is MEDIUM or
 higher. Each is about *narrowing the race*, not claiming to eliminate it.
@@ -36,15 +36,15 @@ higher. Each is about *narrowing the race*, not claiming to eliminate it.
 | Priority | Gap (source) | Direction | Honest ceiling |
 |----------|--------------|-----------|----------------|
 | High | **Local admin can stop the service** (B1, residual HIGH) | Faster watchdog re-arm, richer SCM-tamper telemetry, off-host alert-before-suppression so the *evidence* survives even if the service dies | Cannot beat admin in userland; goal is durable evidence + fast detection, not invincibility |
-| High | **BYOVD race** (B2, residual MEDIUM) | Tighten prerequisite detection (priv-esc → cert plant → .sys drop → service create), expand LOLDrivers/WDBL blocklist refresh, shrink the 15s poll where cheap | Kernel driver already loaded still wins; win the race earlier, alert before suppression |
-| Medium | **ETW blinding is post-hoc** (B3, residual MEDIUM) | Keep prologue-diff detection; add corroborating "telemetry went quiet" heuristics (events/sec floor already exists in EtwSessionGuard — extend to per-provider) | Cannot prevent in-process patch; detect-after-the-fact + correlate the silence |
+| High | **BYOVD race** (B2, residual MEDIUM) | Tighten prerequisite detection (priv-esc -> cert plant -> .sys drop -> service create), expand LOLDrivers/WDBL blocklist refresh, shrink the 15s poll where cheap | Kernel driver already loaded still wins; win the race earlier, alert before suppression |
+| Medium | **ETW blinding is post-hoc** (B3, residual MEDIUM) | Keep prologue-diff detection; add corroborating "telemetry went quiet" heuristics (events/sec floor already exists in EtwSessionGuard - extend to per-provider) | Cannot prevent in-process patch; detect-after-the-fact + correlate the silence |
 | Medium | **Command-line-free tradecraft** (B6, residual MEDIUM) | Lean harder on ETW ThreatIntel + MemoryBehaviorAnalyzer so detection does not depend on cmdline exposure | Sophisticated in-memory-only tradecraft remains hard |
 | Medium | **In-memory inject into a live game** (v2.2.5 note) | Explore safe, fail-closed ways to inspect game processes without tripping Denuvo (handle-safety-preserving telemetry) | Anti-cheat self-terminates on VM_READ; stays a residual gap unless a safe signal is found |
 | Low | **Process hollowing without memory-type change** (EtwThreatIntelMonitor LOW-4) | Add on-disk vs in-memory `.text` section comparison for MEM_IMAGE regions of signed binaries | Expensive; scope to high-value/critical processes only |
 
 ---
 
-## Theme 2 — Coverage breadth (generic-class, not per-CVE)
+## Theme 2 - Coverage breadth (generic-class, not per-CVE)
 
 Sentinel's stated strategy (v2.2.4) is generic exploit-*shape* sensors so the next CVE sibling
 doesn't need a new campaign pack. Keep extending shapes, not one-offs.
@@ -53,11 +53,11 @@ doesn't need a new campaign pack. Keep extending shapes, not one-offs.
   model: find the *class* of the vector, emit LogOnly observe fuel, let it feed existing
   composites).
 - Keep CISA KEV matching current for this workstation's actual asset list.
-- Add composite chains only where a real multi-signal terminal exists — avoid detector sprawl.
+- Add composite chains only where a real multi-signal terminal exists - avoid detector sprawl.
 
 ---
 
-## Theme 3 — Correlation & explainability quality
+## Theme 3 - Correlation & explainability quality
 
 The v2.0 WeightedCorrelationEngine + score cards + MITRE mapping is the foundation. Improving
 *precision* here reduces false positives, which is what actually makes always-on response safe.
@@ -68,7 +68,7 @@ The v2.0 WeightedCorrelationEngine + score cards + MITRE mapping is the foundati
 
 ---
 
-## Theme 4 — Evidence durability & trust
+## Theme 4 - Evidence durability & trust
 
 "Bulletproof" for a high-profile target is as much about *surviving evidence* as prevention.
 
@@ -78,7 +78,7 @@ The v2.0 WeightedCorrelationEngine + score cards + MITRE mapping is the foundati
 
 ---
 
-## Theme 5 — Reliability & performance hardening
+## Theme 5 - Reliability & performance hardening
 
 Always-on protection is only bulletproof if it never falls over or bogs the machine down.
 
@@ -89,7 +89,7 @@ Always-on protection is only bulletproof if it never falls over or bogs the mach
 
 ---
 
-## Explicitly NOT on the roadmap (by design — see requirements.md NFR-7)
+## Explicitly NOT on the roadmap (by design - see requirements.md NFR-7)
 
 These are permanent non-goals. Do not add them; they'd break the project's identity.
 

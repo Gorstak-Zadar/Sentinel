@@ -15,26 +15,26 @@ using Microsoft.Extensions.Logging;
 
 namespace Sentinel.Core
 {
-    // ══════════════════════════════════════════════════════════════════════════════
+    // 
     // v2.1.7 HARDENING MONITORS
     //
-    // B1: AmsiIntegrityCheck — removed v2.3.10. SyscallStubMonitor (CriticalMonitors.cs)
+    // B1: AmsiIntegrityCheck - removed v2.3.10. SyscallStubMonitor (CriticalMonitors.cs)
     //     already baselines ntdll stubs (covers EtwEventWrite). The AMSI function-name
     //     string literals ("AmsiScanBuffer", "AmsiOpenSession", "amsi.dll") in the
     //     compiled PE string table were the primary Kaspersky ML trigger for
     //     Sentinel.Core.dll. Coverage preserved via ScriptExecutionMonitor (Event 4104
     //     pattern match) + SyscallStubMonitor (ntdll prologue baseline).
-    // B3: EdrKillerDetectionRule     — Immediate fire on known EDR-killer tools
-    // B5: (integrated into AdvancedResponseEngine — critical budget bypass)
-    // C1: HoneypotDllMonitor         — Plants decoy DLL in install dir
-    // C3: DecoyPipeMonitor           — Honeypot named pipes with C2 names
-    // D3: KernelModuleAuditMonitor   — Detects stealth driver loads
-    // D4: TokenPrivilegeAuditMonitor — Detects processes with dangerous privileges
-    // ══════════════════════════════════════════════════════════════════════════════
+    // B3: EdrKillerDetectionRule     - Immediate fire on known EDR-killer tools
+    // B5: (integrated into AdvancedResponseEngine - critical budget bypass)
+    // C1: HoneypotDllMonitor         - Plants decoy DLL in install dir
+    // C3: DecoyPipeMonitor           - Honeypot named pipes with C2 names
+    // D3: KernelModuleAuditMonitor   - Detects stealth driver loads
+    // D4: TokenPrivilegeAuditMonitor - Detects processes with dangerous privileges
+    // 
 
-    // ══════════════════════════════════════════════════════════════════════════════
-    // B3: EDR-Killer Detection Rule (President's Law — immediate fire)
-    // ══════════════════════════════════════════════════════════════════════════════
+    // 
+    // B3: EDR-Killer Detection Rule (President's Law - immediate fire)
+    // 
 
     /// <summary>
     /// Fires immediately (President's Law) when known EDR-killer tools are detected.
@@ -42,7 +42,7 @@ namespace Sentinel.Core
     /// drivers. Early detection BEFORE they load the driver is critical.
     ///
     /// This runs as a monitor (not IDetectionRule) because it needs to actively scan
-    /// running processes — not wait for ETW telemetry that the killer may have silenced.
+    /// running processes - not wait for ETW telemetry that the killer may have silenced.
     /// </summary>
     public sealed class EdrKillerDetectionMonitor : BackgroundService
     {
@@ -99,7 +99,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("[EdrKillerDetection] Active — monitoring for {Count} known EDR-killer tools",
+            _logger.LogInformation("[EdrKillerDetection] Active - monitoring for {Count} known EDR-killer tools",
                 KnownEdrKillerNames.Count / 2); // Dividing because we have case variants
 
             while (!stoppingToken.IsCancellationRequested)
@@ -142,7 +142,7 @@ namespace Sentinel.Core
                             Evidence = $"Process '{name}' (PID {proc.Id}) matches a known EDR-killer tool. " +
                                        $"Path: {imagePath ?? "unknown"}",
                             Reasoning = "Process name matches a known EDR-killer tool. Names are trivial to " +
-                                        "change — this is observe fuel for correlation, not a kill by itself. " +
+                                        "change - this is observe fuel for correlation, not a kill by itself. " +
                                         "A renamed copy will not match; behavioral BYOVD monitors cover the load.",
                             Confidence = 0.70,
                             Tier = DetectionTier.Tier2Indicator,
@@ -174,9 +174,9 @@ namespace Sentinel.Core
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
+    // 
     // C1: Honeypot DLL Monitor
-    // ══════════════════════════════════════════════════════════════════════════════
+    // 
 
     /// <summary>
     /// Plants a decoy version.dll in the Sentinel install directory.
@@ -240,7 +240,7 @@ namespace Sentinel.Core
                 _watcher.Changed += OnHoneypotAccessed;
                 _watcher.Deleted += OnHoneypotDeleted;
 
-                _logger.LogInformation("[HoneypotDll] Planted decoy DLLs in {Dir} — monitoring for sideload attempts", honeypotDir);
+                _logger.LogInformation("[HoneypotDll] Planted decoy DLLs in {Dir} - monitoring for sideload attempts", honeypotDir);
             }
             catch (Exception ex)
             {
@@ -350,14 +350,14 @@ namespace Sentinel.Core
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
+    // 
     // C3: Decoy Named Pipe Monitor (C2 Honeypot)
-    // ══════════════════════════════════════════════════════════════════════════════
+    // 
 
     /// <summary>
     /// Creates named pipes with names commonly used by C2 frameworks.
     /// Any process that connects to these honeypot pipes is definitively performing
-    /// lateral movement or C2 communication — zero false positives.
+    /// lateral movement or C2 communication - zero false positives.
     ///
     /// Known C2 pipe names: CobaltStrike (msagent_*), Metasploit, PoshC2, etc.
     /// </summary>
@@ -478,13 +478,13 @@ namespace Sentinel.Core
         private static extern bool GetNamedPipeClientProcessId(IntPtr pipe, out int clientProcessId);
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
+    // 
     // D3: Kernel Module Audit Monitor
-    // ══════════════════════════════════════════════════════════════════════════════
+    // 
 
     /// <summary>
     /// Enumerates loaded kernel modules via NtQuerySystemInformation(SystemModuleInformation).
-    /// Detects driver loads that bypass SCM events (Event 7045) — the technique used by
+    /// Detects driver loads that bypass SCM events (Event 7045) - the technique used by
     /// sophisticated BYOVD tools that load drivers via direct NtLoadDriver or vulnerable
     /// driver I/O.
     ///
@@ -512,7 +512,7 @@ namespace Sentinel.Core
             var initial = EnumerateKernelModules();
             if (initial == null || initial.Count == 0)
             {
-                _logger.LogWarning("[KernelModuleAudit] Cannot enumerate kernel modules — monitor inactive");
+                _logger.LogWarning("[KernelModuleAudit] Cannot enumerate kernel modules - monitor inactive");
                 return;
             }
 
@@ -522,7 +522,7 @@ namespace Sentinel.Core
 
             _logger.LogInformation("[KernelModuleAudit] Baseline captured: {Count} kernel modules", _baselineModules.Count);
 
-            // v2.2.0: do not silently trust already-loaded BYOVD-capable drivers (RTCore64 / WinRing0 / …).
+            // v2.2.0: do not silently trust already-loaded BYOVD-capable drivers (RTCore64 / WinRing0 / ...).
             foreach (var mod in initial)
             {
                 var fileName = Path.GetFileName(mod) ?? mod;
@@ -661,7 +661,7 @@ namespace Sentinel.Core
                     for (int i = 0; i < count && i < 2000; i++)
                     {
                         var entryPtr = IntPtr.Add(buffer, offset + (i * entrySize));
-                        // FullPathName is at offset 24 (x64) — ANSI string, 256 bytes max
+                        // FullPathName is at offset 24 (x64) - ANSI string, 256 bytes max
                         var nameOffset = IntPtr.Size == 8 ? 40 : 36;
                         var namePtr = IntPtr.Add(entryPtr, nameOffset);
                         var name = Marshal.PtrToStringAnsi(namePtr);
@@ -685,14 +685,14 @@ namespace Sentinel.Core
         // NtQuerySystemInformation resolved dynamically via NativeResolver (no PE import bait).
     }
 
-    // ══════════════════════════════════════════════════════════════════════════════
+    // 
     // D4: Token Privilege Audit Monitor
-    // ══════════════════════════════════════════════════════════════════════════════
+    // 
 
     /// <summary>
     /// Periodically enumerates all processes holding dangerous privileges:
-    ///   - SeDebugPrivilege (enables reading any process memory — credential dumping)
-    ///   - SeImpersonatePrivilege (enables potato attacks → SYSTEM)
+    ///   - SeDebugPrivilege (enables reading any process memory - credential dumping)
+    ///   - SeImpersonatePrivilege (enables potato attacks -> SYSTEM)
     ///   - SeTakeOwnershipPrivilege (enables ACL bypassing)
     ///
     /// Any non-admin/non-service process with these privileges enabled is suspicious.
@@ -773,7 +773,7 @@ namespace Sentinel.Core
                             if (privileges.Contains("SeDebugPrivilege")) dangerous.Add("SeDebugPrivilege");
                             if (privileges.Contains("SeImpersonatePrivilege"))
                             {
-                                // SeImpersonate is normal for services — only flag if from user-writable path
+                                // SeImpersonate is normal for services - only flag if from user-writable path
                                 string? imagePath = null;
                                 try { imagePath = proc.MainModule?.FileName; } catch { }
                                 if (imagePath != null && IsUserWritablePath(imagePath))

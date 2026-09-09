@@ -20,7 +20,7 @@ namespace Sentinel.Core
     ///
     /// Design:
     ///   - Per-PID semaphore (only one response action per PID at a time)
-    ///   - Response deduplication window (30s — if PID was already killed, skip)
+    ///   - Response deduplication window (30s - if PID was already killed, skip)
     ///   - Priority queue (Critical incidents get response priority over Low)
     ///   - ChainTracer hold (if ChainTracer is walking a PID, defer kill until trace completes)
     /// </summary>
@@ -35,7 +35,7 @@ namespace Sentinel.Core
         // Per-PID response locks (prevents concurrent responses on same process)
         private readonly ConcurrentDictionary<int, SemaphoreSlim> _pidLocks = new();
 
-        // Response history: PID → last response timestamp (deduplication window)
+        // Response history: PID -> last response timestamp (deduplication window)
         private readonly ConcurrentDictionary<int, ResponseRecord> _responseHistory = new();
 
         // Chain trace holds: PIDs currently being traced (defer kill until trace completes)
@@ -65,9 +65,9 @@ namespace Sentinel.Core
             _logger = logger;
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Public API
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Executes a coordinated response for a detection event.
@@ -85,7 +85,7 @@ namespace Sentinel.Core
 
             int pid = detection.ProcessId;
 
-            // 1. Check deduplication window — was this PID already responded to?
+            // 1. Check deduplication window - was this PID already responded to?
             if (pid > 0 && IsRecentlyResponded(pid, detection.AuthorizedResponse))
             {
                 Interlocked.Increment(ref _totalResponsesDeduplicated);
@@ -95,13 +95,13 @@ namespace Sentinel.Core
                 return result;
             }
 
-            // 2. Check chain trace hold — is ChainTracer currently walking this PID?
+            // 2. Check chain trace hold - is ChainTracer currently walking this PID?
             if (pid > 0 && detection.KillAuthorized && IsHeldForChainTrace(pid))
             {
                 Interlocked.Increment(ref _totalResponsesDeferred);
                 result.Outcome = ResponseOutcome.DeferredForChainTrace;
-                result.Reason = $"PID {pid} held for chain trace — deferring kill";
-                _logger.LogDebug("[ResponseCoordinator] Deferring kill on PID {Pid} — chain trace in progress", pid);
+                result.Reason = $"PID {pid} held for chain trace - deferring kill";
+                _logger.LogDebug("[ResponseCoordinator] Deferring kill on PID {Pid} - chain trace in progress", pid);
                 return result;
             }
 
@@ -163,12 +163,12 @@ namespace Sentinel.Core
             return result;
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Chain Trace Holds
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
-        /// Places a hold on a PID — tells the coordinator NOT to kill this PID
+        /// Places a hold on a PID - tells the coordinator NOT to kill this PID
         /// until the chain trace completes (or times out after 10s).
         /// Called by ChainTracer before walking a process tree.
         /// </summary>
@@ -191,7 +191,7 @@ namespace Sentinel.Core
             {
                 if (DateTimeOffset.UtcNow - holdTime > ChainTraceHoldTimeout)
                 {
-                    // Hold expired — release it
+                    // Hold expired - release it
                     _chainTraceHolds.TryRemove(pid, out _);
                     return false;
                 }
@@ -200,9 +200,9 @@ namespace Sentinel.Core
             return false;
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Deduplication
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private bool IsRecentlyResponded(int pid, ResponseAction requestedAction)
         {
@@ -219,9 +219,9 @@ namespace Sentinel.Core
             return false;
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Metrics & Cleanup
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         public ResponseCoordinatorStats GetStats() => new()
         {
@@ -270,9 +270,9 @@ namespace Sentinel.Core
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Data Models
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     public enum ResponseOutcome
     {

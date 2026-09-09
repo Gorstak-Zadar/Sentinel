@@ -142,7 +142,7 @@ namespace Sentinel.Tests
         public void GSecurityInf_DoesNotWeakenPasswordsOrAuditOrFips()
         {
             // v2.3.6+: GSecurity.inf ships as a plain file under HardeningResources
-            // (not an embedded resource — that dropper pattern tripped AV heuristics).
+            // (not an embedded resource - that dropper pattern tripped AV heuristics).
             var bases = new[]
             {
                 AppContext.BaseDirectory,
@@ -163,7 +163,7 @@ namespace Sentinel.Tests
 
             string? path = candidates.FirstOrDefault(File.Exists);
             Assert.False(string.IsNullOrEmpty(path),
-                "GSecurity.inf missing — tried: " + string.Join(" | ", candidates));
+                "GSecurity.inf missing - tried: " + string.Join(" | ", candidates));
 
             var bytes = File.ReadAllBytes(path!);
             var inf = bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE

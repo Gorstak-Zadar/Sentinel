@@ -161,7 +161,7 @@ namespace Sentinel.Tests
             DetectionEvent? composite = null;
             engine.Initialize(ev => { composite = ev; return Task.CompletedTask; });
 
-            // Two C2 signals — should NOT fire "Injected C2 Beacon" (needs injection + C2)
+            // Two C2 signals - should NOT fire "Injected C2 Beacon" (needs injection + C2)
             await engine.RegisterSignalAsync(new DetectionEvent
             {
                 RuleName = "Beaconing Signal 1",
@@ -245,7 +245,7 @@ namespace Sentinel.Tests
                 Timestamp = DateTime.UtcNow
             });
 
-            // Should NOT fire — different PIDs
+            // Should NOT fire - different PIDs
             Assert.Null(composite);
         }
 
@@ -290,7 +290,7 @@ namespace Sentinel.Tests
             engine.Initialize(ev => { composite = ev; return Task.CompletedTask; });
 
             // Signal set that matches both "Injected C2 Beacon" (0.98) and
-            // "In-Memory Implant Active" (0.96) — injection + C2 + reverse shell
+            // "In-Memory Implant Active" (0.96) - injection + C2 + reverse shell
             await engine.RegisterSignalAsync(new DetectionEvent
             {
                 RuleName = "Injection API",

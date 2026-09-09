@@ -416,7 +416,7 @@ select.rp-input {{ font-family: 'Segoe UI', sans-serif; }}
                         <div class=""panel-header""><h3 style=""color:#81c995"">Hardening Status</h3></div>
                         <div class=""panel-body"">
                             <p style=""font-size:12px;color:#9aa0a6;margin-bottom:10px"">
-                                <strong style=""color:#81c995"">&#x2713; Always active</strong> — IPSec port lockdown, ASR Block rules,
+                                <strong style=""color:#81c995"">&#x2713; Always active</strong> - IPSec port lockdown, ASR Block rules,
                                 RPC/DCOM firewall, credential hardening (LSASS PPL, WDigest off), registry hardening,
                                 and browser hardening are enforced on every startup with no config gate.
                             </p>
@@ -469,11 +469,11 @@ select.rp-input {{ font-family: 'Segoe UI', sans-serif; }}
 </main>
 </div>
 <script>
-// ═══════════════════════════════════════════════════════════════════
-// Sentinel Dashboard — IE11-compatible JavaScript (ES5 only)
+// 
+// Sentinel Dashboard - IE11-compatible JavaScript (ES5 only)
 // No arrow functions, no const/let, no template literals, no fetch,
 // no async/await, no URLSearchParams, no Array.from needed.
-// ═══════════════════════════════════════════════════════════════════
+// 
 
 var API = '';
 var CSRF = '';
@@ -511,13 +511,13 @@ function getToken() {{
             try {{ history.replaceState({{}}, '', window.location.pathname + clean + window.location.hash); }} catch(e) {{}}
             return t;
         }}
-        // 3. Fallback to sessionStorage (stale after restart — will 401)
+        // 3. Fallback to sessionStorage (stale after restart - will 401)
         try {{ return sessionStorage.getItem('sentinel_token') || ''; }} catch(e) {{ return ''; }}
     }} catch (e) {{ return ''; }}
 }}
 TOKEN = getToken();
 
-// ── XHR-based API helper (IE11 compatible) ─────────────────────────
+//  XHR-based API helper (IE11 compatible) 
 function apiCall(path, opts, callback) {{
     opts = opts || {{}};
     var method = opts.method || 'GET';
@@ -552,7 +552,7 @@ function apiCall(path, opts, callback) {{
     }}
 }}
 
-// ── XSS-safe HTML encoding ─────────────────────────────────────────
+//  XSS-safe HTML encoding 
 function esc(s) {{
     if (s == null) return '';
     var d = document.createElement('div');
@@ -560,7 +560,7 @@ function esc(s) {{
     return d.innerHTML;
 }}
 
-// ── Navigation ─────────────────────────────────────────────────────
+//  Navigation 
 (function() {{
     var navItems = document.getElementById('sidebar-nav').getElementsByClassName('nav-item');
     var pages = document.getElementsByClassName('page');
@@ -595,7 +595,7 @@ function esc(s) {{
     }}
 }})();
 
-// ── CSRF helper ────────────────────────────────────────────────────
+//  CSRF helper 
 function ensureCsrf(callback) {{
     if (CSRF) {{ callback(CSRF); return; }}
     apiCall('/api/csrf', {{}}, function(d) {{
@@ -604,7 +604,7 @@ function ensureCsrf(callback) {{
     }});
 }}
 
-// ── Status ─────────────────────────────────────────────────────────
+//  Status 
 function loadStatus() {{
     apiCall('/api/status', {{}}, function(data) {{
         if (data && data.ok) {{
@@ -632,7 +632,7 @@ function loadStatus() {{
     }});
 }}
 
-// ── Events ─────────────────────────────────────────────────────────
+//  Events 
 function refreshEvents() {{
     apiCall('/api/events?count=20', {{}}, function(data) {{
         if (data && data.ok) {{
@@ -700,7 +700,7 @@ function loadEventHistory() {{
     }});
 }}
 
-// ── WebSocket ──────────────────────────────────────────────────────
+//  WebSocket 
 function connectWs() {{
     try {{
         if (!window.WebSocket) {{ startEventPolling(); return; }}
@@ -757,7 +757,7 @@ function startEventPolling() {{
     }}, 3000);
 }}
 
-// ── Chart ──────────────────────────────────────────────────────────
+//  Chart 
 function updateChart() {{
     var container = document.getElementById('ov-chart');
     var max = 1;
@@ -772,7 +772,7 @@ function updateChart() {{
     chartData[chartIdx % 60] = 0;
 }}
 
-// ── Ops ────────────────────────────────────────────────────────────
+//  Ops 
 function loadOps() {{
     apiCall('/api/ops', {{}}, function(data) {{
         var grid = document.getElementById('ops-grid');
@@ -805,7 +805,7 @@ function loadOps() {{
     }});
 }}
 
-// ── Quarantine ─────────────────────────────────────────────────────
+//  Quarantine 
 function loadQuarantine() {{
     apiCall('/api/quarantine', {{}}, function(data) {{
         var container = document.getElementById('q-list');
@@ -829,7 +829,7 @@ function loadQuarantine() {{
     }});
 }}
 
-// ── Scan ───────────────────────────────────────────────────────────
+//  Scan 
 function startScan() {{
     var btn = document.getElementById('btn-scan');
     btn.disabled = true;
@@ -900,7 +900,7 @@ function checkScanStatus() {{
     }});
 }}
 
-// ── Report to Police ───────────────────────────────────────────────
+//  Report to Police 
 function loadReportPacks() {{
     apiCall('/api/packs', {{}}, function(data) {{
         var container = document.getElementById('rp-packs');
@@ -1008,7 +1008,7 @@ function verifyIntegrity() {{
     }});
 }}
 
-// ── Tools ──────────────────────────────────────────────────────────
+//  Tools 
 function refreshDiagnostics() {{
     apiCall('/api/diagnostics', {{}}, function(data) {{
         var pre = document.getElementById('tools-diag');
@@ -1020,7 +1020,7 @@ function refreshDiagnostics() {{
     }});
 }}
 
-// ── Init ───────────────────────────────────────────────────────────
+//  Init 
 loadStatus();
 refreshEvents();
 connectWs();

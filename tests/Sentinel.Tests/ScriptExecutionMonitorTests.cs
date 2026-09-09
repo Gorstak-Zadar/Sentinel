@@ -4,14 +4,14 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for ScriptExecutionMonitor — verifies detection model behavior
+    /// Tests for ScriptExecutionMonitor - verifies detection model behavior
     /// for PowerShell, cmd, wscript/cscript, and mshta execution patterns.
     /// </summary>
     public class ScriptExecutionMonitorTests
     {
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Script interpreter detection categorization
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("PowerShell AMSI Bypass")]
@@ -23,9 +23,9 @@ namespace Sentinel.Tests
             Assert.NotEqual(DetectionCategory.Unknown, category);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Command line pattern detection
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData(@"powershell.exe -nop -w hidden -enc SQBFAFG=")]
@@ -58,9 +58,9 @@ namespace Sentinel.Tests
             Assert.True(hasScriptHost);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Detection event model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void ScriptExecution_DownloadCradle_HighConfidence()

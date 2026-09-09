@@ -7,7 +7,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for JsonlEventLogger — verifies log rotation, JSONL format compliance,
+    /// Tests for JsonlEventLogger - verifies log rotation, JSONL format compliance,
     /// graceful disk space handling, and async write behavior.
     /// </summary>
     public class JsonlEventLoggerTests : IAsyncDisposable

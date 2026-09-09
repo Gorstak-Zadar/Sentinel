@@ -72,7 +72,7 @@ namespace Sentinel.Core
             }
             else
             {
-                Debug.WriteLine("WmiProcessMonitor: WMI unavailable on this system — using fast-poll fallback only.");
+                Debug.WriteLine("WmiProcessMonitor: WMI unavailable on this system - using fast-poll fallback only.");
             }
 
             // Start fast-poll gap coverage (250ms) to catch ephemeral processes
@@ -115,7 +115,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Rapid process snapshot every 250ms. Detects new PIDs that appear between
-        /// WMI event deliveries — critical for catching sub-second payloads (credential
+        /// WMI event deliveries - critical for catching sub-second payloads (credential
         /// dumpers, droppers, stagers) that execute and exit before WMI fires.
         /// </summary>
         private void FastPollProcesses(object? state)
@@ -150,7 +150,7 @@ namespace Sentinel.Core
                     _lastKnownPids = currentPids;
                 }
 
-                // Process new PIDs — record them into ancestry cache immediately
+                // Process new PIDs - record them into ancestry cache immediately
                 foreach (var proc in newProcesses)
                 {
                     try

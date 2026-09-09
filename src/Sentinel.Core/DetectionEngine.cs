@@ -87,7 +87,7 @@ namespace Sentinel.Core
         {
             _metrics.RecordTelemetryReceived();
             // DropOldest: TryWrite always accepts; oldest is discarded under pressure.
-            // Approximate drop signal when channel is saturated (Count ≈ capacity).
+            // Approximate drop signal when channel is saturated (Count ~= capacity).
             if (_telemetryChannel.Reader.Count >= TelemetryChannelCapacity - 1)
                 _metrics.RecordTelemetryDropped();
             _telemetryChannel.Writer.TryWrite(context);
@@ -96,7 +96,7 @@ namespace Sentinel.Core
         public async Task EmitAsync(DetectionEvent detectionEvent)
         {
             // Direct emission bypassing rules (for monitors that emit detections directly).
-            // v2.3.1: Record detection metric here too — previously only rule-based detections
+            // v2.3.1: Record detection metric here too - previously only rule-based detections
             // were counted, leaving monitors (Ephemeral, Hardware, DNS, NamedPipe, etc.) invisible
             // in ops metrics.
             _metrics.RecordDetection(0);
@@ -130,8 +130,8 @@ namespace Sentinel.Core
         public async Task SubmitConsultantSignalAsync(DetectionEvent detectionEvent)
         {
             if (detectionEvent == null) return;
-            // v1.8.1 RT-NEW-2: consultant signals are observational only — never kill authority.
-            // Previously ProcessDetectionAsync re-promoted Verdict.Critical → KillProcessTree.
+            // v1.8.1 RT-NEW-2: consultant signals are observational only - never kill authority.
+            // Previously ProcessDetectionAsync re-promoted Verdict.Critical -> KillProcessTree.
             detectionEvent.Tier = DetectionTier.Tier2Indicator;
             detectionEvent.AuthorizedResponse = ResponseAction.LogOnly;
             if (detectionEvent.Metadata == null)
@@ -157,7 +157,7 @@ namespace Sentinel.Core
                                 // SECURITY v1.4.6: Capture token into local variable to prevent
                                 // ObjectDisposedException when CTS is disposed during shutdown.
                                 // Previously, accessing _cts.Token after Stop() caused unhandled
-                                // exceptions that crashed the service — an attacker could exploit
+                                // exceptions that crashed the service - an attacker could exploit
                                 // this by triggering rapid stop/start cycles to keep Sentinel down.
                                 var ct = _cts.Token;
                                 _ = Task.Run(async () =>
@@ -167,7 +167,7 @@ namespace Sentinel.Core
                                         var imagePath = pt.ImagePath;
                                         if (!string.IsNullOrEmpty(imagePath) && System.IO.File.Exists(imagePath))
                                         {
-                                            // HARDENING v1.3.8: Self-exclusion — never reputation-scan our own binaries.
+                                            // HARDENING v1.3.8: Self-exclusion - never reputation-scan our own binaries.
                                             // Sentinel.Agent.exe and Sentinel.Service.exe are unsigned
                                             // dev builds unknown to reputation DBs, so they score ~43-48/100 (Suspicious).
                                             // This generated false detections, fed the correlation engine with
@@ -181,7 +181,7 @@ namespace Sentinel.Core
 
                                             // v2.0.5: Never reputation-scan game/anti-cheat or DirectX/runtime
                                             // redistributable binaries. These are interactive entertainment or
-                                            // runtime installers that Sentinel must never touch — observe only.
+                                            // runtime installers that Sentinel must never touch - observe only.
                                             // Consistent with DllUnloadEngine, AdvancedResponseEngine, and
                                             // IncidentResponseService which already skip these paths.
                                             if (SecurityValidation.ShouldSkipReputationForGamePath(imagePath) ||
@@ -224,7 +224,7 @@ namespace Sentinel.Core
                                             }
                                             else if (repoResult.Verdict == FileVerdict.HighRisk)
                                             {
-                                                // v1.6.4: EDR philosophy — "unknown" ≠ "malicious".
+                                                // v1.6.4: EDR philosophy - "unknown" != "malicious".
                                                 // If the binary looks like a legitimate installer and NO reputation
                                                 // source positively confirmed it as malicious (just "not found" / error),
                                                 // demote to Tier2/LogOnly. Let it run; behavioral monitors will catch
@@ -304,7 +304,7 @@ namespace Sentinel.Core
                                         }
                                     }
                                     catch (OperationCanceledException) { }
-                                    catch (ObjectDisposedException) { } // CTS disposed during shutdown — safe to ignore
+                                    catch (ObjectDisposedException) { } // CTS disposed during shutdown - safe to ignore
                                     catch (Exception ex)
                                     {
                                         _logger.LogError(ex, "[DetectionEngine] Error checking process reputation for {ProcessName} (PID {ProcessId})", pt.ProcessName, pt.ProcessId);
@@ -345,7 +345,7 @@ namespace Sentinel.Core
             }
             catch (ObjectDisposedException)
             {
-                // CTS disposed during shutdown — safe to exit
+                // CTS disposed during shutdown - safe to exit
             }
             catch (Exception ex)
             {
@@ -366,7 +366,7 @@ namespace Sentinel.Core
                 ? TimeSpan.FromSeconds(10)
                 : TimeSpan.FromSeconds(30);
 
-            // Determine — atomically per key — whether THIS call is the one that claims
+            // Determine - atomically per key - whether THIS call is the one that claims
             // the dedup slot (fresh insert or window expired). Relying on timestamp equality
             // is unsafe: two events processed within the same ~15ms DateTime.UtcNow tick share
             // an identical `now`, so the old `lastTime != now` check let a duplicate slip
@@ -379,8 +379,8 @@ namespace Sentinel.Core
                 (_, oldTime) =>
                 {
                     if (now - oldTime < dedupWindow)
-                        return oldTime;                            // still inside window → suppress
-                    claimed = true;                                // window expired → re-arm + emit
+                        return oldTime;                            // still inside window -> suppress
+                    claimed = true;                                // window expired -> re-arm + emit
                     return now;
                 });
 
@@ -412,7 +412,7 @@ namespace Sentinel.Core
             bool isConsultant = detection.Metadata.TryGetValue("ConsultantSignal", out var csFlag)
                 && string.Equals(csFlag, "true");
 
-            // Consultant / external signals are observational only — never kill authority.
+            // Consultant / external signals are observational only - never kill authority.
             if (isConsultant)
             {
                 detection.Tier = DetectionTier.Tier2Indicator;
@@ -429,7 +429,7 @@ namespace Sentinel.Core
 
             await HandleDetectionEventAsync(detection);
 
-            // Feed ALL tiers to correlation — Tier2 observe signals seed composites;
+            // Feed ALL tiers to correlation - Tier2 observe signals seed composites;
             // multi-signal composites are what authorize kill.
             var corrStart = DateTime.UtcNow;
             await _correlationEngine.RegisterSignalAsync(detection);

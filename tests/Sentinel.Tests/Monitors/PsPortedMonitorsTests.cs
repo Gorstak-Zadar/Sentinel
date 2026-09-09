@@ -72,7 +72,7 @@ namespace Sentinel.Tests.Monitors
         [Fact]
         public void CursorTakeoverMonitor_IsTakeoverPattern_DetectsLowVarianceMotion()
         {
-            // Constant velocity ≈ 0.05 px/ms across 15 samples → low variance, mean > 0.01
+            // Constant velocity ~= 0.05 px/ms across 15 samples -> low variance, mean > 0.01
             var velocities = new List<double>();
             for (int i = 0; i < 15; i++)
                 velocities.Add(0.05);
@@ -94,7 +94,7 @@ namespace Sentinel.Tests.Monitors
         [Fact]
         public void CursorTakeoverMonitor_IsTakeoverPattern_IgnoresStationary()
         {
-            // Stationary cursor — mean velocity near zero
+            // Stationary cursor - mean velocity near zero
             var velocities = new List<double>();
             for (int i = 0; i < 15; i++)
                 velocities.Add(0.0);
@@ -118,7 +118,7 @@ namespace Sentinel.Tests.Monitors
                 var engine = CreateMinimalEngine(tempDir);
                 var mon = new CookieIntegrityMonitor(engine, NullLogger<CookieIntegrityMonitor>.Instance);
 
-                // Inject path by scanning a non-existent default set (returns 0) — construction smoke test
+                // Inject path by scanning a non-existent default set (returns 0) - construction smoke test
                 var changes = await mon.ScanAsync(alert: false);
                 Assert.True(changes >= 0);
 

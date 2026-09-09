@@ -7,7 +7,7 @@ namespace Sentinel.Tests
 {
     public class RateLimiterTests
     {
-        // ── RateLimiter (fixed window) ──────────────────────────────────
+        //  RateLimiter (fixed window) 
 
         [Fact]
         public void RateLimiter_AllowsUpToLimit()
@@ -52,7 +52,7 @@ namespace Sentinel.Tests
             Assert.False(limiter.AllowRequest());
         }
 
-        // ── BurstRateLimiter (token bucket) ─────────────────────────────
+        //  BurstRateLimiter (token bucket) 
 
         [Fact]
         public void BurstRateLimiter_AllowsInitialBurst()

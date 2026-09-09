@@ -205,7 +205,7 @@ namespace Sentinel.MlTrainer
                     while ((line = sr.ReadLine()) != null)
                     {
                         if (string.IsNullOrWhiteSpace(line)) continue;
-                        // url,label  — label is "bad" or "good" (label may contain commas rarely; take last comma)
+                        // url,label  - label is "bad" or "good" (label may contain commas rarely; take last comma)
                         int comma = line.LastIndexOf(',');
                         if (comma <= 0) continue;
                         string url = line[..comma].Trim().Trim('"');

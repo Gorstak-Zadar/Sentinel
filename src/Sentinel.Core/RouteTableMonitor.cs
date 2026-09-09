@@ -139,7 +139,7 @@ namespace Sentinel.Core
                 var routes = GetRouteTable();
                 var gateway = GetDefaultGateway();
 
-                // If no routes or no gateway, network isn't ready yet — don't mark as captured
+                // If no routes or no gateway, network isn't ready yet - don't mark as captured
                 if (routes.Count == 0 || gateway == null)
                 {
                     _logger.LogDebug("[RouteTableMonitor] Network not ready ({Count} routes, gw={Gw}), deferring baseline",
@@ -168,7 +168,7 @@ namespace Sentinel.Core
                 if (!_baselineCaptured)
                 {
                     SnapshotBaseline();
-                    return; // Don't check on the same tick we baseline — wait for next cycle
+                    return; // Don't check on the same tick we baseline - wait for next cycle
                 }
 
                 // One-time startup cleanup of persistent route registry
@@ -203,7 +203,7 @@ namespace Sentinel.Core
                     }
                     else if (route.Destination == 0 && route.Mask == 0) // Default route
                     {
-                        // New default route — potential full traffic hijack
+                        // New default route - potential full traffic hijack
                         var nextHop = UintToIp(route.NextHop);
                         _ = _detectionEngine.EmitAsync(new DetectionEvent
                         {
@@ -324,7 +324,7 @@ namespace Sentinel.Core
 
                     var mask = parts[1].Trim();
                     var gateway = parts[2].Trim();
-                    // /32 = 255.255.255.255 — host routes in persistent registry are almost always malicious
+                    // /32 = 255.255.255.255 - host routes in persistent registry are almost always malicious
                     // Exclude on-link routes (gateway 0.0.0.0) which are used by local sandbox environments like Antigravity
                     if (mask == "255.255.255.255" && gateway != "0.0.0.0")
                     {
@@ -391,7 +391,7 @@ namespace Sentinel.Core
 
                     _baselineRoutes[regKey] = new RouteEntry(); // Mark as seen
 
-                    if (mask == "255.255.255.255" && gateway != "0.0.0.0") // /32 — suspicious (exclude local sandbox/on-link routes)
+                    if (mask == "255.255.255.255" && gateway != "0.0.0.0") // /32 - suspicious (exclude local sandbox/on-link routes)
                     {
                         _ = _detectionEngine.EmitAsync(new DetectionEvent
                         {

@@ -3,7 +3,7 @@ using System;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// Standing product law (v2.5.5+). Hardening is unconditional — always active.
+    /// Standing product law (v2.5.5+). Hardening is unconditional - always active.
     ///
     /// <para><b>ALL HARDENING IS ALWAYS-ON.</b> IPSec port lockdown, ASR Block rules,
     /// RPC/DCOM firewall, remote session guard, registry hardening, credential hardening
@@ -19,7 +19,7 @@ namespace Sentinel.Core
     /// <item>Module identity unload is always on. Foreign mapped PEs are FreeLibrary'd.
     ///       Hijack-name plants are quarantined on drop (file only, never kill the host).
     ///       Games are not VM_READ. Never OS servicing. No config flag may disable this.</item>
-    /// <item>Full proactive OS hardening — IPSec, ASR Block, RPC firewall, remote session
+    /// <item>Full proactive OS hardening - IPSec, ASR Block, RPC firewall, remote session
     ///       kill, registry hardening, credential hardening, browser hardening.</item>
     /// </list>
     /// </summary>
@@ -34,13 +34,13 @@ namespace Sentinel.Core
         public const bool ModuleIdentityUnloadAlwaysOn = true;
 
         /// <summary>
-        /// v2.5.5: Always returns true — hardening is unconditional.
+        /// v2.5.5: Always returns true - hardening is unconditional.
         /// The config parameter is ignored; retained for call-site compatibility.
         /// </summary>
         public static bool AllowsProactiveHostLockdown(SentinelConfig? config) => true;
 
         /// <summary>
-        /// v2.5.5: Always succeeds — hardening is unconditional.
+        /// v2.5.5: Always succeeds - hardening is unconditional.
         /// The denyReason is always empty.
         /// </summary>
         public static bool TryProactiveHostLockdown(SentinelConfig? config, out string denyReason)
@@ -50,7 +50,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Destructive response after detection pipeline — separate from proactive lockdown.
+        /// Destructive response after detection pipeline - separate from proactive lockdown.
         /// Still gated by ActiveResponse + ObserveUntilChain / chain confirm.
         /// </summary>
         public static bool AllowsChainConfirmedResponse(SentinelConfig? config, DetectionEvent? detection)
@@ -63,7 +63,7 @@ namespace Sentinel.Core
         /// <summary>
         /// v1.9.10: Narrow post-incident MITM suite (cert remove, FCM Send-Tab-to-Self block,
         /// rogue Cast / fake Chromecast firewall). Explicit operator opt-in via
-        /// <see cref="MitmDefenseConfig.Enabled"/> — does not enable full kiosk lockdown.
+        /// <see cref="MitmDefenseConfig.Enabled"/> - does not enable full kiosk lockdown.
         /// </summary>
         public static bool AllowsMitmDefenseMutations(SentinelConfig? config)
         {

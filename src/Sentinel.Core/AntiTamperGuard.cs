@@ -14,12 +14,12 @@ namespace Sentinel.Core
     /// <summary>
     /// Self-protection against tampering:
     ///
-    /// 1. Binary integrity — alerts if Sentinel's own executable is deleted/replaced while running
-    /// 2. Anti-suspend detection — monitors execution timing; fires if a gap exceeds threshold
+    /// 1. Binary integrity - alerts if Sentinel's own executable is deleted/replaced while running
+    /// 2. Anti-suspend detection - monitors execution timing; fires if a gap exceeds threshold
     ///    (indicates NtSuspendProcess was used to freeze Sentinel while attacker operates)
-    /// 3. Service reinstall — if Sentinel's service registry key is deleted, re-registers via native SCM P/Invoke
-    /// 4. Last-gasp logging — on unexpected exit, writes final state to last_gasp.jsonl
-    /// 5. FIPS Algorithm Policy enforcement — detects and disables GP-reenabled FIPS every check cycle
+    /// 3. Service reinstall - if Sentinel's service registry key is deleted, re-registers via native SCM P/Invoke
+    /// 4. Last-gasp logging - on unexpected exit, writes final state to last_gasp.jsonl
+    /// 5. FIPS Algorithm Policy enforcement - detects and disables GP-reenabled FIPS every check cycle
     ///
     /// Scan interval: 2 seconds for timing (anti-suspend), 10 seconds for binary/service/FIPS checks.
     /// </summary>
@@ -59,7 +59,7 @@ namespace Sentinel.Core
 
         // HARDENING: QueryPerformanceCounter as secondary time source.
         // DateTime/DateTimeOffset can be manipulated by usermode time adjustment (SetSystemTime).
-        // QPC is monotonic and hardware-driven — immune to clock skew attacks.
+        // QPC is monotonic and hardware-driven - immune to clock skew attacks.
         private long _lastPerfCount;
         private readonly long _perfFrequency;
 
@@ -69,7 +69,7 @@ namespace Sentinel.Core
         [System.Runtime.InteropServices.DllImport("kernel32.dll")]
         private static extern bool QueryPerformanceFrequency(out long lpFrequency);
 
-        // ── Native SCM P/Invoke (replaces sc.exe shelling) ──────────────────
+        //  Native SCM P/Invoke (replaces sc.exe shelling) 
         [DllImport("advapi32.dll", EntryPoint = "OpenSCManagerW", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern IntPtr OpenSCManager(string? machineName, string? databaseName, uint dwDesiredAccess);
 
@@ -152,7 +152,7 @@ namespace Sentinel.Core
         /// </summary>
         private void EnforceActiveResponseAtStartup()
         {
-            // v2.0.4: ActiveResponse has no off switch — nothing to enforce.
+            // v2.0.4: ActiveResponse has no off switch - nothing to enforce.
             _activeResponseLastKnown = true;
         }
 
@@ -177,7 +177,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("[AntiTamperGuard] Started — monitoring binary integrity, timing, and service registration");
+            _logger.LogInformation("[AntiTamperGuard] Started - monitoring binary integrity, timing, and service registration");
 
             // Register exit handler for last-gasp logging
             RegisterExitHandler();
@@ -207,7 +207,7 @@ namespace Sentinel.Core
                         _lastPerfCount = currentPerfCount;
                     }
 
-                    // Use the LARGER of DateTime and QPC elapsed — prevents clock manipulation
+                    // Use the LARGER of DateTime and QPC elapsed - prevents clock manipulation
                     elapsed = Math.Max(elapsed, qpcElapsedMs);
 
                     if (_systemJustResumed)
@@ -252,7 +252,7 @@ namespace Sentinel.Core
                         await CheckActiveResponseConfig();
                         await CheckEncryptedConfigIntegrity();
                         await CheckAndEnforceQosPolicies();
-                        // v2.0.4 HIGH-4: Removed EnforceFipsDisabled() — an EDR must not
+                        // v2.0.4 HIGH-4: Removed EnforceFipsDisabled() - an EDR must not
                         // weaken system cryptographic posture.
                     }
                 }
@@ -281,7 +281,7 @@ namespace Sentinel.Core
                     RuleName = "Anti-Tamper: Sentinel Binary Deleted",
                     Evidence = $"Sentinel executable no longer exists at: {_ownExePath}",
                     Reasoning = "The Sentinel service binary has been deleted from disk while the service " +
-                                "is still running. This is a direct tampering attempt — the attacker wants " +
+                                "is still running. This is a direct tampering attempt - the attacker wants " +
                                 "to ensure Sentinel cannot restart after a reboot or service crash.",
                     Confidence = 0.99,
                     Tier = DetectionTier.Tier1Behavioral,
@@ -312,7 +312,7 @@ namespace Sentinel.Core
                             Reasoning = "The on-disk Sentinel service binary has been replaced while the service " +
                                         "is still running in memory. An attacker has modified the binary so that " +
                                         "on next restart, their malicious version runs as SYSTEM. This is a critical " +
-                                        "persistence mechanism — the attacker replaces the EDR with their own code.",
+                                        "persistence mechanism - the attacker replaces the EDR with their own code.",
                             Confidence = 0.99,
                             Tier = DetectionTier.Tier1Behavioral,
                             AuthorizedResponse = ResponseAction.LogOnly,
@@ -341,7 +341,7 @@ namespace Sentinel.Core
         /// </summary>
         private Task CheckActiveResponseConfig()
         {
-            // v2.0.4: ActiveResponse has no off switch — nothing to check.
+            // v2.0.4: ActiveResponse has no off switch - nothing to check.
             _activeResponseLastKnown = true;
             return Task.CompletedTask;
         }
@@ -452,7 +452,7 @@ namespace Sentinel.Core
                 {
                     try
                     {
-                        // v1.5.4: Native SCM P/Invoke — no sc.exe dependency
+                        // v1.5.4: Native SCM P/Invoke - no sc.exe dependency
                         SetServiceStartTypeNative(ServiceName, SERVICE_AUTO_START);
                         _logger.LogWarning("[AntiTamperGuard] Enforced service '{Service}' StartType back to Automatic.", ServiceName);
                     }
@@ -466,7 +466,7 @@ namespace Sentinel.Core
             {
                 _serviceAlertSuppressed = true; // Only alert once
 
-                // Service registration is gone — attempt re-register
+                // Service registration is gone - attempt re-register
                 await _detectionEngine.EmitAsync(new DetectionEvent
                 {
                     RuleName = "Anti-Tamper: Service Registration Deleted",
@@ -497,7 +497,7 @@ namespace Sentinel.Core
                     }
                 }
             }
-            catch { } // Service exists — all good
+            catch { } // Service exists - all good
         }
 
         /// <summary>
@@ -540,11 +540,11 @@ namespace Sentinel.Core
                 });
                 File.AppendAllText(_lastGaspPath, entry + Environment.NewLine);
             }
-            catch { } // Best-effort — we're dying
+            catch { } // Best-effort - we're dying
 
             // B1: classify the stop and record it durably in the append-only audit trail.
-            // Expected (cooperative SCM stop / OS shutdown / upgrade / uninstall) → lifecycle event.
-            // Otherwise → suspected tamper suppression (alert-before-suppression).
+            // Expected (cooperative SCM stop / OS shutdown / upgrade / uninstall) -> lifecycle event.
+            // Otherwise -> suspected tamper suppression (alert-before-suppression).
             try
             {
                 if (ShutdownContext.IsExpected)
@@ -586,10 +586,10 @@ namespace Sentinel.Core
                             ProcessId = 0
                         });
                     }
-                    catch { /* engine may be gone — audit record already written */ }
+                    catch { /* engine may be gone - audit record already written */ }
                 }
             }
-            catch { } // Best-effort — never throw out of the exit path.
+            catch { } // Best-effort - never throw out of the exit path.
         }
 
         /// <summary>
@@ -639,9 +639,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // Native SCM Helpers (v1.5.4 — replaces sc.exe)
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // Native SCM Helpers (v1.5.4 - replaces sc.exe)
+        // 
 
         /// <summary>
         /// Creates a Windows service via native advapi32 CreateService.

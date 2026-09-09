@@ -15,7 +15,7 @@ using Sentinel.Core.Plugins;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v2.0 / v2.0.4 — Loads signed correlation rule packs from disk into PluginRegistry.
+    /// v2.0 / v2.0.4 - Loads signed correlation rule packs from disk into PluginRegistry.
     ///
     /// Pack location (preferred): %ProgramData%\Sentinel\rules\packs\*.pack.json
     /// Fallback: {installDir}\rules\packs\*.pack.json
@@ -37,7 +37,7 @@ namespace Sentinel.Core
     /// }
     ///
     /// v2.0.4 CRIT-2: Switched from HMAC (symmetric, key on endpoint) to RSA-SHA256 asymmetric
-    /// signature verification. Only the public key exists on the endpoint — the private signing
+    /// signature verification. Only the public key exists on the endpoint - the private signing
     /// key is kept offline. An attacker who achieves SYSTEM cannot forge rule packs.
     /// Legacy packs with "hmac" field are rejected (migration required).
     /// </summary>
@@ -88,7 +88,7 @@ namespace Sentinel.Core
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[RulePacks] Init failed — continuing without packs");
+                _logger.LogWarning(ex, "[RulePacks] Init failed - continuing without packs");
             }
 
             return WaitForeverAsync(stoppingToken);
@@ -187,7 +187,7 @@ namespace Sentinel.Core
         {
             if (_verificationKey == null)
             {
-                _logger.LogError("[RulePacks] REJECTED {File} — RSA verification key unavailable (fail-closed)",
+                _logger.LogError("[RulePacks] REJECTED {File} - RSA verification key unavailable (fail-closed)",
                     Path.GetFileName(filePath));
                 return false;
             }
@@ -196,17 +196,17 @@ namespace Sentinel.Core
             {
                 using var doc = JsonDocument.Parse(fileContent);
 
-                // v2.0.4: Reject legacy HMAC-signed packs — they must be re-signed with RSA
+                // v2.0.4: Reject legacy HMAC-signed packs - they must be re-signed with RSA
                 if (doc.RootElement.TryGetProperty("hmac", out _))
                 {
-                    _logger.LogWarning("[RulePacks] REJECTED {File} — legacy HMAC signature not accepted (v2.0.4 requires RSA)",
+                    _logger.LogWarning("[RulePacks] REJECTED {File} - legacy HMAC signature not accepted (v2.0.4 requires RSA)",
                         Path.GetFileName(filePath));
                     return false;
                 }
 
                 if (!doc.RootElement.TryGetProperty("signature", out var sigEl))
                 {
-                    _logger.LogWarning("[RulePacks] REJECTED {File} — missing 'signature' field", Path.GetFileName(filePath));
+                    _logger.LogWarning("[RulePacks] REJECTED {File} - missing 'signature' field", Path.GetFileName(filePath));
                     return false;
                 }
                 var signatureBase64 = sigEl.GetString();
@@ -214,7 +214,7 @@ namespace Sentinel.Core
 
                 byte[] signatureBytes;
                 try { signatureBytes = Convert.FromBase64String(signatureBase64); }
-                catch { _logger.LogWarning("[RulePacks] REJECTED {File} — invalid base64 signature", Path.GetFileName(filePath)); return false; }
+                catch { _logger.LogWarning("[RulePacks] REJECTED {File} - invalid base64 signature", Path.GetFileName(filePath)); return false; }
 
                 var toVerify = RemoveSignatureField(fileContent);
                 var dataBytes = Encoding.UTF8.GetBytes(toVerify);
@@ -222,7 +222,7 @@ namespace Sentinel.Core
                 var ok = _verificationKey.VerifyData(dataBytes, signatureBytes,
                     HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
                 if (!ok)
-                    _logger.LogWarning("[RulePacks] REJECTED {File} — RSA signature verification failed", Path.GetFileName(filePath));
+                    _logger.LogWarning("[RulePacks] REJECTED {File} - RSA signature verification failed", Path.GetFileName(filePath));
                 return ok;
             }
             catch (Exception ex)

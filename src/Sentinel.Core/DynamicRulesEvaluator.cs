@@ -247,7 +247,7 @@ namespace Sentinel.Core
                     System.Security.AccessControl.PropagationFlags.None,
                     System.Security.AccessControl.AccessControlType.Allow));
 
-                // v1.6.0: Admins read-only — signing key is SYSTEM-only, so write without
+                // v1.6.0: Admins read-only - signing key is SYSTEM-only, so write without
                 // signature is rejected by fail-closed HMAC verification.
                 var adminsSid = new System.Security.Principal.SecurityIdentifier(
                     System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, null);
@@ -281,7 +281,7 @@ namespace Sentinel.Core
         /// v1.5.5: Verifies HMAC signature of a rule file.
         /// The file must contain an "hmac" field at root level. The signature is computed
         /// over the JSON content with the "hmac" field removed.
-        /// HARDENING v1.5.9: Fails CLOSED when HMAC key is unavailable — rules are rejected.
+        /// HARDENING v1.5.9: Fails CLOSED when HMAC key is unavailable - rules are rejected.
         /// Previously failed open (returned true), allowing an attacker who deleted the entropy
         /// file to inject arbitrary unsigned rules that could suppress real detections.
         /// Test mode (constructor with testRulesPath) still bypasses HMAC via null _hmacKey check
@@ -291,19 +291,19 @@ namespace Sentinel.Core
         {
             // HARDENING v1.5.9: Fail-closed when no signing key is available.
             // If the entropy file is missing (deleted by attacker, or corrupted), reject all rules.
-            // The entropy file is created at install time by the installer — its absence in
+            // The entropy file is created at install time by the installer - its absence in
             // production is anomalous and should be treated as potential tampering.
             // NOTE: Test mode uses a separate constructor that sets _hmacKey = null and never
             // calls this method (rules are loaded directly without verification).
             if (_hmacKey == null)
             {
-                // v1.5.9: Test mode bypass — only reachable from the test constructor
+                // v1.5.9: Test mode bypass - only reachable from the test constructor
                 if (_isTestMode)
                 {
                     return true;
                 }
 
-                _logger.LogError("[DynamicRulesEvaluator] REJECTED rule {File} — HMAC signing key unavailable. " +
+                _logger.LogError("[DynamicRulesEvaluator] REJECTED rule {File} - HMAC signing key unavailable. " +
                     "The install entropy file may be missing or corrupted. Dynamic rules require " +
                     "integrity verification and will NOT load without a valid signing key.",
                     Path.GetFileName(filePath));
@@ -317,7 +317,7 @@ namespace Sentinel.Core
 
                 if (!root.TryGetProperty("hmac", out var hmacElement))
                 {
-                    _logger.LogWarning("[DynamicRulesEvaluator] REJECTED rule {File} — missing 'hmac' signature field",
+                    _logger.LogWarning("[DynamicRulesEvaluator] REJECTED rule {File} - missing 'hmac' signature field",
                         Path.GetFileName(filePath));
                     return false;
                 }
@@ -325,7 +325,7 @@ namespace Sentinel.Core
                 var providedHmac = hmacElement.GetString();
                 if (string.IsNullOrEmpty(providedHmac))
                 {
-                    _logger.LogWarning("[DynamicRulesEvaluator] REJECTED rule {File} — empty 'hmac' signature",
+                    _logger.LogWarning("[DynamicRulesEvaluator] REJECTED rule {File} - empty 'hmac' signature",
                         Path.GetFileName(filePath));
                     return false;
                 }
@@ -344,14 +344,14 @@ namespace Sentinel.Core
                 }
                 catch
                 {
-                    _logger.LogWarning("[DynamicRulesEvaluator] REJECTED rule {File} — HMAC signature not valid hex",
+                    _logger.LogWarning("[DynamicRulesEvaluator] REJECTED rule {File} - HMAC signature not valid hex",
                         Path.GetFileName(filePath));
                     return false;
                 }
 
                 if (!SecurityValidation.SecureCompare(providedBytes, expectedHash))
                 {
-                    _logger.LogWarning("[DynamicRulesEvaluator] REJECTED rule {File} — HMAC signature INVALID. " +
+                    _logger.LogWarning("[DynamicRulesEvaluator] REJECTED rule {File} - HMAC signature INVALID. " +
                         "Rule file may have been tampered with.", Path.GetFileName(filePath));
                     return false;
                 }
@@ -360,7 +360,7 @@ namespace Sentinel.Core
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[DynamicRulesEvaluator] REJECTED rule {File} — signature validation error",
+                _logger.LogWarning(ex, "[DynamicRulesEvaluator] REJECTED rule {File} - signature validation error",
                     Path.GetFileName(filePath));
                 return false;
             }

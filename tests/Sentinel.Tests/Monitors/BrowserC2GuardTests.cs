@@ -4,14 +4,14 @@ using Sentinel.Core;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for BrowserC2Guard — verifies Chrome DevTools protocol abuse detection,
+    /// Tests for BrowserC2Guard - verifies Chrome DevTools protocol abuse detection,
     /// headless browser proxy detection, and malicious extension permission classification.
     /// </summary>
     public class BrowserC2GuardTests
     {
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Debug port extraction (mirrors private ExtractDebugPort)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("chrome.exe --remote-debugging-port=9222 --headless", 9222)]
@@ -23,9 +23,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(expectedPort, ExtractDebugPort(cmdLine));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Headless browser proxy detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void HeadlessProxy_DetectionModel()
@@ -45,9 +45,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(detection.KillAuthorized);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Malicious extension permissions
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("nativeMessaging")]
@@ -61,9 +61,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Contains(permission, dangerous);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // CDP client detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void CdpClient_DetectionModel()
@@ -83,9 +83,9 @@ namespace Sentinel.Tests.Monitors
             Assert.NotEqual(DetectionCategory.Unknown, category);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Malicious extension detection model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void MaliciousExtension_DetectionModel()
@@ -103,9 +103,9 @@ namespace Sentinel.Tests.Monitors
             Assert.Equal(DetectionTier.Tier1Behavioral, detection.Tier);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helper (mirrors private ExtractDebugPort)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static int ExtractDebugPort(string cmdLine)
         {

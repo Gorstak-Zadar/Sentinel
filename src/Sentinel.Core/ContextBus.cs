@@ -12,25 +12,25 @@ namespace Sentinel.Core
     /// <summary>
     /// Thread-safe pub/sub bus for cross-monitor enrichment signals.
     ///
-    /// This is the nervous system of the EDR — monitors publish enrichment signals
-    /// (not detections — those flow through DetectionEngine) and other monitors
+    /// This is the nervous system of the EDR - monitors publish enrichment signals
+    /// (not detections - those flow through DetectionEngine) and other monitors
     /// subscribe to consume context that helps them make better decisions.
     ///
     /// Design principles:
     ///   - Non-blocking publish (bounded channel drops oldest on overflow)
     ///   - Subscribers receive only signal types they registered for
-    ///   - No monitor waits on another monitor — pure async fire-and-forget enrichment
+    ///   - No monitor waits on another monitor - pure async fire-and-forget enrichment
     ///   - Backpressure monitoring: tracks drops, queue depths, consumer lag
     ///   - Signal TTL: stale signals are discarded by consumers
     ///
     /// Signal flow (enrichment, not detection):
-    ///   BeaconingDetector → publishes NetworkC2Signal → consumed by GhostProcessMonitor
-    ///   GhostProcessMonitor → publishes GhostProcessSignal → consumed by BeaconingDetector
-    ///   FileReputationEngine → publishes FileVerdictSignal → consumed by AppNetworkPolicyMonitor
-    ///   DnsQueryMonitor → publishes DnsAnomalySignal → consumed by GhostProcessMonitor
-    ///   EtwThreatIntelMonitor → publishes InjectionSignal → consumed by ChainTracer
+    ///   BeaconingDetector -> publishes NetworkC2Signal -> consumed by GhostProcessMonitor
+    ///   GhostProcessMonitor -> publishes GhostProcessSignal -> consumed by BeaconingDetector
+    ///   FileReputationEngine -> publishes FileVerdictSignal -> consumed by AppNetworkPolicyMonitor
+    ///   DnsQueryMonitor -> publishes DnsAnomalySignal -> consumed by GhostProcessMonitor
+    ///   EtwThreatIntelMonitor -> publishes InjectionSignal -> consumed by ChainTracer
     ///
-    /// This is NOT for detections (those go through DetectionEngine → SentinelOrchestrator).
+    /// This is NOT for detections (those go through DetectionEngine -> SentinelOrchestrator).
     /// This is for enrichment context that helps monitors make better decisions.
     /// </summary>
     public sealed class ContextBus : IDisposable
@@ -71,9 +71,9 @@ namespace Sentinel.Core
             _dispatchTask = Task.Run(DispatchLoopAsync);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Publishing
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Publishes an enrichment signal to all subscribers of its type.
@@ -108,9 +108,9 @@ namespace Sentinel.Core
             CacheSignal(signal);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Subscribing
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Subscribes a handler to a specific enrichment signal type.
@@ -161,9 +161,9 @@ namespace Sentinel.Core
             }, subscriberName);
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Synchronous Queries (for monitors that need immediate context)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Queries the signal cache for recent signals of a specific type for a PID.
@@ -198,9 +198,9 @@ namespace Sentinel.Core
             return false;
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Metrics
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         public ContextBusStats GetStats() => new()
         {
@@ -214,9 +214,9 @@ namespace Sentinel.Core
             ChannelCapacity = ChannelCapacity
         };
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Internal Dispatch Loop
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private async Task DispatchLoopAsync()
         {
@@ -297,9 +297,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Signal Cache (for synchronous queries)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void CacheSignal(EnrichmentSignal signal)
         {
@@ -350,9 +350,9 @@ namespace Sentinel.Core
 
         private volatile bool _disposed;
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Internal Types
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private sealed class SubscriptionInfo
         {
@@ -370,9 +370,9 @@ namespace Sentinel.Core
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Bounded Signal Cache (per-PID, for synchronous queries)
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     internal sealed class BoundedSignalCache
     {
@@ -429,9 +429,9 @@ namespace Sentinel.Core
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Stats
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     public sealed class ContextBusStats
     {

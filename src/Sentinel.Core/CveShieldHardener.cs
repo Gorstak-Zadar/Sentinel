@@ -156,7 +156,7 @@ namespace Sentinel.Core
                     Timestamp = DateTime.UtcNow
                 }, cancellationToken);
 
-                // Toast only for a specific local app/process — not every Windows OS KEV
+                // Toast only for a specific local app/process - not every Windows OS KEV
                 if (host.MatchType != "WorkstationOs")
                 {
                     _toastService.ShowToast("CVE Shield Protection Deployed",
@@ -293,7 +293,7 @@ namespace Sentinel.Core
                             ResponseAction = "LogOnly",
                             SignalType = "SuspiciousProcess",
                             Evidence = $"Exploitation attempt of {vuln.CveId} detected: process '{parent}' spawned suspicious utility '{interpreter}' (CommandLine: {{CommandLine}})",
-                            Reasoning = $"CVE Shield rule: command execution originating from '{parent}' associated with {vuln.CveId}. Observe-until-chain — not a President's Law kill.",
+                            Reasoning = $"CVE Shield rule: command execution originating from '{parent}' associated with {vuln.CveId}. Observe-until-chain - not a President's Law kill.",
                             Conditions = new List<DynamicCondition>
                             {
                                 new() { Field = "ParentProcessName", Operator = "Equals", Value = parent },

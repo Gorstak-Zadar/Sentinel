@@ -119,7 +119,7 @@ namespace Sentinel.Core
                             if (uint.TryParse(grantedAccess!.Replace("0x", ""),
                                 System.Globalization.NumberStyles.HexNumber, null, out var access))
                             {
-                                if ((access & 0x0010) == 0) continue; // No VM_READ — not a dump attempt
+                                if ((access & 0x0010) == 0) continue; // No VM_READ - not a dump attempt
                             }
                         }
 
@@ -140,7 +140,7 @@ namespace Sentinel.Core
                         {
                             RuleName = "Credential Theft: LSASS Process Access",
                             Evidence = $"Process '{processName}' (PID {pid}, path: '{sourceImage}') opened a handle to LSASS with access 0x{grantedAccess}",
-                            Reasoning = "An untrusted process opened a handle to LSASS with memory read permissions. This is the primary technique for credential dumping (T1003.001). Trust is verified by path — only System32 and Defender binaries are exempted.",
+                            Reasoning = "An untrusted process opened a handle to LSASS with memory read permissions. This is the primary technique for credential dumping (T1003.001). Trust is verified by path - only System32 and Defender binaries are exempted.",
                             Confidence = 0.92,
                             Tier = DetectionTier.Tier1Behavioral,
                             AuthorizedResponse = ResponseAction.KillProcessTree,
@@ -161,7 +161,7 @@ namespace Sentinel.Core
             }
             catch (EventLogNotFoundException)
             {
-                // Sysmon not installed — fall back to Security event log
+                // Sysmon not installed - fall back to Security event log
                 CheckSecurityAuditEvents();
             }
             catch (UnauthorizedAccessException)
@@ -283,7 +283,7 @@ namespace Sentinel.Core
             // Must be in a known system folder AND be signed
             bool inSystemFolder = SystemLsassAccessorPaths.Any(t => path!.StartsWith(t));
             if (!inSystemFolder) return false;
-            // Verify signature — unsigned binaries in system folders are suspicious
+            // Verify signature - unsigned binaries in system folders are suspicious
             if (_signerTrust != null)
                 return _signerTrust.IsSignedFile(path!);
             return true; // If no signer service available, fall back to path-only (degraded mode)

@@ -1,4 +1,4 @@
-// Critical Monitor Group — self-protection monitors that restart indefinitely
+// Critical Monitor Group - self-protection monitors that restart indefinitely
 
 using System;
 using System.Collections.Generic;
@@ -18,10 +18,10 @@ namespace Sentinel.Core
     /// <summary>
     /// On-disk ntdll integrity + remote Hell's Gate / indirect-syscall scan.
     /// Memory APIs resolved via <see cref="NativeProcessMemory"/> (not PE imports).
-    /// Skips game/anti-cheat paths only — defenses stay armed for everything else.
+    /// Skips game/anti-cheat paths only - defenses stay armed for everything else.
     /// Hell's Gate requires a well-formed stub table (compact syscall+ret or a copied
     /// ntdll prologue) with 3+ distinct SSNs. Loose <c>0F 05</c> bytes in V8/Chromium
-    /// JIT regions are not a hit — process-name skips are not used as a trust grant.
+    /// JIT regions are not a hit - process-name skips are not used as a trust grant.
     /// </summary>
     public sealed class SyscallStubMonitor : BackgroundService
     {
@@ -37,7 +37,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[SyscallStubMonitor] Started — ntdll integrity + Hell's Gate scan (game paths skipped)");
+            _logger.LogInformation("[SyscallStubMonitor] Started - ntdll integrity + Hell's Gate scan (game paths skipped)");
             var ntdllPath = Path.Combine(Environment.SystemDirectory, "ntdll.dll");
             if (File.Exists(ntdllPath))
             {
@@ -142,8 +142,8 @@ namespace Sentinel.Core
                                 RuleName = "Evasion: Indirect Syscall / Hell's Gate Pattern Detected",
                                 Evidence = $"Process '{name}' (PID {proc.Id}) contains {scan.WellFormedStubs} well-formed " +
                                            $"syscall stub(s) ({scan.DistinctSsns} distinct SSNs) in a small private executable " +
-                                           "memory region. Pattern: mov r10,rcx; mov eax,SSN; syscall; ret — densely packed, " +
-                                           "valid SSN range (0x0001–0x01FF), single private allocation.",
+                                           "memory region. Pattern: mov r10,rcx; mov eax,SSN; syscall; ret - densely packed, " +
+                                           "valid SSN range (0x0001-0x01FF), single private allocation.",
                                 Reasoning = "A densely-packed table of compact syscall stubs with 3+ distinct valid SSNs in a " +
                                             "small private (VirtualAlloc'd) executable region indicates Hell's Gate / " +
                                             "SysWhispers-style EDR bypass (MITRE T1106, T1562.001). " +
@@ -181,21 +181,21 @@ namespace Sentinel.Core
             }
         }
 
-        // ── Hell's Gate structural constraints ──────────────────────────────────
+        //  Hell's Gate structural constraints 
         // A real Hell's Gate / SysWhispers stub TABLE has all of these properties:
         //
         //   1. PRIVATE memory (MEM_PRIVATE = 0x20000): allocated with VirtualAlloc.
         //      Never MEM_IMAGE (DLL sections) or MEM_MAPPED (file-backed views).
-        //      V8 JIT regions on some Chrome builds are MEM_MAPPED — this rejects them.
+        //      V8 JIT regions on some Chrome builds are MEM_MAPPED - this rejects them.
         //
         //   2. SMALL region: a full SysWhispers table for all ~500 syscalls is ~5 KB.
-        //      Cap at 64 KB. V8/CLR/JVM JIT regions are 256 KB–4 MB — this rejects them.
+        //      Cap at 64 KB. V8/CLR/JVM JIT regions are 256 KB-4 MB - this rejects them.
         //
         //   3. DENSE packing: consecutive stubs are 11 or 21 bytes each. In a real table
-        //      they are back-to-back with at most an alignment NOP between them (≤ 48 bytes
+        //      they are back-to-back with at most an alignment NOP between them (<= 48 bytes
         //      between stub starts). V8 JIT prologues are hundreds of bytes apart.
         //
-        //   4. VALID SSN range: Windows syscall numbers are 0x0001–0x01FF (fewer than 512
+        //   4. VALID SSN range: Windows syscall numbers are 0x0001-0x01FF (fewer than 512
         //      syscalls exist on all Windows versions). An immediate outside that range is
         //      a compiler constant or attacker garbage, not a real syscall number.
         //
@@ -203,7 +203,7 @@ namespace Sentinel.Core
         //      Counting stubs across separate regions allows 3 unrelated JIT prologues in
         //      3 different regions to combine into a false positive.
         private const long MaxHellsGateRegionBytes = 64 * 1024;  // 64 KB
-        private const int  MaxStubSpacingBytes      = 48;         // packed: 11-byte stub + ≤37 bytes padding
+        private const int  MaxStubSpacingBytes      = 48;         // packed: 11-byte stub + <=37 bytes padding
         private const int  MinValidSsn              = 0x0001;
         private const int  MaxValidSsn              = 0x01FF;
         private const uint MemPrivate               = 0x20000;
@@ -251,9 +251,9 @@ namespace Sentinel.Core
         /// <summary>
         /// Returns the largest dense cluster of stubs where each consecutive pair of stub
         /// start offsets is within <paramref name="maxSpacing"/> bytes.
-        /// Requires ≥ 3 stubs in the cluster. Eliminates scattered JIT prologues.
+        /// Requires >= 3 stubs in the cluster. Eliminates scattered JIT prologues.
         /// </summary>
-        /// <summary>Test hook — exposes FilterByDensity for unit tests.</summary>
+        /// <summary>Test hook - exposes FilterByDensity for unit tests.</summary>
         internal static List<SyscallStubHit> FilterByDensityPublic(List<SyscallStubHit> hits, int maxSpacing)
             => FilterByDensity(hits, maxSpacing);
 
@@ -299,7 +299,7 @@ namespace Sentinel.Core
         ///      test byte ptr [SharedUserData+0x308],1; jne +3; syscall; ret
         ///      4C 8B D1  B8 lo hi 00 00  F6 04 25 08 03 FE 7F 01  75 03  0F 05  C3
         ///
-        /// SSNs outside 0x0001–0x01FF are rejected: they are compiler-generated immediates
+        /// SSNs outside 0x0001-0x01FF are rejected: they are compiler-generated immediates
         /// or attacker garbage, not real Windows syscall numbers.
         /// </summary>
         internal static List<SyscallStubHit> FindSyscallStubs(byte[] buffer, int length)
@@ -315,18 +315,18 @@ namespace Sentinel.Core
                     buffer[i + 2] != 0xD1 || buffer[i + 3] != 0xB8)
                     continue;
 
-                // High word of imm32 must be zero — SSN fits in 16 bits
+                // High word of imm32 must be zero - SSN fits in 16 bits
                 if (buffer[i + 6] != 0x00 || buffer[i + 7] != 0x00)
                     continue;
 
                 int ssn = buffer[i + 4] | (buffer[i + 5] << 8);
 
-                // Valid Windows syscall range: 0x0001–0x01FF.
+                // Valid Windows syscall range: 0x0001-0x01FF.
                 // Rejects SSN=0 (no real stub), compiler constants, and out-of-range values.
                 if (ssn < MinValidSsn || ssn > MaxValidSsn)
                     continue;
 
-                // Pattern 1: compact — syscall (0F 05) immediately followed by ret (C3)
+                // Pattern 1: compact - syscall (0F 05) immediately followed by ret (C3)
                 if (i + 10 < lim &&
                     buffer[i + 8] == 0x0F && buffer[i + 9] == 0x05 && buffer[i + 10] == 0xC3)
                 {
@@ -409,8 +409,8 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            // v2.5.5: Hardening is always-on — no config sync needed.
-            _logger.LogInformation("[IPSecIntegrityGuard] Started — IPSec profile=always-on hardening (v2.5.5+)");
+            // v2.5.5: Hardening is always-on - no config sync needed.
+            _logger.LogInformation("[IPSecIntegrityGuard] Started - IPSec profile=always-on hardening (v2.5.5+)");
 
             // Rebuild GSecurity on startup.
             if (!_cleanedObserveMode)
@@ -438,7 +438,7 @@ namespace Sentinel.Core
                     {
                         _consecutiveFailures++;
                         _logger.LogWarning(
-                            "[IPSecIntegrityGuard] Restrictive IPSec GSecurity missing — re-applying (failure #{Count})",
+                            "[IPSecIntegrityGuard] Restrictive IPSec GSecurity missing - re-applying (failure #{Count})",
                             _consecutiveFailures);
 
                         bool skipReapply = _consecutiveFailures > HardFailThreshold;
@@ -468,7 +468,7 @@ namespace Sentinel.Core
                                 Evidence = $"Restrictive GSecurity IPSec was missing/unassigned. " +
                                            $"Re-application {(skipReapply ? "SKIPPED (backoff)" : reapplied ? "SUCCEEDED" : "FAILED")}. " +
                                            $"Consecutive failures: {_consecutiveFailures}.",
-                                Reasoning = "Sentinel maintains the GSecurity IPSec profile — hardening is always-on as of v2.5.5.",
+                                Reasoning = "Sentinel maintains the GSecurity IPSec profile - hardening is always-on as of v2.5.5.",
                                 Confidence = 0.95,
                                 Tier = DetectionTier.Tier1Behavioral,
                                 AuthorizedResponse = ResponseAction.LogOnly,
@@ -504,7 +504,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Exponential-ish backoff: 30s → 2m → 5m → 15m → 1h (capped).
+        /// Exponential-ish backoff: 30s -> 2m -> 5m -> 15m -> 1h (capped).
         /// </summary>
         private static TimeSpan ComputeBackoff(int consecutiveFailures)
         {
@@ -539,8 +539,8 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            // v2.5.5: Hardening is always-on — always self-heal ASR Block every 60s.
-            _logger.LogInformation("[AsrPolicyGuard] Started — mode=always-on ASR Block self-heal (v2.5.5+)");
+            // v2.5.5: Hardening is always-on - always self-heal ASR Block every 60s.
+            _logger.LogInformation("[AsrPolicyGuard] Started - mode=always-on ASR Block self-heal (v2.5.5+)");
 
             try { await Task.Delay(20000, ct); } catch (OperationCanceledException) { return; }
 
@@ -552,7 +552,7 @@ namespace Sentinel.Core
                     {
                         _consecutiveFailures++;
                         _logger.LogWarning(
-                            "[AsrPolicyGuard] Restrictive ASR incomplete — re-applying (failure #{Count})",
+                            "[AsrPolicyGuard] Restrictive ASR incomplete - re-applying (failure #{Count})",
                             _consecutiveFailures);
 
                         HardeningModule.ReapplyAsrRules();
@@ -565,7 +565,7 @@ namespace Sentinel.Core
                             Evidence = $"Restrictive ASR Block rules missing/demoted. " +
                                        $"Re-application {(ok ? "SUCCEEDED" : "FAILED")}. " +
                                        $"Consecutive failures: {_consecutiveFailures}",
-                            Reasoning = "Sentinel maintains ASR Block policy — hardening is always-on as of v2.5.5.",
+                            Reasoning = "Sentinel maintains ASR Block policy - hardening is always-on as of v2.5.5.",
                             Confidence = 0.90,
                             Tier = DetectionTier.Tier1Behavioral,
                             AuthorizedResponse = ResponseAction.LogOnly,

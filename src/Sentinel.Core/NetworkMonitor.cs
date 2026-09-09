@@ -18,7 +18,7 @@ namespace Sentinel.Core
     /// - Connections to non-standard ports from system binaries
     /// - High-frequency outbound connections (beaconing)
     /// - Connections from processes running in suspicious paths
-    /// Purely behavioral — no domain/IP blocklists.
+    /// Purely behavioral - no domain/IP blocklists.
     /// </summary>
     public sealed class NetworkMonitor : IDisposable
     {
@@ -41,7 +41,7 @@ namespace Sentinel.Core
         private static readonly HashSet<int> StandardPorts = new() { 80, 443, 53, 8080, 8443 };
 
         /// <summary>
-        /// v1.8.3: Align with default IPSec attack-only set — ports users never need that
+        /// v1.8.3: Align with default IPSec attack-only set - ports users never need that
         /// malware/legacy remote shells use. SSH/RDP/SMB/DB are NOT listed (legitimate use).
         /// Connections here are LogOnly indicators unless multi-signal attack corroborates.
         /// </summary>
@@ -174,7 +174,7 @@ namespace Sentinel.Core
         /// <summary>
         /// HARDENING v1.3.0: Verifies browser identity by checking BOTH name AND that the
         /// binary resides in a Program Files or Windows Apps directory (not Temp/Downloads).
-        /// Previously name-only — malware named "chrome.exe" in Temp bypassed network detection.
+        /// Previously name-only - malware named "chrome.exe" in Temp bypassed network detection.
         /// </summary>
         private static bool IsKnownBrowser(string? processName, string? imagePath = null)
         {
@@ -190,7 +190,7 @@ namespace Sentinel.Core
 
             if (!nameMatches) return false;
 
-            // Name matches — verify path is legitimate (not temp/downloads/staging)
+            // Name matches - verify path is legitimate (not temp/downloads/staging)
             if (string.IsNullOrEmpty(imagePath)) return false;
             var pathLower = imagePath!.ToLowerInvariant();
             return pathLower.Contains(@"\program files") ||
@@ -249,7 +249,7 @@ namespace Sentinel.Core
                         // 1.5. Record connection in behavioral baseline
                         _behavioralBaseline?.RecordNetworkConnection(processName, remoteIp, remotePort);
 
-                        // 2. Behavioral checks — v1.8.3 observe-first:
+                        // 2. Behavioral checks - v1.8.3 observe-first:
                         // Single-signal path/port/shell heuristics are LogOnly. Users may use
                         // SSH, RDP, torrents, P2P, portable tools freely. Kill only when a
                         // multi-signal composite or confirmed attack rule fires elsewhere.
@@ -280,7 +280,7 @@ namespace Sentinel.Core
                             });
                         }
 
-                        // B. Outbound connection from temp/downloads path — observe only
+                        // B. Outbound connection from temp/downloads path - observe only
                         if (IsSuspiciousPath(imagePath) &&
                             !IsKnownBrowser(processName, imagePath) &&
                             !InstallerHeuristics.IsBenignPortableWorkContext(processName, imagePath))
@@ -290,7 +290,7 @@ namespace Sentinel.Core
                                 RuleName = "Attack Tool: Connection from Suspicious Path",
                                 Evidence = $"Process '{processName}' (PID {owningPid}) running from '{imagePath}' connected to {remoteIp}:{remotePort}",
                                 Reasoning = "A binary from Temp/Downloads initiated outbound network activity. Common for portable tools, " +
-                                            "UUP dump, torrents, and installers. Logged only — never kill on path alone.",
+                                            "UUP dump, torrents, and installers. Logged only - never kill on path alone.",
                                 Confidence = 0.40,
                                 Tier = DetectionTier.Tier2Indicator,
                                 AuthorizedResponse = ResponseAction.LogOnly,
@@ -308,8 +308,8 @@ namespace Sentinel.Core
                         }
 
                         // C. Attack-only ports (Telnet, Meterpreter defaults, etc.).
-                        // Games (Unreal 7777) and browsers are civilians — skip.
-                        // Remaining process on 4444/31337/… is the attack (v2.5.3).
+                        // Games (Unreal 7777) and browsers are civilians - skip.
+                        // Remaining process on 4444/31337/... is the attack (v2.5.3).
                         if (KnownMaliciousPorts.Contains(remotePort) || KnownMaliciousPorts.Contains(localPort))
                         {
                             if (IsKnownBrowser(processName, imagePath) ||
@@ -328,10 +328,10 @@ namespace Sentinel.Core
                                 {
                                     RuleName = "Network Indicator: Classic Malware Port",
                                     Evidence = $"Process '{processName}' (PID {owningPid}) has {direction} {targetAddr}:{suspiciousPort}. " +
-                                               $"Full connection: {localIp}:{localPort} → {remoteIp}:{remotePort}",
+                                               $"Full connection: {localIp}:{localPort} -> {remoteIp}:{remotePort}",
                                     Reasoning = $"Port {suspiciousPort} ({GetPortDescription(suspiciousPort)}) is in the attack-only " +
                                                 "block set (legacy shells / classic RAT ports). Games and browsers are skipped. " +
-                                                "This process is not that — kill-grade C2.",
+                                                "This process is not that - kill-grade C2.",
                                     Confidence = 0.86,
                                     Tier = DetectionTier.Tier1Behavioral,
                                     AuthorizedResponse = ResponseAction.KillProcessTree,

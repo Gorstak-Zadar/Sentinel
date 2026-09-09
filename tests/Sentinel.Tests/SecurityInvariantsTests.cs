@@ -6,7 +6,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Standing security invariants for Sentinel — the cross-cutting laws that must hold
+    /// Standing security invariants for Sentinel - the cross-cutting laws that must hold
     /// no matter how individual rules or monitors are refactored. Each test locks ONE
     /// named invariant so that a regression fails with an obvious, self-describing name.
     ///
@@ -84,7 +84,7 @@ namespace Sentinel.Tests
 
             ResponsePolicy.ApplyTierLaw(d);
 
-            // Not a kill-grade terminal family — ML metadata must not have promoted it.
+            // Not a kill-grade terminal family - ML metadata must not have promoted it.
             Assert.Null(ResponsePolicy.ClassifyTerminalOutcome(d));
             Assert.False(ResponsePolicy.IsKillGradeTerminal(d));
             Assert.Equal(DetectionTier.Tier2Indicator, d.Tier);
@@ -121,7 +121,7 @@ namespace Sentinel.Tests
 
         // ---------------------------------------------------------------------
         // INVARIANT-004: Under ObserveUntilChain, a single high-confidence
-        // kill-grade terminal still cannot solo-nuke — it needs a second
+        // kill-grade terminal still cannot solo-nuke - it needs a second
         // independent signal (or a composite) to confirm the chain.
         // ---------------------------------------------------------------------
         [Fact]
@@ -168,7 +168,7 @@ namespace Sentinel.Tests
 
         // ---------------------------------------------------------------------
         // INVARIANT-006: PID <= 4 (System/Idle and kernel) can never be a solo
-        // attack-class kill target — protects against killing core OS processes.
+        // attack-class kill target - protects against killing core OS processes.
         // ---------------------------------------------------------------------
         [Theory]
         [InlineData(0)]
@@ -275,7 +275,7 @@ namespace Sentinel.Tests
 
         // ---------------------------------------------------------------------
         // INVARIANT-011: A stale IPC timestamp (outside the freshness window) is
-        // rejected — blocks replay of an old, otherwise-valid request.
+        // rejected - blocks replay of an old, otherwise-valid request.
         // ---------------------------------------------------------------------
         [Fact]
         public void Invariant_Ipc_Rejects_Stale_Timestamp()
@@ -289,7 +289,7 @@ namespace Sentinel.Tests
         }
 
         // ---------------------------------------------------------------------
-        // INVARIANT-012: SecureCompare is length-safe and value-correct — it never
+        // INVARIANT-012: SecureCompare is length-safe and value-correct - it never
         // throws on null/mismatched input and only returns true for equal buffers.
         // ---------------------------------------------------------------------
         [Fact]
@@ -310,7 +310,7 @@ namespace Sentinel.Tests
 
         // ---------------------------------------------------------------------
         // INVARIANT-013: A multi-signal composite stays kill-grade Tier1 through
-        // ApplyTierLaw — independent proof must not be demoted.
+        // ApplyTierLaw - independent proof must not be demoted.
         // ---------------------------------------------------------------------
         [Fact]
         public void Invariant_Composite_Stays_KillGrade_Through_TierLaw()

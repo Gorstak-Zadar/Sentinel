@@ -1,4 +1,4 @@
-// Script Hardening Monitor — comprehensive PowerShell/scripting anti-evasion maturity
+// Script Hardening Monitor - comprehensive PowerShell/scripting anti-evasion maturity
 // v1.5.0: New monitor. Addresses anti-scripting maturity gaps.
 
 using System;
@@ -47,7 +47,7 @@ namespace Sentinel.Core
         private readonly HashSet<string> _knownProfileHashes = new(StringComparer.OrdinalIgnoreCase);
         private bool _scriptBlockLoggingVerified;
 
-        // ─── PowerShell History paths ───
+        //  PowerShell History paths 
         private static readonly Lazy<string[]> HistoryPaths = new(() => new[]
         {
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -56,7 +56,7 @@ namespace Sentinel.Core
                 @"Microsoft\Windows\PowerShell\PSReadLine\Visual Studio Code Host_history.txt"),
         });
 
-        // ─── PowerShell Profile paths (all 6 standard locations) ───
+        //  PowerShell Profile paths (all 6 standard locations) 
         private static readonly Lazy<string[]> ProfilePaths = new(() =>
         {
             var docs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -135,7 +135,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[ScriptHardeningMonitor] Started — PowerShell maturity monitoring active");
+            _logger.LogInformation("[ScriptHardeningMonitor] Started - PowerShell maturity monitoring active");
 
             // Baseline profile hashes
             BaselineProfiles();
@@ -169,9 +169,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // CHECK 1: PowerShell History File Integrity (Anti-Forensics)
-        // ═══════════════════════════════════════════════════════════════
+        // 
         private async Task CheckHistoryIntegrityAsync(CancellationToken ct)
         {
             foreach (var historyPath in HistoryPaths.Value)
@@ -180,7 +180,7 @@ namespace Sentinel.Core
                 {
                     if (!File.Exists(historyPath))
                     {
-                        // History file deleted — check if it existed before
+                        // History file deleted - check if it existed before
                         var alertKey = $"HistoryDeleted:{historyPath}";
                         if (_recentAlerts.ContainsKey(alertKey)) continue;
 
@@ -246,9 +246,9 @@ namespace Sentinel.Core
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // CHECK 2: ScriptBlock Logging Policy Enforcement
-        // ═══════════════════════════════════════════════════════════════
+        // 
         private async Task CheckScriptBlockLoggingPolicyAsync(CancellationToken ct)
         {
             if (_scriptBlockLoggingVerified) return; // Only check once per run cycle
@@ -316,7 +316,7 @@ namespace Sentinel.Core
                 }
 
                 // Check if someone DISABLED ScriptBlock logging (was enabled, now isn't)
-                // This is more serious — active tampering
+                // This is more serious - active tampering
                 using (var key = Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Policies\Microsoft\Windows\PowerShell\ScriptBlockLogging"))
                 {
@@ -332,9 +332,9 @@ namespace Sentinel.Core
                             {
                                 RuleName = "Script: PowerShell ScriptBlock Logging Explicitly Disabled",
                                 Evidence = "ScriptBlock Logging registry value is explicitly set to 0 (disabled). " +
-                                           "This is different from 'not configured' — someone actively disabled it.",
+                                           "This is different from 'not configured' - someone actively disabled it.",
                                 Reasoning = "PowerShell ScriptBlock Logging was explicitly disabled via registry. " +
-                                            "This is a strong anti-forensics indicator — attackers disable logging " +
+                                            "This is a strong anti-forensics indicator - attackers disable logging " +
                                             "before executing malicious scripts so no Event 4104 records are created. " +
                                             "Legitimate Group Policy would not set this to 0 on a monitored system.",
                                 Confidence = 0.85,
@@ -352,9 +352,9 @@ namespace Sentinel.Core
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // CHECK 3: PowerShell Downgrade Attack (v2.0 Engine)
-        // ═══════════════════════════════════════════════════════════════
+        // 
         private async Task CheckPowerShellDowngradeAsync(CancellationToken ct)
         {
             try
@@ -383,7 +383,7 @@ namespace Sentinel.Core
                                 Evidence = $"PowerShell (PID {proc.Id}) invoked with version 2.0 flag: '{cmdLine[..Math.Min(300, cmdLine.Length)]}'",
                                 Reasoning = "PowerShell v2.0 engine was explicitly invoked. Version 2.0 lacks AMSI " +
                                             "(Anti-Malware Scan Interface), ScriptBlock Logging, and Constrained " +
-                                            "Language Mode — making it invisible to security monitoring. This is a " +
+                                            "Language Mode - making it invisible to security monitoring. This is a " +
                                             "well-known downgrade attack (T1059.001) used to bypass all modern " +
                                             "PowerShell security controls.",
                                 Confidence = 0.90,
@@ -402,9 +402,9 @@ namespace Sentinel.Core
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // CHECK 4: Execution Policy Bypass Detection
-        // ═══════════════════════════════════════════════════════════════
+        // 
         private async Task CheckExecutionPolicyBypassAsync(CancellationToken ct)
         {
             try
@@ -453,7 +453,7 @@ namespace Sentinel.Core
                                        $"Command: '{cmdLine[..Math.Min(400, cmdLine.Length)]}'",
                             Reasoning = "PowerShell was invoked with execution policy bypass combined with multiple " +
                                         "evasion flags (hidden window, no profile, non-interactive, encoded command). " +
-                                        "This combination is the signature of malware download cradles — legitimate " +
+                                        "This combination is the signature of malware download cradles - legitimate " +
                                         "admin scripts rarely combine all these flags together. The -ep bypass alone " +
                                         "is common in admin work, but stacking evasion flags indicates malicious intent.",
                             Confidence = confidence,
@@ -479,9 +479,9 @@ namespace Sentinel.Core
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // CHECK 5: PowerShell Profile Persistence
-        // ═══════════════════════════════════════════════════════════════
+        // 
         private async Task CheckProfilePersistenceAsync(CancellationToken ct)
         {
             // Only check profiles every 60 seconds (they rarely change)
@@ -505,10 +505,10 @@ namespace Sentinel.Core
                         hash = ConvertHex.ToHexString(System.Security.Cryptography.Sha256Net48.HashData(fs));
                     }
 
-                    // First time seeing this profile — baseline it
+                    // First time seeing this profile - baseline it
                     if (_knownProfileHashes.Add($"{profilePath}:{hash}")) continue;
 
-                    // Profile hasn't changed — check content for suspicious patterns
+                    // Profile hasn't changed - check content for suspicious patterns
                     var contentLower = content.ToLowerInvariant();
                     var suspiciousIndicators = new List<string>();
 
@@ -560,9 +560,9 @@ namespace Sentinel.Core
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // CHECK 6: Script Interpreter Spawning Network Connections
-        // ═══════════════════════════════════════════════════════════════
+        // 
         private async Task CheckScriptInterpreterNetworkAsync(CancellationToken ct)
         {
             // wscript.exe/cscript.exe should almost never make outbound network connections
@@ -607,9 +607,9 @@ namespace Sentinel.Core
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // CHECK 7: Encoded Command Length Anomaly
-        // ═══════════════════════════════════════════════════════════════
+        // 
         private async Task CheckEncodedCommandAnomalyAsync(CancellationToken ct)
         {
             try
@@ -708,9 +708,9 @@ namespace Sentinel.Core
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // CHECK 8: Constrained Language Mode Bypass
-        // ═══════════════════════════════════════════════════════════════
+        // 
         private async Task CheckConstrainedLanguageBypassAsync(CancellationToken ct)
         {
             try
@@ -738,7 +738,7 @@ namespace Sentinel.Core
                         string cmdLine = GetCommandLineSafe(proc.Id);
                         if (string.IsNullOrEmpty(cmdLine)) continue;
 
-                        // Check if 32-bit PS (SysWOW64) — sometimes lacks CLM enforcement
+                        // Check if 32-bit PS (SysWOW64) - sometimes lacks CLM enforcement
                         var imagePath = GetProcessImagePathSafe(proc.Id);
                         if (!string.IsNullOrEmpty(imagePath) &&
                             imagePath.Contains("SysWOW64"))
@@ -772,10 +772,10 @@ namespace Sentinel.Core
             catch { }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // CHECK 9: Advanced Script Block Pattern Analysis
         // (download cradles, reflection, obfuscation in Event 4104)
-        // ═══════════════════════════════════════════════════════════════
+        // 
         private async Task CheckAdvancedScriptBlockPatternsAsync(CancellationToken ct)
         {
             try
@@ -797,7 +797,7 @@ namespace Sentinel.Core
                             : null;
                         if (string.IsNullOrEmpty(scriptBlock) || scriptBlock!.Length < 50) continue;
 
-                        // ─── Download Cradle Detection ───
+                        //  Download Cradle Detection 
                         if (DownloadCradleRegex.IsMatch(scriptBlock))
                         {
                             var alertKey = $"SB_Cradle:{scriptBlock.GetHashCode()}";
@@ -816,7 +816,7 @@ namespace Sentinel.Core
                                     Reasoning = "A PowerShell script block combines Invoke-Expression with a download " +
                                                 "function (DownloadString, Invoke-WebRequest, etc.) in a single pipeline. " +
                                                 "This 'download cradle' pattern downloads and immediately executes remote " +
-                                                "code — the #1 technique for initial payload delivery via PowerShell. " +
+                                                "code - the #1 technique for initial payload delivery via PowerShell. " +
                                                 "Legitimate software uses separate download-then-execute steps.",
                                     Confidence = 0.88,
                                     Tier = DetectionTier.Tier1Behavioral,
@@ -828,7 +828,7 @@ namespace Sentinel.Core
                             }
                         }
 
-                        // ─── .NET Assembly Reflection Loading ───
+                        //  .NET Assembly Reflection Loading 
                         if (ReflectionPatterns.Any(p => scriptBlock.Contains(p)))
                         {
                             var alertKey = $"SB_Reflect:{scriptBlock.GetHashCode()}";
@@ -858,7 +858,7 @@ namespace Sentinel.Core
                             }
                         }
 
-                        // ─── Heavy Obfuscation Scoring ───
+                        //  Heavy Obfuscation Scoring 
                         int obfScore = CalculateObfuscationScore(scriptBlock);
                         if (obfScore >= 6)
                         {
@@ -879,7 +879,7 @@ namespace Sentinel.Core
                                                 "(backtick insertion, string concatenation, char array construction, " +
                                                 "format string abuse, reverse indexing). Legitimate scripts rarely use " +
                                                 "more than 1-2 of these techniques. High obfuscation scores strongly " +
-                                                "correlate with malicious intent — the script is designed to evade " +
+                                                "correlate with malicious intent - the script is designed to evade " +
                                                 "pattern-based detection.",
                                     Confidence = obfScore >= 8 ? 0.90 : 0.75,
                                     Tier = obfScore >= 8 ? DetectionTier.Tier1Behavioral : DetectionTier.Tier2Indicator,
@@ -901,9 +901,9 @@ namespace Sentinel.Core
             catch (Exception ex) { _logger.LogDebug(ex, "[ScriptHardeningMonitor] ScriptBlock pattern check error"); }
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helpers
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Calculates an obfuscation score (0-10) based on multiple indicators.

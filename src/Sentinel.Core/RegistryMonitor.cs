@@ -91,7 +91,7 @@ namespace Sentinel.Core
 
             if (!wmiAvailable)
             {
-                _logger.LogWarning("[RegistryMonitor] WMI unavailable — falling back to registry polling mode (15s interval)");
+                _logger.LogWarning("[RegistryMonitor] WMI unavailable - falling back to registry polling mode (15s interval)");
             }
             else
             {
@@ -416,12 +416,12 @@ namespace Sentinel.Core
             if (lower.Contains("/i") || lower.Contains("scrobj.dll"))
             {
                 confidence = 0.95;
-                reasoning = "regsvr32.exe executed with /i (scriptlet execution) or scrobj.dll — a known LOLBAS technique (Squiblydoo) used to execute arbitrary scripts via COM scriptlets.";
+                reasoning = "regsvr32.exe executed with /i (scriptlet execution) or scrobj.dll - a known LOLBAS technique (Squiblydoo) used to execute arbitrary scripts via COM scriptlets.";
             }
             else if (lower.Contains("http://") || lower.Contains("https://"))
             {
                 confidence = 0.90;
-                reasoning = "regsvr32.exe loading a resource from a remote URL — a known LOLBAS technique for remote script execution.";
+                reasoning = "regsvr32.exe loading a resource from a remote URL - a known LOLBAS technique for remote script execution.";
             }
             else if (lower.Contains(@"\temp\") || lower.Contains(@"\tmp\") || lower.Contains(@"\appdata\"))
             {
@@ -431,7 +431,7 @@ namespace Sentinel.Core
             else if (lower.Contains(".sct") || lower.Contains(".txt"))
             {
                 confidence = 0.85;
-                reasoning = "regsvr32.exe loading a non-DLL file (.sct scriptlet or .txt) — suspicious COM registration pattern.";
+                reasoning = "regsvr32.exe loading a non-DLL file (.sct scriptlet or .txt) - suspicious COM registration pattern.";
             }
 
             if (confidence >= 0.75)
@@ -482,12 +482,12 @@ namespace Sentinel.Core
             else if (lower.Contains("add") && lower.Contains(@"run"))
             {
                 confidence = 0.80;
-                reasoning = "reg.exe added a value to a Run key — a known persistence mechanism.";
+                reasoning = "reg.exe added a value to a Run key - a known persistence mechanism.";
             }
             else if (lower.Contains("add") && lower.Contains("system\\currentcontrolset\\services"))
             {
                 confidence = 0.80;
-                reasoning = "reg.exe added a new service registry entry — potential malicious service installation.";
+                reasoning = "reg.exe added a new service registry entry - potential malicious service installation.";
             }
 
             if (confidence >= 0.75)
@@ -533,7 +533,7 @@ namespace Sentinel.Core
             if (lower.Contains("/s"))
             {
                 confidence += 0.15;
-                reasoning += " Silent mode (/s) suppresses confirmation dialogs — common in automated malware deployment.";
+                reasoning += " Silent mode (/s) suppresses confirmation dialogs - common in automated malware deployment.";
             }
             if (lower.Contains(@"\temp\") || lower.Contains(@"\downloads\") || lower.Contains(@"\desktop\"))
             {
@@ -606,7 +606,7 @@ namespace Sentinel.Core
             }
             else
             {
-                _logger.LogDebug("[RegistryMonitor] New autorun entry '{ValueName}' in {Hive}\\{Key} — confidence too low ({Confidence})",
+                _logger.LogDebug("[RegistryMonitor] New autorun entry '{ValueName}' in {Hive}\\{Key} - confidence too low ({Confidence})",
                     valueName, isHklm ? "HKLM" : "HKCU", keyPath, confidence);
             }
         }
@@ -774,7 +774,7 @@ namespace Sentinel.Core
 
                     if (ProxyValuesEquivalent(valueName, baselineVal, currentVal))
                     {
-                        // Adopt current representation so we do not re-fire on null↔"0"/"" noise
+                        // Adopt current representation so we do not re-fire on null<->"0"/"" noise
                         _proxyBaseline[baselineKey] = currentVal;
                         continue;
                     }

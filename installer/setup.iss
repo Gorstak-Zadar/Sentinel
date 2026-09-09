@@ -127,7 +127,7 @@ end;
 
 // Rename every loaded PE (EXE + DLL) in the install dir to *.old before the copy.
 // A DLL mapped by the running Service/Agent cannot be overwritten or deleted
-// (DeleteFile fails with "code 5, Access is denied"), but it CAN be renamed —
+// (DeleteFile fails with "code 5, Access is denied"), but it CAN be renamed -
 // Windows lets you rename a mapped image, and Inno then writes the new file in
 // its place. The [Run] "del *.old" step cleans the renamed originals afterward.
 procedure RenameLockedBinariesAside(const DirPath: String);

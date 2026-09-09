@@ -10,7 +10,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// B1 (durable evidence survival) — off-host evidence mirror contract (R2/R4/R5).
+    /// B1 (durable evidence survival) - off-host evidence mirror contract (R2/R4/R5).
     /// Verifies fail-closed behavior, the signed request contract for /report/evidence,
     /// payload minimality (no secrets/file contents), and the opt-in config default.
     /// </summary>
@@ -94,7 +94,7 @@ namespace Sentinel.Tests
         [Fact]
         public void EvidenceRoute_FailsClosed_WhenSecretMissingOrShort()
         {
-            // R2/FR-11: fail closed — no signed request can be built without a valid secret.
+            // R2/FR-11: fail closed - no signed request can be built without a valid secret.
             var config = new ThreatReportingConfig { ProxySharedSecret = "short" };
             var body = JsonSerializer.Serialize(new EvidenceSummary { ReportId = "R1" });
 

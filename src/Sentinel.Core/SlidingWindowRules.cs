@@ -1,4 +1,4 @@
-// SlidingWindowRules.cs — ported from GorstaksProtection
+// SlidingWindowRules.cs - ported from GorstaksProtection
 //
 // Two production-quality sliding-window detection rules that complement the existing
 // single-event RansomwareDetectionRule (shadow-copy / renamed-extension):
@@ -6,18 +6,18 @@
 //   SlidingWindowRansomwareRule (SENT-SW-001)
 //     Fires when a single process writes/renames files bearing more than
 //     ExtensionThreshold unique extensions within a 30-second window.
-//     Confidence: 0.90  →  Tier1 / KillProcessTree
+//     Confidence: 0.90  ->  Tier1 / KillProcessTree
 //
 //   SlidingWindowMassDeletionRule (SENT-SW-002)
 //     Fires when a single process deletes more than DeletionThreshold files
 //     within a 10-second window.
-//     Confidence: 0.85  →  Tier1 / KillProcessTree
+//     Confidence: 0.85  ->  Tier1 / KillProcessTree
 //
 // Both use:
 //   - Per-PID state in a ConcurrentDictionary
 //   - A sliding-window Prune() that removes stale timestamps
 //   - Idle-PID eviction every EvictionInterval evaluations to bound memory
-//     (Interlocked.Increment counter — zero heap pressure between evictions)
+//     (Interlocked.Increment counter - zero heap pressure between evictions)
 
 using System;
 using System.Collections.Concurrent;
@@ -27,14 +27,14 @@ using System.Threading;
 
 namespace Sentinel.Core
 {
-    // ─────────────────────────────────────────────────────────────────────────────
+    // 
     // Rule 1: Ransomware File Extension Spray  (SENT-SW-001)
-    // ─────────────────────────────────────────────────────────────────────────────
+    // 
 
     /// <summary>
     /// Detects ransomware-style encryption by tracking how many unique file
     /// extensions a single process touches within a 30-second sliding window.
-    /// Fires at &gt;ExtensionThreshold unique extensions — independently of the
+    /// Fires at &gt;ExtensionThreshold unique extensions - independently of the
     /// existing shadow-copy / .locked-extension single-event rule.
     /// </summary>
     public sealed class SlidingWindowRansomwareRule : IDetectionRule
@@ -113,11 +113,11 @@ namespace Sentinel.Core
             }
         }
 
-        // ── Per-PID extension tracker ─────────────────────────────────────────────
+        //  Per-PID extension tracker 
 
         private sealed class PidExtensionActivity
         {
-            // extension → most recent timestamp within the window
+            // extension -> most recent timestamp within the window
             private readonly Dictionary<string, DateTime> _extensions =
                 new(StringComparer.OrdinalIgnoreCase);
 
@@ -141,9 +141,9 @@ namespace Sentinel.Core
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
+    // 
     // Rule 2: Mass File Deletion  (SENT-SW-002)
-    // ─────────────────────────────────────────────────────────────────────────────
+    // 
 
     /// <summary>
     /// Fires when a single process performs more than DeletionThreshold file
@@ -216,7 +216,7 @@ namespace Sentinel.Core
             }
         }
 
-        // ── Per-PID deletion tracker ──────────────────────────────────────────────
+        //  Per-PID deletion tracker 
 
         private sealed class PidDeletionActivity
         {

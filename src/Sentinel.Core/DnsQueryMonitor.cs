@@ -20,7 +20,7 @@ namespace Sentinel.Core
     /// 
     /// Detects:
     /// - Rapid query volume to single domains (beaconing/tunneling)
-    /// - High-entropy domain names (DGA — domain generation algorithms)
+    /// - High-entropy domain names (DGA - domain generation algorithms)
     /// </summary>
     public sealed class DnsQueryMonitor : IMonitor, IDisposable
     {
@@ -49,7 +49,7 @@ namespace Sentinel.Core
         private static readonly HashSet<string> TrustedBaseDomains = new(StringComparer.OrdinalIgnoreCase)
         {
             // HARDENING v1.3.0: Drastically reduced trusted domains list.
-            // Previously included amazonaws.com, cloudfront.net, akamai.net, azurefd.net —
+            // Previously included amazonaws.com, cloudfront.net, akamai.net, azurefd.net -
             // attackers routinely host C2 on these CDN/cloud platforms and subdomains were
             // completely invisible to DGA and rapid-query detection.
             // Now: only Microsoft OS update domains, Sentinel's own API endpoints, and
@@ -123,7 +123,7 @@ namespace Sentinel.Core
                     // HARDENING: Removed time filter (timediff <= 30000). Previously, events older
                     // than 30s were invisible even if lastRecordId hadn't processed them yet.
                     // A fast C2 that resolves a domain between polls could age out before the next
-                    // poll cycle. Now we rely solely on lastRecordId for deduplication — this is
+                    // poll cycle. Now we rely solely on lastRecordId for deduplication - this is
                     // correct because the record ID monotonically increases and we never re-process.
                     try
                     {
@@ -187,7 +187,7 @@ namespace Sentinel.Core
                     RuleName = "Covert Webhook: Disposable Sink Lookup",
                     Evidence = $"DNS query for disposable webhook sink '{domain}' PID={pid} process='{processName}'",
                     Reasoning = attributed
-                        ? "This PID resolved a disposable webhook sink (webhook.site / interact.sh / …). Stealer DNS. Kill-grade C2."
+                        ? "This PID resolved a disposable webhook sink (webhook.site / interact.sh / ...). Stealer DNS. Kill-grade C2."
                         : "Unattributed DNS for a disposable webhook sink. Observe only until a process PID is known.",
                     Confidence = attributed ? 0.86 : 0.55,
                     Tier = attributed ? DetectionTier.Tier1Behavioral : DetectionTier.Tier2Indicator,
@@ -229,7 +229,7 @@ namespace Sentinel.Core
                 });
             }
 
-            // GorstaksProtection v2.4.0: ThreatFox domain IOC check — fast O(1) lookup
+            // GorstaksProtection v2.4.0: ThreatFox domain IOC check - fast O(1) lookup
             if (_threatFoxFeed != null && _threatFoxFeed.IsMaliciousDomain(domain, out var tfVerdict))
             {
                 _ = _detectionEngine.EmitAsync(new DetectionEvent
@@ -315,7 +315,7 @@ namespace Sentinel.Core
                 }
             }
 
-            // Offline URL/host ML — Tier2 log-only soft signal (never kill on ML alone)
+            // Offline URL/host ML - Tier2 log-only soft signal (never kill on ML alone)
             if (_mlScorer != null && _mlScorer.UrlModelReady)
             {
                 var key = baseDomain;
@@ -330,7 +330,7 @@ namespace Sentinel.Core
                             Evidence = $"Domain '{domain}' scored {p.Value:P0} malicious probability on the offline URL FastTree model",
                             Reasoning =
                                 "An offline lexical URL model (trained on a public malicious-URL corpus) scored this " +
-                                "hostname highly. This is a soft indicator only — Tier2 log/advisory. Corroborating " +
+                                "hostname highly. This is a soft indicator only - Tier2 log/advisory. Corroborating " +
                                 "process or network signals are required for active response.",
                             Confidence = Math.Min(0.70, 0.45 + p.Value * 0.25),
                             Tier = DetectionTier.Tier2Indicator,

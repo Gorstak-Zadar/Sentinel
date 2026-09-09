@@ -6,7 +6,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// v2.2.8 — WMI subscription triple, hostile consumer classification,
+    /// v2.2.8 - WMI subscription triple, hostile consumer classification,
     /// policy-rewrite terminal family, wmiadap host identity.
     /// </summary>
     public class V228WmiHardeningTests

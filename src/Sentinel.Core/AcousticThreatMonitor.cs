@@ -10,15 +10,15 @@ using NAudio.Wave;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// Acoustic Threat Monitor — detects harmful frequencies in system audio output.
+    /// Acoustic Threat Monitor - detects harmful frequencies in system audio output.
     /// 
     /// Continuously monitors what's being played via WASAPI loopback (zero interference
     /// with normal playback). When dangerous frequency content is detected, immediately
     /// mutes the output device for the duration of the threat.
     /// 
     /// Threats detected:
-    /// - Infrasound (1-20Hz) at significant amplitude — causes nausea, disorientation, anxiety
-    /// - Ultrasonic (17-22kHz) sustained content — tracking beacons, headache-inducing
+    /// - Infrasound (1-20Hz) at significant amplitude - causes nausea, disorientation, anxiety
+    /// - Ultrasonic (17-22kHz) sustained content - tracking beacons, headache-inducing
     /// - Resonant attack frequencies (18-19Hz "fear frequency", 7Hz nausea band)
     /// - High-amplitude narrow-band tones that don't match music patterns
     /// 
@@ -49,7 +49,7 @@ namespace Sentinel.Core
         private const int ThreatFramesToMute = 3;      // ~30ms of threat before muting
         private const int SafeFramesToUnmute = 15;     // ~150ms of silence before unmuting
         private const float InfrasoundThreshold = 0.02f;  // Amplitude threshold for infrasound
-        private const float UltrasonicThreshold = 0.008f; // Lower threshold — ultrasonics shouldn't be there at all
+        private const float UltrasonicThreshold = 0.008f; // Lower threshold - ultrasonics shouldn't be there at all
         private const float NarrowBandThreshold = 0.04f;  // Single-frequency tone detection
 
         // Healing frequencies that are NEVER treated as threats
@@ -79,7 +79,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[AcousticThreatMonitor] Started — monitoring system audio for harmful frequencies");
+            _logger.LogInformation("[AcousticThreatMonitor] Started - monitoring system audio for harmful frequencies");
 
             // Wait for system to stabilize
             await Task.Delay(5000, ct);
@@ -292,7 +292,7 @@ namespace Sentinel.Core
         /// Mutes only the specific audio session (app) that is most likely producing
         /// the harmful frequencies. Uses Windows Audio Session API to enumerate all
         /// active sessions and mute the loudest active one (most likely source).
-        /// Never touches master volume — surgical precision.
+        /// Never touches master volume - surgical precision.
         /// </summary>
         private readonly HashSet<int> _mutedSessionPids = new();
 
@@ -361,7 +361,7 @@ namespace Sentinel.Core
                         }
                     }
                     if (_mutedSessionPids.Count > 0)
-                        _logger.LogInformation("[AcousticThreatMonitor] Unmuted {Count} session(s) — threat cleared", _mutedSessionPids.Count);
+                        _logger.LogInformation("[AcousticThreatMonitor] Unmuted {Count} session(s) - threat cleared", _mutedSessionPids.Count);
                     _mutedSessionPids.Clear();
                     _isMuted = false;
                 }

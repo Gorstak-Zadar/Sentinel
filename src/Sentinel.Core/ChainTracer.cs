@@ -22,7 +22,7 @@ namespace Sentinel.Core
     /// Only invoked for Tier1 detections with KillAuthorized when ActiveResponse is enabled.
     ///
     /// Drive-by / installer safety: if malware is launched from a browser or browser
-    /// installer (chrome → dropper, ChromeSetup → setup → payload), we kill/quarantine
+    /// installer (chrome -> dropper, ChromeSetup -> setup -> payload), we kill/quarantine
     /// the payload but do NOT destroy the browser or signed installer on disk.
     /// </summary>
     public sealed class ChainTracer
@@ -48,7 +48,7 @@ namespace Sentinel.Core
         };
 
         /// <summary>
-        /// Browser / browser-installer process stems. Name alone is never enough —
+        /// Browser / browser-installer process stems. Name alone is never enough -
         /// <see cref="IsLegitimateBrowserHost"/> also requires a legitimate install path
         /// or a valid Authenticode signature (for first-run installers on Desktop).
         /// </summary>
@@ -66,7 +66,7 @@ namespace Sentinel.Core
         /// IDE / development tool process stems. These are Electron/CEF apps that spawn
         /// many child processes (node, electron helpers, conhost, terminals). If a child
         /// triggers a detection, we kill the child but NEVER walk up and kill the IDE host
-        /// — that destroys the developer's session and is an irreversible false positive.
+        /// - that destroys the developer's session and is an irreversible false positive.
         /// Protection requires the binary to reside in a legitimate install path (Program Files
         /// or user AppData/Local/Programs) to prevent abuse via renames in Temp/Downloads.
         /// </summary>
@@ -114,7 +114,7 @@ namespace Sentinel.Core
         };
 
         // v2.2.0: System32 / SysWOW64 only. The previous Windows\ prefix treated
-        // C:\Windows\Temp (and Tasks, Prefetch, …) as "OS critical" and skipped quarantine.
+        // C:\Windows\Temp (and Tasks, Prefetch, ...) as "OS critical" and skipped quarantine.
         private static readonly string[] SystemPaths = new[]
         {
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "System32") + @"\",
@@ -154,7 +154,7 @@ namespace Sentinel.Core
                 result.AllChainProcesses = chain;
 
                 // 2. Attack root = first non-system, non-browser host walking toward the parent.
-                //    malware → chrome → explorer  => attack root is malware (not chrome).
+                //    malware -> chrome -> explorer  => attack root is malware (not chrome).
                 result.AttackRoot = chain.LastOrDefault(n =>
                     !IsSystemBinary(n.ImagePath, n.ProcessName) &&
                     !IsLegitimateBrowserHost(n.ImagePath, n.ProcessName))
@@ -165,7 +165,7 @@ namespace Sentinel.Core
                 if (_config.ActiveResponse && detection.KillAuthorized &&
                     ResponsePolicy.MayPerformDestructiveResponse(detection, _config))
                 {
-                    // FP 2026-08-01: PPID mismatch on System32\conhost → chain walked to WinReducer and killed it.
+                    // FP 2026-08-01: PPID mismatch on System32\conhost -> chain walked to WinReducer and killed it.
                     // If the *detected* process is a stock Windows console host (or any OS-critical path),
                     // never walk-up kill user tools. Log/response engine should already demote these;
                     // this is defense-in-depth if KillAuthorized was set incorrectly.
@@ -180,7 +180,7 @@ namespace Sentinel.Core
                          detection.RuleName.StartsWith("PPID Spoofing")))
                     {
                         _logger.LogInformation(
-                            "[ChainTracer] Skipping chain kill — detection is stock OS console/host PPID race (PID {Pid} {Name} path={Path})",
+                            "[ChainTracer] Skipping chain kill - detection is stock OS console/host PPID race (PID {Pid} {Name} path={Path})",
                             detection.ProcessId, detection.ProcessName, detectionPath);
                         result.EndTime = DateTimeOffset.UtcNow;
                         result.Success = true;
@@ -192,10 +192,10 @@ namespace Sentinel.Core
                     {
                         var cleanName = Sentinel.Core.StringNet48.ReplaceIgnoreCase(node.ProcessName, ".exe", "");
 
-                        // Critical system hosts (explorer, csrss, …):
-                        // - Path under Windows → never kill
-                        // - Path unknown/empty → never kill (FP 2026-07-25: explorer killed when path unresolved)
-                        // - Path known OUTSIDE Windows → kill (malware renamed explorer.exe in Temp)
+                        // Critical system hosts (explorer, csrss, ...):
+                        // - Path under Windows -> never kill
+                        // - Path unknown/empty -> never kill (FP 2026-07-25: explorer killed when path unresolved)
+                        // - Path known OUTSIDE Windows -> kill (malware renamed explorer.exe in Temp)
                         if (CriticalSystemProcesses.Contains(cleanName))
                         {
                             if (string.IsNullOrEmpty(node.ImagePath) || IsSystemBinary(node.ImagePath, node.ProcessName))
@@ -208,7 +208,7 @@ namespace Sentinel.Core
 
                         // Preserve browser / signed browser-installer ancestors.
                         // If the *detected* process itself is a browser (extension compromise,
-                        // remote-debug abuse), we still kill that PID — only ancestors are skipped.
+                        // remote-debug abuse), we still kill that PID - only ancestors are skipped.
                         if (node.ProcessId != detection.ProcessId &&
                             IsLegitimateBrowserHost(node.ImagePath, node.ProcessName))
                         {
@@ -218,7 +218,7 @@ namespace Sentinel.Core
                             continue;
                         }
 
-                        // Signed installer ancestors (Git, ChromeSetup, SentinelSetup, …)
+                        // Signed installer ancestors (Git, ChromeSetup, SentinelSetup, ...)
                         if (node.ProcessId != detection.ProcessId &&
                             !string.IsNullOrEmpty(node.ImagePath) &&
                             InstallerHeuristics.LooksLikeInstallerName(node.ProcessName, node.ImagePath) &&
@@ -271,7 +271,7 @@ namespace Sentinel.Core
                         }
                     }
 
-                    // 4. Quarantine non-system binaries — never browsers, never signed Authenticode hosts.
+                    // 4. Quarantine non-system binaries - never browsers, never signed Authenticode hosts.
                     //    Matches AdvancedResponseEngine v1.5.9: signed injectors are killed but preserved on disk.
                     foreach (var node in chain.Where(n => !string.IsNullOrEmpty(n.ImagePath) && !IsSystemBinary(n.ImagePath, n.ProcessName)))
                     {
@@ -279,7 +279,7 @@ namespace Sentinel.Core
                         {
                             if (File.Exists(node.ImagePath))
                             {
-                                // NEVER quarantine files from Windows system directories —
+                                // NEVER quarantine files from Windows system directories -
                                 // these are WRP-protected and removing them breaks the OS.
                                 var lowerPath = node.ImagePath!.ToLowerInvariant();
                                 if (lowerPath.Contains(@"\windows\system32\") ||
@@ -434,7 +434,7 @@ namespace Sentinel.Core
 
         internal static bool IsSystemBinary(string? imagePath, string processName)
         {
-            // Never trust name alone — require path verification.
+            // Never trust name alone - require path verification.
             // v2.2.0: OrdinalIgnoreCase; never treat Windows\Temp as system.
             if (string.IsNullOrEmpty(imagePath)) return false;
             try
@@ -492,7 +492,7 @@ namespace Sentinel.Core
             }
 
             // Desktop extras / Downloads installers, or setup.exe extracted under Temp:
-            // require a real Authenticode signature (Google LLC, Microsoft, Mozilla, …).
+            // require a real Authenticode signature (Google LLC, Microsoft, Mozilla, ...).
             if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
             {
                 try
@@ -531,7 +531,7 @@ namespace Sentinel.Core
             var cleanName = Sentinel.Core.StringNet48.ReplaceIgnoreCase(processName, ".exe", "");
             if (!IdeHostProcessNames.Contains(cleanName)) return false;
 
-            // Name matches — verify the path is legitimate
+            // Name matches - verify the path is legitimate
             if (!string.IsNullOrEmpty(imagePath))
             {
                 var lowerPath = imagePath!.ToLowerInvariant();

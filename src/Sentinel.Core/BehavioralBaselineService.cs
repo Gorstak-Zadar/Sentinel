@@ -222,7 +222,7 @@ namespace Sentinel.Core
             foreach (var k in _knownNetworkDestinations.Where(kv => kv.Value.LastSeen < cutoff).Select(kv => kv.Key).ToList())
                 _knownNetworkDestinations.TryRemove(k, out _);
             // v1.5.9: Clean up old detection records (allow process to re-earn established status
-            // after 7 days with no new detections — covers one-time false positives)
+            // after 7 days with no new detections - covers one-time false positives)
             foreach (var k in _detectionHistory.Where(kv => kv.Value.LastDetection < cutoff).Select(kv => kv.Key).ToList())
                 _detectionHistory.TryRemove(k, out _);
 

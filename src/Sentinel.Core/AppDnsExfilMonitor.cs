@@ -60,7 +60,7 @@ namespace Sentinel.Core
             "185.228.168.9", "185.228.169.9"
         };
 
-        // Browsers are handled by BrowserDnsPolicyGuard — we focus on non-browser apps
+        // Browsers are handled by BrowserDnsPolicyGuard - we focus on non-browser apps
         private static readonly HashSet<string> BrowserProcesses = new(StringComparer.OrdinalIgnoreCase)
         {
             "chrome", "msedge", "firefox", "brave", "opera", "vivaldi",
@@ -71,11 +71,11 @@ namespace Sentinel.Core
         // Legitimate apps that use DoH for their own resolution.
         // HARDENING v1.3.0: ALL entries now require Authenticode signature verification.
         // Previously, DNS resolver tools (nextdns, cloudflared, etc.) were allowed unconditionally
-        // without any signature check — an attacker could name malware "cloudflared.exe" and bypass
+        // without any signature check - an attacker could name malware "cloudflared.exe" and bypass
         // DoH exfiltration detection entirely. Now every entry requires publisher verification.
         private static readonly Dictionary<string, string[]> AllowedDohApps = new(StringComparer.OrdinalIgnoreCase)
         {
-            // DNS resolver tools — require known publishers (Cloudflare, NextDNS, etc.)
+            // DNS resolver tools - require known publishers (Cloudflare, NextDNS, etc.)
             ["nextdns"] = new[] { "NextDNS" },
             ["cloudflared"] = new[] { "Cloudflare" },
             ["dnscrypt-proxy"] = new[] { "Frank Denis" },
@@ -96,7 +96,7 @@ namespace Sentinel.Core
             ["spotify"] = new[] { "Spotify AB" },
             ["slack"] = new[] { "Slack Technologies" },
             ["teams"] = new[] { "Microsoft" },
-            // Generic CEF subprocesses — require known publisher
+            // Generic CEF subprocesses - require known publisher
             ["cefsharp.browsersubprocess"] = new[] { "Valve", "Discord Inc.", "Spotify AB", "Slack Technologies" },
         };
 
@@ -116,7 +116,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[AppDnsExfilMonitor] Started — monitoring for application-level DoH bypass");
+            _logger.LogInformation("[AppDnsExfilMonitor] Started - monitoring for application-level DoH bypass");
 
             while (!ct.IsCancellationRequested)
             {
@@ -364,7 +364,7 @@ namespace Sentinel.Core
             if (string.IsNullOrEmpty(imagePath))
             {
                 _allowedPidCache[pid] = false;
-                return false; // Can't verify — don't allow
+                return false; // Can't verify - don't allow
             }
 
             bool allowed = VerifySignaturePublisher(imagePath, requiredPublishers);
@@ -395,7 +395,7 @@ namespace Sentinel.Core
             }
             catch
             {
-                // Not signed or can't read cert — not allowed
+                // Not signed or can't read cert - not allowed
                 return false;
             }
         }

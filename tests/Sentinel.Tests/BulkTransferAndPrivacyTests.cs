@@ -10,7 +10,7 @@ using Xunit;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// v1.9.9 — bulk-transfer (torrent) must not seed Exfil chains; privacy services observe-only.
+    /// v1.9.9 - bulk-transfer (torrent) must not seed Exfil chains; privacy services observe-only.
     /// </summary>
     public class BulkTransferAndPrivacyTests
     {
@@ -108,7 +108,7 @@ namespace Sentinel.Tests
         [Fact]
         public void OldExfilVolumeRuleName_WouldClassifyAsExfil_DocumentedRegressionGuard()
         {
-            // Documents why we renamed the rule — keep this classification as knowledge.
+            // Documents why we renamed the rule - keep this classification as knowledge.
             var old = new DetectionEvent
             {
                 RuleName = "Data Exfiltration: Outbound Volume Spike",

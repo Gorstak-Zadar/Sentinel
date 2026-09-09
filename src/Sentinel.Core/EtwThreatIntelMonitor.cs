@@ -53,7 +53,7 @@ namespace Sentinel.Core
         public Task StartAsync(CancellationToken ct)
         {
             _logger.LogInformation(
-                "[EtwThreatIntelMonitor] Started — thread/RWX injection scan (game paths skipped, APIs dynamic)");
+                "[EtwThreatIntelMonitor] Started - thread/RWX injection scan (game paths skipped, APIs dynamic)");
             _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             _monitorTask = Task.Run(() => RunScanLoopAsync(_cts.Token));
             return Task.CompletedTask;
@@ -73,7 +73,7 @@ namespace Sentinel.Core
 
         private async Task RunScanLoopAsync(CancellationToken ct)
         {
-            // Only PIDs that just did remote TI — not a full-system 5s walk
+            // Only PIDs that just did remote TI - not a full-system 5s walk
             // (that was the LatencyMon hard-fault source).
             while (!ct.IsCancellationRequested)
             {

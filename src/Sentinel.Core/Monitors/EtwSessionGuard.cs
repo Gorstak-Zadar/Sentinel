@@ -1,4 +1,4 @@
-// EtwSessionGuard — Critical self-protection: detect and heal ETW session kill
+// EtwSessionGuard - Critical self-protection: detect and heal ETW session kill
 // v1.6.1: Addresses RT-HIGH-1 (silent blind by stopping SentinelUnifiedTrace)
 
 using System;
@@ -14,12 +14,12 @@ namespace Sentinel.Core
     /// Watches the unified ETW real-time session. Ransomware/EDR-killer tradecraft
     /// (The Register / HN 2025: "ransomware crews don't care about your endpoint
     /// security they killed it") often stops telemetry channels without killing the
-    /// EDR process — the product looks healthy but is blind.
+    /// EDR process - the product looks healthy but is blind.
     ///
     /// Every few seconds:
-    ///   1. If !IsActive → RestartAsync + Tier1 AntiTamper detection
+    ///   1. If !IsActive -> RestartAsync + Tier1 AntiTamper detection
     ///   2. If IsActive but event counter stalled for too long while we previously
-    ///      saw activity → treat as hung consumer and restart
+    ///      saw activity -> treat as hung consumer and restart
     /// </summary>
     public sealed class EtwSessionGuard : BackgroundService
     {
@@ -49,7 +49,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("[EtwSessionGuard] Started — monitoring UnifiedEtwSession health");
+            _logger.LogInformation("[EtwSessionGuard] Started - monitoring UnifiedEtwSession health");
 
             // Allow startup time for session creation
             try { await Task.Delay(5000, stoppingToken); } catch { return; }
@@ -93,9 +93,9 @@ namespace Sentinel.Core
 
             string reason = inactive
                 ? "Unified ETW session is inactive (stopped, failed to start, or externally terminated)"
-                : $"Unified ETW session stalled — no events for {StallThresholdSeconds}s after prior activity (EventsProcessed={events})";
+                : $"Unified ETW session stalled - no events for {StallThresholdSeconds}s after prior activity (EventsProcessed={events})";
 
-            _logger.LogCritical("[EtwSessionGuard] {Reason} — attempting restart", reason);
+            _logger.LogCritical("[EtwSessionGuard] {Reason} - attempting restart", reason);
 
             bool restarted = await _etwSession.RestartAsync(ct);
             _restartAttempts++;
@@ -122,12 +122,12 @@ namespace Sentinel.Core
                 RuleName = "Anti-Tamper: ETW Session Disabled",
                 Evidence = reason + (restarted
                     ? ". Session was automatically recreated."
-                    : ". Automatic recreation failed — detection may be degraded to WMI/polling fallback."),
+                    : ". Automatic recreation failed - detection may be degraded to WMI/polling fallback."),
                 Reasoning =
                     "Sentinel's real-time detection depends on the unified ETW session (Kernel-Process, File, " +
                     "Registry, DNS, Threat-Intelligence, PowerShell, etc.). Stopping this session (logman, " +
                     "ControlTrace, or EDR-killer tools) blinds behavioral monitoring while the service process " +
-                    "still appears healthy — a technique used by modern ransomware crews before encryption. " +
+                    "still appears healthy - a technique used by modern ransomware crews before encryption. " +
                     "This is high-confidence telemetry tampering.",
                 Confidence = 0.99,
                 Tier = DetectionTier.Tier1Behavioral,

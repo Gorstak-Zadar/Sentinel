@@ -12,10 +12,10 @@ namespace Sentinel.Core
     /// Detects data exfiltration by monitoring:
     /// - Unusually large outbound transfers from the system
     /// - Sudden spikes in bytes-sent that deviate from baseline
-    /// Purely behavioral — based on transfer volume, not destinations.
+    /// Purely behavioral - based on transfer volume, not destinations.
     ///
-    /// v1.9.9: When a known bulk-transfer client is running (torrent seeders, P2P, aria2, …),
-    /// volume spikes are observe-only noise — never "Exfil" terminal fuel and never
+    /// v1.9.9: When a known bulk-transfer client is running (torrent seeders, P2P, aria2, ...),
+    /// volume spikes are observe-only noise - never "Exfil" terminal fuel and never
     /// publish ExfiltrationSpikeSignal. User seeding is not malice.
     /// </summary>
     public sealed class DataExfiltrationMonitor : BackgroundService
@@ -87,7 +87,7 @@ namespace Sentinel.Core
                                     $"Baseline rate ~{_baselineRate / (1024 * 1024)}MB/interval.",
                                 Reasoning =
                                     "High outbound volume coincides with a known torrent/P2P/downloader process (seeding or bulk transfer). " +
-                                    "Sentinel observes only — this is not treated as data exfiltration and cannot seed malice chains.",
+                                    "Sentinel observes only - this is not treated as data exfiltration and cannot seed malice chains.",
                                 Confidence = 0.40,
                                 Tier = DetectionTier.Tier2Indicator,
                                 AuthorizedResponse = ResponseAction.LogOnly,
@@ -103,7 +103,7 @@ namespace Sentinel.Core
                                     ["ActualBytes"] = delta.ToString(),
                                 }
                             });
-                            // Do NOT publish ExfiltrationSpikeSignal — would mis-correlate as exfil.
+                            // Do NOT publish ExfiltrationSpikeSignal - would mis-correlate as exfil.
                             continue;
                         }
 
@@ -132,7 +132,7 @@ namespace Sentinel.Core
                             }
                         });
 
-                        // Soft enrichment for correlators — not a kill path.
+                        // Soft enrichment for correlators - not a kill path.
                         _contextBus?.Publish(new ExfiltrationSpikeSignal
                         {
                             ProcessId = 0,

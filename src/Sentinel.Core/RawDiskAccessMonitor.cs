@@ -17,7 +17,7 @@ namespace Sentinel.Core
     /// Detects processes performing raw disk I/O by opening physical disk
     /// device paths (\\.\PhysicalDrive0, \\.\C:, etc.) directly.
     ///
-    /// Raw disk access bypasses the filesystem entirely — no FileSystemWatcher,
+    /// Raw disk access bypasses the filesystem entirely - no FileSystemWatcher,
     /// no NTFS journaling, no file-level ADS verdicts. Attackers use this to:
     /// - Read/write disk sectors without triggering file monitors
     /// - Bypass NTFS ACLs and encryption
@@ -58,7 +58,7 @@ namespace Sentinel.Core
             "wudfhost", "storagecraft", "veeam", "acronis",
             "macrium", "clonezilla", "dd", "wimgapi",
             "Sentinel.Service", "Sentinel.Agent",
-            // Shell / session hosts — hold volume handles constantly (USB, mount points).
+            // Shell / session hosts - hold volume handles constantly (USB, mount points).
             // Production FP 2026-07-25: killed explorer + taskhostw and chain-quarantined them.
             "svchost", "taskhostw", "services", "system",
             "explorer", "sihost", "dwm", "RuntimeBroker", "SearchHost",
@@ -211,7 +211,7 @@ namespace Sentinel.Core
                                 RuleName = "Raw Disk Access: Direct Physical Device I/O",
                                 Evidence = $"Process '{procName}' (PID {proc.Id}, Path: {imagePath}) " +
                                            $"has open handle to raw device: {devicePath}" +
-                                           (isVolumeRootOnly ? " [volume root — LogOnly]" : ""),
+                                           (isVolumeRootOnly ? " [volume root - LogOnly]" : ""),
                                 Reasoning = "A process has opened a raw disk device path (e.g., \\\\.\\PhysicalDrive0), " +
                                             "bypassing the filesystem layer entirely. This allows reading/writing disk sectors " +
                                             "without triggering file-level monitors, NTFS journaling, or ADS verdict tags. " +
@@ -251,7 +251,7 @@ namespace Sentinel.Core
         {
             var results = new List<string>();
 
-            // Use WMI CIM_DataFile association — more reliable than kernel handle enum
+            // Use WMI CIM_DataFile association - more reliable than kernel handle enum
             // for detecting processes that have opened device objects
             IntPtr processHandle = IntPtr.Zero;
             try
@@ -398,7 +398,7 @@ namespace Sentinel.Core
         private static bool IsPhysicalDriveHandle(string path)
         {
             if (string.IsNullOrEmpty(path)) return false;
-            // True sector device: \\.\PhysicalDrive0 or \Device\Harddisk0\DR0 — not HarddiskVolumeN
+            // True sector device: \\.\PhysicalDrive0 or \Device\Harddisk0\DR0 - not HarddiskVolumeN
             if (path.Contains(@"PhysicalDrive")) return true;
             if (path.Contains(@"HarddiskVolume")) return false;
             if (path.Contains(@"\Harddisk") &&

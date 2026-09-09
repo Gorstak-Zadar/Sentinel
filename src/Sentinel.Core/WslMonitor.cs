@@ -22,7 +22,7 @@ namespace Sentinel.Core
     /// - Suspicious command execution inside WSL (curl to C2, reverse shells)
     /// - WSL distribution installs/imports at runtime
     ///
-    /// WSL2 runs in a lightweight Hyper-V VM — Sentinel has NO visibility into
+    /// WSL2 runs in a lightweight Hyper-V VM - Sentinel has NO visibility into
     /// processes running inside the Linux kernel. This monitor observes the
     /// Windows-side attack surface: WSL host processes, cross-filesystem access,
     /// and network traffic from the WSL virtual adapter.
@@ -52,7 +52,7 @@ namespace Sentinel.Core
             "base64 -d", "openssl enc",
             "iptables", "tcpdump", "nmap ", "masscan",
             "/mnt/c/windows/system32", "/mnt/c/users",
-            // v2.5.5: CloudSEK BRIDGEHEAD npm campaign (June 2026) — reads /proc/version to detect WSL
+            // v2.5.5: CloudSEK BRIDGEHEAD npm campaign (June 2026) - reads /proc/version to detect WSL
             "/proc/version", "cat /proc/version", "is_wsl", "get_wu()"
         };
 
@@ -85,7 +85,7 @@ namespace Sentinel.Core
 
             if (!_wslAvailable)
             {
-                _logger.LogInformation("[WslMonitor] WSL not installed — monitor idle");
+                _logger.LogInformation("[WslMonitor] WSL not installed - monitor idle");
                 // Keep running in case WSL gets installed later
                 while (!ct.IsCancellationRequested)
                 {
@@ -95,7 +95,7 @@ namespace Sentinel.Core
                     if (_wslAvailable) break;
                 }
                 if (ct.IsCancellationRequested) return;
-                _logger.LogInformation("[WslMonitor] WSL detected — activating");
+                _logger.LogInformation("[WslMonitor] WSL detected - activating");
             }
 
             // Baseline existing WSL distributions
@@ -348,7 +348,7 @@ namespace Sentinel.Core
             return value.Length <= maxLength ? value : value[..maxLength] + "...";
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // v1.6.8: Container/WSL Lateral Movement INTO Host Detection
         //
         // Blind spot: WslMonitor tracked activity FROM host INTO WSL and suspicious
@@ -358,7 +358,7 @@ namespace Sentinel.Core
         // - Docker container escape indicators (mount namespace manipulation)
         // - Processes spawned from \\wsl$ paths that access Windows credentials
         // - WSL interop (.exe spawning from Linux context) targeting system resources
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private readonly HashSet<string> _alertedLateralPaths = new(StringComparer.OrdinalIgnoreCase);
 
@@ -418,13 +418,13 @@ namespace Sentinel.Core
 
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
-                        RuleName = "WSL: Lateral Movement — Host Filesystem Write to Sensitive Path",
+                        RuleName = "WSL: Lateral Movement - Host Filesystem Write to Sensitive Path",
                         Evidence = $"WSL process '{info.ProcessName}' (PID {info.Pid}) writing to sensitive Windows path. " +
                                    $"Command: {Truncate(info.CommandLine, 250)}",
                         Reasoning = "A process running inside WSL is writing to a sensitive Windows host filesystem location " +
                                     "via the /mnt/ mount point. WSL has full read-write access to the Windows filesystem, " +
                                     "allowing attackers to drop payloads into system directories, modify startup items, " +
-                                    "or overwrite system binaries — all from within the Linux environment where " +
+                                    "or overwrite system binaries - all from within the Linux environment where " +
                                     "Windows-native AV/EDR has limited visibility (MITRE T1611).",
                         Confidence = 0.85,
                         Tier = DetectionTier.Tier1Behavioral,
@@ -446,7 +446,7 @@ namespace Sentinel.Core
         /// Detects WSL interop abuse: Linux processes spawning Windows .exe files
         /// targeting credential stores, security tools, or system configuration.
         /// WSL interop allows running Windows binaries from within Linux via /mnt/c/ or
-        /// direct .exe invocation — this is a lateral movement vector into the host.
+        /// direct .exe invocation - this is a lateral movement vector into the host.
         /// </summary>
         private async Task DetectWslInteropEscalation(CancellationToken ct)
         {
@@ -495,12 +495,12 @@ namespace Sentinel.Core
 
                         await _detectionEngine.EmitAsync(new DetectionEvent
                         {
-                            RuleName = "WSL: Lateral Movement — Interop Spawning Sensitive Windows Process",
+                            RuleName = "WSL: Lateral Movement - Interop Spawning Sensitive Windows Process",
                             Evidence = $"WSL interop spawned sensitive Windows process: '{proc.ProcessName}' (PID {proc.Id}). " +
                                        $"Parent PID: {parentPid} (WSL). Command: {Truncate(cmdLine, 200)}",
                             Reasoning = "A Windows security-sensitive process was spawned from a WSL/Linux parent context via " +
                                         "WSL interop. This allows attackers to use Linux-native tools for reconnaissance, " +
-                                        "then pivot into Windows host configuration modification via .exe spawning — " +
+                                        "then pivot into Windows host configuration modification via .exe spawning - " +
                                         "effectively escaping the container boundary for host compromise (MITRE T1611, T1059).",
                             Confidence = 0.82,
                             Tier = DetectionTier.Tier1Behavioral,
@@ -543,7 +543,7 @@ namespace Sentinel.Core
                     if (name.StartsWith("com.docker") || name == "docker" || name == "dockerd")
                     {
                         // Docker processes shouldn't be spawning cmd/powershell with suspicious args
-                        continue; // Docker itself is legitimate — we monitor its children
+                        continue; // Docker itself is legitimate - we monitor its children
                     }
 
                     // Detect processes whose parent is a Docker container runtime
@@ -569,7 +569,7 @@ namespace Sentinel.Core
 
                             await _detectionEngine.EmitAsync(new DetectionEvent
                             {
-                                RuleName = "WSL: Container Escape — Docker Process Accessing Host Resources",
+                                RuleName = "WSL: Container Escape - Docker Process Accessing Host Resources",
                                 Evidence = $"Process '{proc.ProcessName}' (PID {proc.Id}) from Docker overlay filesystem " +
                                            $"is accessing sensitive host resources. Image: {Truncate(imagePath, 150)}. " +
                                            $"Command: {Truncate(cmdLine, 200)}",

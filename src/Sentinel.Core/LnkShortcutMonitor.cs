@@ -1,4 +1,4 @@
-// LnkShortcutMonitor — Detects malicious .lnk shortcut files targeting UNC/network paths
+// LnkShortcutMonitor - Detects malicious .lnk shortcut files targeting UNC/network paths
 // Watches Desktop, Start Menu, Taskbar, and Public Desktop for .lnk creation/modification.
 // If a shortcut points to a UNC path (\\server\share), it's a known malware delivery vector
 // (CVE-2024-21412, APT campaigns, initial access brokers). Emits Tier1 detection + quarantines.
@@ -72,7 +72,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[LnkShortcutMonitor] Starting — watching for malicious .lnk files");
+            _logger.LogInformation("[LnkShortcutMonitor] Starting - watching for malicious .lnk files");
 
             // Start watchers on all target directories
             var watchPaths = GetWatchPaths();
@@ -113,7 +113,7 @@ namespace Sentinel.Core
                     paths.Add(p!);
             }
 
-            // Service runs as SYSTEM — enumerate every interactive user profile (not just SYSTEM's dirs)
+            // Service runs as SYSTEM - enumerate every interactive user profile (not just SYSTEM's dirs)
             try
             {
                 var usersRoot = Path.GetFullPath(Path.Combine(
@@ -225,7 +225,7 @@ namespace Sentinel.Core
                         "CVE-2024-21412 and related vulnerabilities exploit this exact vector.",
                     "RemoteLauncher" =>
                         "A .lnk shortcut invokes powershell/cmd/mshta/wscript/rundll32 with a UNC path or remote URL in " +
-                        "its arguments — a common phishing dropper pattern that executes remote code without a UNC target path.",
+                        "its arguments - a common phishing dropper pattern that executes remote code without a UNC target path.",
                     _ =>
                         "A .lnk shortcut file targets a suspicious protocol handler (search-ms:, ms-msdt:, or remote URL). " +
                         "These are used in phishing campaigns to trigger code execution via protocol handler abuse."
@@ -240,7 +240,7 @@ namespace Sentinel.Core
                     Confidence = confidence,
                     Tier = DetectionTier.Tier1Behavioral,
                     AuthorizedResponse = ResponseAction.Quarantine,
-                    Evidence = $"Malicious .lnk detected at '{lnkPath}' — {description}",
+                    Evidence = $"Malicious .lnk detected at '{lnkPath}' - {description}",
                     Reasoning = reasoning,
                     Metadata = new Dictionary<string, string>
                     {

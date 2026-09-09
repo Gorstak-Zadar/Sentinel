@@ -14,11 +14,11 @@ namespace Sentinel.Core
     /// the actual creator PID recorded in the process ancestry cache.
     ///
     /// Installer extractors (Inno Setup, NSIS, etc.) frequently race ETW/WMI
-    /// ancestry or re-parent during elevation — that is NOT T1134.004. Killing
+    /// ancestry or re-parent during elevation - that is NOT T1134.004. Killing
     /// them chain-quarantines Git/Chrome/VS installers (observed in production).
     ///
     /// Production FP 2026-08-01: WinReducerEX110 spawned System32\conhost with an
-    /// ETW/kernel parent mismatch → KillProcess + ChainTracer walked up and killed
+    /// ETW/kernel parent mismatch -> KillProcess + ChainTracer walked up and killed
     /// WinReducer. Stock console hosts and other System32 binaries must never be
     /// kill-authorized on PPID race alone.
     /// </summary>
@@ -85,14 +85,14 @@ namespace Sentinel.Core
 
                         if (isDev || isBrowser)
                         {
-                            // Only skip if the binary is validly signed — no path-based trust
+                            // Only skip if the binary is validly signed - no path-based trust
                             if (!string.IsNullOrEmpty(imagePath) && _signerTrust.IsSignedFile(imagePath!))
                             {
                                 continue;
                             }
                         }
 
-                        // Inno Setup / NSIS / SFX extractors — ancestry races are normal
+                        // Inno Setup / NSIS / SFX extractors - ancestry races are normal
                         if (InstallerHeuristics.IsInstallerExtractor(proc.ProcessName, imagePath))
                         {
                             continue;
@@ -118,14 +118,14 @@ namespace Sentinel.Core
                         var (cachedParentPid, _) = _ancestryCache.GetParent(proc.Id);
                         if (cachedParentPid > 0 && cachedParentPid != kernelParentPid && kernelParentPid > 4)
                         {
-                            // Child of a signed installer/extractor → ETW race, not spoofing
+                            // Child of a signed installer/extractor -> ETW race, not spoofing
                             if (IsBenignInstallerParent(kernelParentPid) || IsBenignInstallerParent(cachedParentPid))
                             {
                                 continue;
                             }
 
                             // Kill only when the mismatched process is a non-OS, unsigned binary.
-                            // Signed / stock System32 hosts (esp. conhost) race ETW constantly —
+                            // Signed / stock System32 hosts (esp. conhost) race ETW constantly -
                             // kill-class response chain-kills legitimate tools (WinReducer, installers).
                             bool selfSigned = !string.IsNullOrEmpty(imagePath) &&
                                 (_signerTrust.IsSignedFile(imagePath!) ||
@@ -139,10 +139,10 @@ namespace Sentinel.Core
                                 : DetectionTier.Tier1Behavioral;
                             string demoteTag = demote
                                 ? (IsStockWindowsConsoleHost(proc.ProcessName, imagePath)
-                                    ? " [stock console host — LogOnly]"
+                                    ? " [stock console host - LogOnly]"
                                     : selfSigned
-                                        ? " [signed — LogOnly]"
-                                        : " [OS path — LogOnly]")
+                                        ? " [signed - LogOnly]"
+                                        : " [OS path - LogOnly]")
                                 : "";
 
                             _ = _detectionEngine.EmitAsync(new DetectionEvent
@@ -152,7 +152,7 @@ namespace Sentinel.Core
                                            demoteTag,
                                 Reasoning = "The process's kernel-reported parent PID does not match the parent recorded via ETW process creation events, indicating PPID spoofing (T1134.004)." +
                                             (demote
-                                                ? " Treated as ancestry race (signed binary, stock console host, or OS-protected path) — LogOnly, no chain kill."
+                                                ? " Treated as ancestry race (signed binary, stock console host, or OS-protected path) - LogOnly, no chain kill."
                                                 : ""),
                                 Confidence = demote ? 0.55 : 0.85,
                                 Tier = tier,
@@ -205,7 +205,7 @@ namespace Sentinel.Core
         {
             if (selfSigned) return true;
             if (IsStockWindowsConsoleHost(processName, imagePath)) return true;
-            // Any binary under the Windows tree (WRP) — ancestry races are common; kill chain is not.
+            // Any binary under the Windows tree (WRP) - ancestry races are common; kill chain is not.
             if (!string.IsNullOrEmpty(imagePath) && SecurityValidation.IsOsCriticalPath(imagePath))
                 return true;
             return false;

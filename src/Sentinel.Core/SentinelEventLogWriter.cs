@@ -12,7 +12,7 @@ namespace Sentinel.Core
     /// (Application log, source "Sentinel" by default).
     ///
     /// Graceful degradation (barebone / custom / stripped Windows):
-    ///   - Event Log service missing, CreateEventSource denied, WriteEntry throws →
+    ///   - Event Log service missing, CreateEventSource denied, WriteEntry throws ->
     ///     permanently disable for this process and continue. Never throws to callers.
     ///   - No dependency on custom channels, wevtutil, or PowerShell.
     ///   - Rate-limited so stripped hosts with a broken log stack are not hammered.
@@ -95,7 +95,7 @@ namespace Sentinel.Core
                 var logName = SanitizeName(_config.LogName, "Application");
 
                 // Creating a source requires admin the first time; under SYSTEM it usually works.
-                // On locked-down / stripped hosts this often fails — fall back to write-without-create
+                // On locked-down / stripped hosts this often fails - fall back to write-without-create
                 // only if source already exists; otherwise disable.
                 bool sourceReady = false;
                 try
@@ -126,7 +126,7 @@ namespace Sentinel.Core
                             if (!sourceReady)
                             {
                                 _logger?.LogDebug(createEx,
-                                    "[SentinelEventLog] CreateEventSource failed — Windows Event Log trail disabled");
+                                    "[SentinelEventLog] CreateEventSource failed - Windows Event Log trail disabled");
                                 DisablePermanently("create_event_source_failed: " + createEx.GetType().Name);
                                 return;
                             }
@@ -152,17 +152,17 @@ namespace Sentinel.Core
                     // MachineName defaults to local; do not set remote
                 };
 
-                // Smoke write is optional — some policies allow create but block write.
+                // Smoke write is optional - some policies allow create but block write.
                 // We do not smoke-write at init (noise); first real write decides.
                 _available = true;
                 _logger?.LogInformation(
-                    "[SentinelEventLog] Available — log={Log} source={Source} criticalOnly={CriticalOnly}",
+                    "[SentinelEventLog] Available - log={Log} source={Source} criticalOnly={CriticalOnly}",
                     logName, source, _config.CriticalOnly);
             }
             catch (Exception ex)
             {
                 DisablePermanently("init_exception: " + ex.GetType().Name);
-                _logger?.LogDebug(ex, "[SentinelEventLog] Init failed — feature disabled for process lifetime");
+                _logger?.LogDebug(ex, "[SentinelEventLog] Init failed - feature disabled for process lifetime");
             }
         }
 
@@ -233,7 +233,7 @@ namespace Sentinel.Core
 
             if (!TryAcquireRateLimitSlot())
             {
-                _logger?.LogDebug("[SentinelEventLog] Rate limited — drop event {Id}", eventId);
+                _logger?.LogDebug("[SentinelEventLog] Rate limited - drop event {Id}", eventId);
                 return;
             }
 
@@ -255,9 +255,9 @@ namespace Sentinel.Core
             catch (Exception ex)
             {
                 Interlocked.Increment(ref _writesFailed);
-                // First hard failure on stripped host → stop forever (no retry storms).
+                // First hard failure on stripped host -> stop forever (no retry storms).
                 DisablePermanently("write_failed: " + ex.GetType().Name);
-                _logger?.LogDebug(ex, "[SentinelEventLog] Write failed — disabling Windows Event Log trail");
+                _logger?.LogDebug(ex, "[SentinelEventLog] Write failed - disabling Windows Event Log trail");
             }
         }
 
@@ -316,7 +316,7 @@ namespace Sentinel.Core
         private static string Truncate(string s, int max)
         {
             if (string.IsNullOrEmpty(s) || s.Length <= max) return s ?? "";
-            return s.Substring(0, max) + "…";
+            return s.Substring(0, max) + "...";
         }
 
         public void Dispose()
@@ -368,7 +368,7 @@ namespace Sentinel.Core
                 }
                 catch
                 {
-                    // Absolute fail-soft — never kill the host loop
+                    // Absolute fail-soft - never kill the host loop
                 }
 
                 try { await Task.Delay(TimeSpan.FromMinutes(minutes), stoppingToken).ConfigureAwait(false); }

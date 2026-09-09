@@ -11,7 +11,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Unit tests for ChainTracer — the attack chain walking and response component.
+    /// Unit tests for ChainTracer - the attack chain walking and response component.
     /// Tests verify parent chain walking, attack root identification, system binary protection,
     /// persistence removal, and quarantine behavior.
     /// </summary>
@@ -147,7 +147,7 @@ namespace Sentinel.Tests
 
             var result = await _tracer.TraceAndRespondAsync(detection);
 
-            // Should handle gracefully — no crash, no kills on PID 0
+            // Should handle gracefully - no crash, no kills on PID 0
             Assert.NotNull(result);
             Assert.True(result.Success);
         }

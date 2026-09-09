@@ -8,7 +8,7 @@ namespace Sentinel.Core
     ///
     /// v2.3.6 lesson (Kaspersky): split-string / GetProcAddress "hiding" of API names is
     /// scored as evasion by ML engines and is worse than a normal import table.
-    /// v2.3.8: plain [DllImport] declarations — auditable, no dynamic resolution.
+    /// v2.3.8: plain [DllImport] declarations - auditable, no dynamic resolution.
     /// Authenticode signing remains the path to near-zero VirusTotal detections.
     /// </summary>
     internal static class NativeResolver

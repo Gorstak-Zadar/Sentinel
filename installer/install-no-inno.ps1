@@ -1,4 +1,4 @@
-# Sentinel manual install — bypasses Inno Setup (no TEMP extract).
+# Sentinel manual install - bypasses Inno Setup (no TEMP extract).
 # Use when Defender ASR "advanced ransomware protection" blocks SentinelSetup-*.exe
 # with: Unable to execute file in temporary directory / Error 5.
 #
@@ -26,7 +26,7 @@ if (-not (Test-Path (Join-Path $Root "publish\service\Sentinel.Service.exe"))) {
 $ServiceSrc = Join-Path $Root "publish\service"
 $AgentSrc = Join-Path $Root "publish\agent"
 if (-not (Test-Path (Join-Path $ServiceSrc "Sentinel.Service.exe"))) {
-    throw "Missing $ServiceSrc\Sentinel.Service.exe — run installer\build.ps1 first (publish step is enough even if ISCC fails)."
+    throw "Missing $ServiceSrc\Sentinel.Service.exe - run installer\build.ps1 first (publish step is enough even if ISCC fails)."
 }
 if (-not (Test-Path (Join-Path $AgentSrc "Sentinel.Agent.exe"))) {
     throw "Missing $AgentSrc\Sentinel.Agent.exe"

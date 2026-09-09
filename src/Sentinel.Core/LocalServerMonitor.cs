@@ -12,7 +12,7 @@ namespace Sentinel.Core
     /// - Unexpected services binding to ports
     /// - Reverse shell listeners
     /// - Unauthorized web servers or proxy services
-    /// Behavioral — detects new listening sockets that weren't present at baseline.
+    /// Behavioral - detects new listening sockets that weren't present at baseline.
     /// </summary>
     public sealed class LocalServerMonitor : IDisposable
     {

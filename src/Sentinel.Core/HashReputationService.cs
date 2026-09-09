@@ -117,7 +117,7 @@ namespace Sentinel.Core
             catch (Exception ex)
             {
                 // Includes HttpRequestException from SPKI pin mismatch. Never treat as Safe.
-                _logger.LogDebug(ex, "CIRCL hashlookup failed for hash {Hash} (pin/TLS/network) — not Safe", sha256);
+                _logger.LogDebug(ex, "CIRCL hashlookup failed for hash {Hash} (pin/TLS/network) - not Safe", sha256);
             }
 
             try
@@ -153,14 +153,14 @@ namespace Sentinel.Core
                 }
                 else
                 {
-                    _logger.LogWarning("MalwareBazaar API returned HTTP {Status} for hash {Hash} — failing closed",
+                    _logger.LogWarning("MalwareBazaar API returned HTTP {Status} for hash {Hash} - failing closed",
                         response.StatusCode, sha256);
                     return HashVerdict.Unknown;
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "MalwareBazaar API call FAILED for hash {Hash} — failing closed (will retry)", sha256);
+                _logger.LogWarning(ex, "MalwareBazaar API call FAILED for hash {Hash} - failing closed (will retry)", sha256);
                 return UnknownOnPinnedLookupFailure();
             }
 

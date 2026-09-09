@@ -19,7 +19,7 @@ namespace Sentinel.Service
         private readonly IEnumerable<IMonitor> _monitors;
         private readonly MonitorRegistry _monitorRegistry;
 
-        // Unified ETW session — started before monitors for event-driven telemetry
+        // Unified ETW session - started before monitors for event-driven telemetry
         private readonly UnifiedEtwSession _unifiedEtwSession;
         private readonly EtwEventDispatcher _etwEventDispatcher;
 
@@ -190,7 +190,7 @@ namespace Sentinel.Service
         /// Invoked by the .NET host when the Service Control Manager issues a cooperative Stop
         /// (e.g. `sc stop`, host shutdown, upgrade/uninstall teardown). Recording this marks the
         /// impending process exit as <b>expected</b> so the AntiTamperGuard exit hook does not
-        /// classify it as a suspicious tamper stop (threat-model B1 — alert-before-suppression).
+        /// classify it as a suspicious tamper stop (threat-model B1 - alert-before-suppression).
         /// A hard kill (TerminateProcess) never routes through here, so it correctly stays
         /// classified as unexpected.
         /// </summary>
@@ -217,7 +217,7 @@ namespace Sentinel.Service
                 return;
             }
 
-            // Start Unified ETW Session — v1.5.5: Re-enabled with corrected P/Invoke implementation.
+            // Start Unified ETW Session - v1.5.5: Re-enabled with corrected P/Invoke implementation.
             // Uses buffer-offset approach instead of marshaled structs to avoid alignment issues.
             // Falls back gracefully to WMI/polling if ETW start fails (non-admin, session limit, etc.)
             try
@@ -226,18 +226,18 @@ namespace Sentinel.Service
                 await _unifiedEtwSession.StartAsync(CancellationToken.None);
                 if (_unifiedEtwSession.IsActive)
                 {
-                    _logger.LogInformation("UnifiedEtwSession active — real-time telemetry at ~50ms latency");
+                    _logger.LogInformation("UnifiedEtwSession active - real-time telemetry at ~50ms latency");
                     // Disable WMI process monitor when ETW is active (prevents duplicate events)
                     _wmiProcessMonitor.Disable();
                 }
                 else
                 {
-                    _logger.LogWarning("UnifiedEtwSession not active — using WMI/polling fallback (higher latency)");
+                    _logger.LogWarning("UnifiedEtwSession not active - using WMI/polling fallback (higher latency)");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "UnifiedEtwSession start failed — using WMI/polling fallback");
+                _logger.LogWarning(ex, "UnifiedEtwSession start failed - using WMI/polling fallback");
             }
 
             // Register the constructor-injected singleton monitors that self-start
@@ -359,7 +359,7 @@ namespace Sentinel.Service
             }
             catch (Exception ex)
             {
-                // STABILITY: Never let ExecuteAsync return — that kills the host.
+                // STABILITY: Never let ExecuteAsync return - that kills the host.
                 // Log the error and enter infinite sleep until SCM sends stop signal.
                 _logger.LogCritical(ex, "FATAL: ExecuteAsync threw unexpectedly. Entering infinite wait to prevent host shutdown.");
                 try { await Task.Delay(Timeout.Infinite, stoppingToken); } catch { }

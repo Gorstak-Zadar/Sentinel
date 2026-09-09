@@ -19,7 +19,7 @@ namespace Sentinel.Tests
 
         public void Dispose() => _bus.Dispose();
 
-        // ── Publish / Subscribe ─────────────────────────────────────────
+        //  Publish / Subscribe 
 
         [Fact]
         public async Task Publish_DeliversToSubscriber()
@@ -84,7 +84,7 @@ namespace Sentinel.Tests
             Assert.Empty(received);
         }
 
-        // ── Query Cache ─────────────────────────────────────────────────
+        //  Query Cache 
 
         [Fact]
         public void Query_ReturnsPublishedSignals()
@@ -135,7 +135,7 @@ namespace Sentinel.Tests
             Assert.Empty(results);
         }
 
-        // ── Stats ───────────────────────────────────────────────────────
+        //  Stats 
 
         [Fact]
         public void GetStats_TracksPublished()
@@ -147,7 +147,7 @@ namespace Sentinel.Tests
             Assert.Equal(2, stats.TotalPublished);
         }
 
-        // ── Pruning ─────────────────────────────────────────────────────
+        //  Pruning 
 
         [Fact]
         public void PruneExpiredCache_RemovesExpiredSignals()
@@ -167,7 +167,7 @@ namespace Sentinel.Tests
             Assert.False(_bus.HasSignal<NetworkC2Signal>(55));
         }
 
-        // ── Null safety ─────────────────────────────────────────────────
+        //  Null safety 
 
         [Fact]
         public void Publish_NullSignal_DoesNotThrow()

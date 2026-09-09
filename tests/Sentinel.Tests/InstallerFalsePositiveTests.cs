@@ -5,7 +5,7 @@ namespace Sentinel.Tests
 {
     /// <summary>
     /// Production FPs from 2026-07-25/26 ProgramData logs:
-    /// - PPID kill on innosetup → quarantine Git
+    /// - PPID kill on innosetup -> quarantine Git
     /// - Raw Disk kill on explorer / taskhostw
     /// - Ephemeral "self-delete" on GIT / INNOSETUP / DOTNET installers
     /// </summary>
@@ -83,7 +83,7 @@ namespace Sentinel.Tests
         }
 
         /// <summary>
-        /// Production FP 2026-08-01: WinReducerEX110 → System32\conhost PPID race → chain kill.
+        /// Production FP 2026-08-01: WinReducerEX110 -> System32\conhost PPID race -> chain kill.
         /// Stock console hosts and OS paths must demote to LogOnly (no KillProcess).
         /// </summary>
         [Theory]
@@ -103,7 +103,7 @@ namespace Sentinel.Tests
         [InlineData("conhost", @"C:\Windows\System32\conhost.exe", false, true)]
         [InlineData("conhost", null, false, true)]
         [InlineData("evil", @"C:\Temp\evil.exe", false, false)]
-        [InlineData("evil", @"C:\Temp\evil.exe", true, true)] // signed → demote
+        [InlineData("evil", @"C:\Temp\evil.exe", true, true)] // signed -> demote
         [InlineData("payload", @"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", false, true)] // OS path
         public void ShouldDemotePpidToLogOnly_WinReducerCase(string name, string? path, bool selfSigned, bool expected)
         {

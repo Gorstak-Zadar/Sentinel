@@ -17,7 +17,7 @@ namespace Sentinel.Core
     {
         /// <summary>
         /// Process name stems (no .exe) that commonly generate sustained outbound volume
-        /// without being malware. Name match only — not a trust grant for other rules.
+        /// without being malware. Name match only - not a trust grant for other rules.
         /// </summary>
         public static readonly HashSet<string> ProcessNameStems = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -34,12 +34,12 @@ namespace Sentinel.Core
             "aria2c", "aria2",
             // Usenet
             "sabnzbd", "nzbget", "nzbget-server",
-            // Large legitimate sync / mirror tools (volume only — other monitors still watch)
+            // Large legitimate sync / mirror tools (volume only - other monitors still watch)
             "freefileync", "resync",
             // Game / content delivery that can seed or upload heavily
             "steam", "steamwebhelper", "steamservice",
             "EpicGamesLauncher", "EpicWebHelper",
-            "Battle.net", "Agent", // Blizzard Agent — careful: too generic alone
+            "Battle.net", "Agent", // Blizzard Agent - careful: too generic alone
         };
 
         // Overly generic stems that need path corroboration if we ever kill on them.

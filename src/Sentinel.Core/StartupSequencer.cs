@@ -17,7 +17,7 @@ namespace Sentinel.Core
     /// ProcessAncestryCache might not be populated before monitors that depend on it.
     ///
     /// StartupSequencer provides:
-    ///   - Phased startup: Infrastructure → Engines → Monitors → Validators
+    ///   - Phased startup: Infrastructure -> Engines -> Monitors -> Validators
     ///   - Readiness gates: each phase waits for the prior phase to report ready
     ///   - Timeout enforcement: phases that don't complete in time get logged and skipped
     ///   - Startup report: complete manifest of what started, what failed, total boot time
@@ -95,7 +95,7 @@ namespace Sentinel.Core
 
                 if (!phaseResult.Success && phase.Required)
                 {
-                    _logger.LogError("[StartupSequencer] REQUIRED phase '{Name}' FAILED — continuing with degraded operation",
+                    _logger.LogError("[StartupSequencer] REQUIRED phase '{Name}' FAILED - continuing with degraded operation",
                         phase.Name);
                     report.DegradedMode = true;
                 }
@@ -133,7 +133,7 @@ namespace Sentinel.Core
             });
 
             _logger.LogInformation(
-                "[StartupSequencer] Startup COMPLETE in {Ms}ms — {OK}/{Total} components running{Degraded}",
+                "[StartupSequencer] Startup COMPLETE in {Ms}ms - {OK}/{Total} components running{Degraded}",
                 report.TotalDurationMs, report.SuccessfulComponents, report.TotalComponents,
                 report.DegradedMode ? " [DEGRADED MODE]" : "");
 
@@ -162,7 +162,7 @@ namespace Sentinel.Core
                 result.DurationMs = sw.ElapsedMilliseconds;
 
                 _registry.MarkStarted(component.Name);
-                _logger.LogDebug("[StartupSequencer]   ✓ {Name} started ({Ms}ms)", component.Name, result.DurationMs);
+                _logger.LogDebug("[StartupSequencer]    {Name} started ({Ms}ms)", component.Name, result.DurationMs);
             }
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
@@ -172,7 +172,7 @@ namespace Sentinel.Core
                 result.Error = $"Timeout after {phaseTimeoutSeconds}s";
 
                 _registry.MarkFailed(component.Name);
-                _logger.LogWarning("[StartupSequencer]   ✗ {Name} TIMEOUT after {Sec}s", component.Name, phaseTimeoutSeconds);
+                _logger.LogWarning("[StartupSequencer]    {Name} TIMEOUT after {Sec}s", component.Name, phaseTimeoutSeconds);
             }
             catch (Exception ex)
             {
@@ -182,7 +182,7 @@ namespace Sentinel.Core
                 result.Error = ex.Message;
 
                 _registry.MarkFailed(component.Name, ex);
-                _logger.LogError(ex, "[StartupSequencer]   ✗ {Name} FAILED", component.Name);
+                _logger.LogError(ex, "[StartupSequencer]    {Name} FAILED", component.Name);
             }
 
             return result;
@@ -194,9 +194,9 @@ namespace Sentinel.Core
         public StartupReport? GetLastReport() => _lastReport;
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Data Models
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     public sealed class StartupPhase
     {

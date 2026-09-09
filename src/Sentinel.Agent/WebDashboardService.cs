@@ -85,7 +85,7 @@ namespace Sentinel.Agent
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[WebDashboard] Failed to start HttpListener — dashboard disabled");
+                _logger.LogWarning(ex, "[WebDashboard] Failed to start HttpListener - dashboard disabled");
                 return;
             }
 
@@ -139,7 +139,7 @@ namespace Sentinel.Agent
                 var path = request.Url?.AbsolutePath ?? "/";
                 var method = request.HttpMethod;
 
-                // WebSocket upgrade — v2.2.0: same bearer as /api (query ?token=).
+                // WebSocket upgrade - v2.2.0: same bearer as /api (query ?token=).
                 if (request.IsWebSocketRequest && path == "/ws/events")
                 {
                     if (!ValidateBearerToken(request, response))
@@ -157,7 +157,7 @@ namespace Sentinel.Agent
                     return;
                 }
 
-                // WebSocket not supported — return 426 so client falls back to polling
+                // WebSocket not supported - return 426 so client falls back to polling
                 if (path == "/ws/events")
                 {
                     response.StatusCode = 426;
@@ -165,7 +165,7 @@ namespace Sentinel.Agent
                     return;
                 }
 
-                // CORS headers — localhost only (never wildcard; prevents cross-origin attacks from malicious sites)
+                // CORS headers - localhost only (never wildcard; prevents cross-origin attacks from malicious sites)
                 response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:19845");
                 response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
                 response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token, Authorization");
@@ -190,7 +190,7 @@ namespace Sentinel.Agent
                 else if (path.StartsWith("/api/"))
                 {
                     // v2.2.0: Bearer (header or ?token=) is the only authenticator.
-                    // Referer is ignored — it is client-controlled on HttpListener.
+                    // Referer is ignored - it is client-controlled on HttpListener.
                     if (!ValidateBearerToken(request, response))
                         return;
 
@@ -296,7 +296,7 @@ namespace Sentinel.Agent
                 response.ContentLength64 = msg.Length;
                 response.OutputStream.Write(msg, 0, msg.Length);
                 response.Close();
-                _logger.LogWarning("[WebDashboard] CSRF validation failed — possible cross-origin attack");
+                _logger.LogWarning("[WebDashboard] CSRF validation failed - possible cross-origin attack");
                 return false;
             }
             return true;
@@ -320,7 +320,7 @@ namespace Sentinel.Agent
             response.ContentLength64 = msg.Length;
             response.OutputStream.Write(msg, 0, msg.Length);
             response.Close();
-            _logger.LogWarning("[WebDashboard] Bearer token auth failed — unauthorized API access attempt");
+            _logger.LogWarning("[WebDashboard] Bearer token auth failed - unauthorized API access attempt");
             return false;
         }
 
@@ -640,7 +640,7 @@ namespace Sentinel.Agent
             {
                 var sb = new System.Text.StringBuilder();
                 var version = typeof(WebDashboardService).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
-                sb.AppendLine($"Sentinel diagnostics — {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}");
+                sb.AppendLine($"Sentinel diagnostics - {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}");
                 sb.AppendLine($"Agent version: {version}");
 
                 bool agentRunning = false, serviceRunning = false;
@@ -711,7 +711,7 @@ namespace Sentinel.Agent
                     var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct).ConfigureAwait(false);
                     if (result.MessageType == WebSocketMessageType.Close)
                         break;
-                    // We don't process incoming messages — this is a push-only stream
+                    // We don't process incoming messages - this is a push-only stream
                 }
             }
             catch { }

@@ -9,7 +9,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// v1.6.5 Test Hardening — Verifies detection contract invariants
+    /// v1.6.5 Test Hardening - Verifies detection contract invariants
     /// that must hold across all future versions.
     /// </summary>
     public class V165TestHardeningTests

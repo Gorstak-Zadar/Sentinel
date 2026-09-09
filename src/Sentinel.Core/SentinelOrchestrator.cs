@@ -20,8 +20,8 @@ namespace Sentinel.Core
     ///   - Monitors pipeline backpressure and health
     ///
     /// All detection events flow through here:
-    ///   Monitor → TelemetryFusion → DetectionEngine → Orchestrator → ResponseCoordinator → ResponseEngine
-    ///                                                      ↓                    ↓
+    ///   Monitor -> TelemetryFusion -> DetectionEngine -> Orchestrator -> ResponseCoordinator -> ResponseEngine
+    ///                                                                          
     ///                                              IncidentManager        ContextBus
     ///                                              (group, escalate)   (cross-enrichment)
     ///
@@ -85,7 +85,7 @@ namespace Sentinel.Core
         public ResponseCoordinator ResponseCoordinator => _responseCoordinator;
 
         /// <summary>
-        /// The unified detection→incident→response pipeline entry point.
+        /// The unified detection->incident->response pipeline entry point.
         /// Called by DetectionEngine instead of routing directly to ResponseEngine.
         ///
         /// Flow:
@@ -140,9 +140,9 @@ namespace Sentinel.Core
             // Delegated to ResponseCoordinator internally
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // System Lifecycle
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Starts the entire Sentinel system in dependency order.
@@ -156,7 +156,7 @@ namespace Sentinel.Core
             var report = await _startupSequencer.ExecuteAsync(ct);
             _isRunning = true;
 
-            _logger.LogInformation("[Orchestrator] System ONLINE — {Running}/{Total} monitors active",
+            _logger.LogInformation("[Orchestrator] System ONLINE - {Running}/{Total} monitors active",
                 _monitorRegistry.GetStats().Running, _monitorRegistry.GetStats().TotalRegistered);
 
             return report;
@@ -181,9 +181,9 @@ namespace Sentinel.Core
             });
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Unified Health
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Returns the unified health status of the entire Sentinel system.
@@ -226,9 +226,9 @@ namespace Sentinel.Core
             };
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Monitor Heartbeat Passthrough
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         /// <summary>
         /// Convenience: monitors call this to heartbeat through the orchestrator.
@@ -240,9 +240,9 @@ namespace Sentinel.Core
         /// </summary>
         public Incident? GetIncidentForPid(int pid) => _incidentManager.GetIncidentForPid(pid);
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Pipeline Backpressure Monitoring
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private void CheckBackpressure(object? state)
         {
@@ -279,9 +279,9 @@ namespace Sentinel.Core
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
+    // 
     // Data Models
-    // ═══════════════════════════════════════════════════════════════
+    // 
 
     public enum SystemHealth
     {

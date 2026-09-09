@@ -5,7 +5,7 @@ namespace Sentinel.Tests
 {
     public class BulkTransferNoiseTests
     {
-        // ── IsBulkTransferProcessName ───────────────────────────────────
+        //  IsBulkTransferProcessName 
 
         [Theory]
         [InlineData("qbittorrent")]
@@ -63,7 +63,7 @@ namespace Sentinel.Tests
             Assert.Contains("aria2c", BulkTransferNoise.ProcessNameStems);
         }
 
-        // ── IsAnyBulkTransferProcessRunning ─────────────────────────────
+        //  IsAnyBulkTransferProcessRunning 
 
         [Fact]
         public void IsAnyBulkTransferProcessRunning_DoesNotThrow()

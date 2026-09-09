@@ -73,7 +73,7 @@ namespace Sentinel.Core
 
     /// <summary>
     /// PIDs that just did remote TI. EtwThreatIntelMonitor scans only these
-    /// (no full-system 5s EnumModules — that was the LatencyMon hard-fault source).
+    /// (no full-system 5s EnumModules - that was the LatencyMon hard-fault source).
     /// </summary>
     public static class InjectionSuspectBoard
     {

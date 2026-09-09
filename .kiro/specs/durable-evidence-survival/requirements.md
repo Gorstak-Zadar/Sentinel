@@ -1,11 +1,11 @@
-# Durable Evidence Survival (B1) — Requirements
+# Durable Evidence Survival (B1) - Requirements
 
-**Roadmap link:** `docs/ROADMAP.md` → Theme 1 (Local admin can stop the service, residual HIGH)
+**Roadmap link:** `docs/ROADMAP.md` -> Theme 1 (Local admin can stop the service, residual HIGH)
 and Theme 4 (Evidence durability & trust).
 
-**Threat model link:** `docs/THREAT_MODEL.md` → Bypass Scenario **B1** ("Attacker has local
+**Threat model link:** `docs/THREAT_MODEL.md` -> Bypass Scenario **B1** ("Attacker has local
 admin"). Honest ceiling: userland cannot beat local admin. The goal is **not** to prevent
-suppression — it is to make the *evidence of the attack (and of the suppression itself)* survive
+suppression - it is to make the *evidence of the attack (and of the suppression itself)* survive
 and be noticed, so the attacker cannot both win and erase the trail quietly.
 
 Reference docs (authoritative): `#[[file:../../../docs/requirements.md]]`
@@ -40,7 +40,7 @@ But two gaps remain that let an admin win *quietly*:
 
 ## Non-goals (explicit)
 
-- Preventing a local admin from stopping the service (impossible in userland — do not attempt
+- Preventing a local admin from stopping the service (impossible in userland - do not attempt
   kernel/PPL tricks; see NFR-7).
 - Any covert/stealth exfiltration. Off-host mirroring is opt-in, signed, and documented.
 - Filing with law enforcement (unchanged; packs remain victim-filed).
@@ -49,7 +49,7 @@ But two gaps remain that let an admin win *quietly*:
 
 ## Requirements
 
-### R1 — Detect hostile-looking Service stop (alert-before-suppression)
+### R1 - Detect hostile-looking Service stop (alert-before-suppression)
 
 **User story:** As a victim, when an attacker stops Sentinel to go quiet, I want a durable record
 that the service was stopped under suspicious circumstances, so the gap in coverage is evidence,
@@ -69,7 +69,7 @@ Acceptance criteria (EARS):
 - The final record SHALL be written to the append-only audit trail (SYSTEM+Admins ACL, the existing
   `audit-*.jsonl` pattern) so it is not silently overwritten.
 
-### R2 — Off-host evidence mirror (opt-in, signed, fail-closed)
+### R2 - Off-host evidence mirror (opt-in, signed, fail-closed)
 
 **User story:** As a high-profile target, I want confirmed-attack evidence copied off my machine so
 a local admin who suppresses Sentinel cannot also delete the proof.
@@ -83,14 +83,14 @@ Acceptance criteria (EARS):
   system SHALL skip the upload silently (fail closed, per FR-11) and continue writing the local pack.
 - The upload SHALL be HMAC-signed with headers `X-Sentinel-Timestamp`, `X-Sentinel-Nonce`,
   `X-Sentinel-Signature` only, and SHALL NEVER transmit the shared secret (FR-11).
-- The upload SHALL NOT transmit user file contents or secrets — only the detection summary,
+- The upload SHALL NOT transmit user file contents or secrets - only the detection summary,
   indicators, integrity hashes, and the machine-bound seal as an **origin proof** (see R4).
 - The upload SHALL never crash the reporting path on failure (best-effort, Debug-logged), mirroring
   `ThreatReportService` behavior.
 - Off-host mirroring SHALL be gated by the same silent-observe / chain-confirmed gate that already
   fronts `AutoIncidentReporter` (`ResponsePolicy.ShouldAutoReportIncident`). Tier2 never triggers it.
 
-### R3 — Local append-only durability hardening
+### R3 - Local append-only durability hardening
 
 **User story:** As a user, I want the incident trail to be resistant to casual deletion so evidence
 persists as long as userland ACLs allow.
@@ -102,7 +102,7 @@ Acceptance criteria (EARS):
 - The system SHALL NOT claim tamper-proof local storage; documentation SHALL state that a local admin
   can still delete local files (honesty requirement).
 
-### R4 — Portable origin proof for off-host evidence
+### R4 - Portable origin proof for off-host evidence
 
 **User story:** As someone verifying evidence later, I want to confirm an off-host copy genuinely
 came from the victim machine.
@@ -115,7 +115,7 @@ Acceptance criteria (EARS):
 - WHERE a portable (non-machine-bound) verification is desired, the design SHALL evaluate adding a
   server-side seal at the Worker (signed receipt) rather than shipping any host secret off-box.
 
-### R5 — Configuration & transparency
+### R5 - Configuration & transparency
 
 Acceptance criteria (EARS):
 

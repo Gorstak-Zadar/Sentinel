@@ -13,11 +13,11 @@ namespace Sentinel.Tests
     /// real <see cref="ResponsePolicy"/> chain logic under a production-like ObserveUntilChain
     /// config. This is the EDR-grade contract that unit tests alone don't cover:
     ///
-    ///   • BENIGN scenarios (legit software behavior) must NEVER authorize a destructive
+    ///   - BENIGN scenarios (legit software behavior) must NEVER authorize a destructive
     ///     response, no matter how many weak signals stack up.
-    ///   • MALICIOUS scenarios (real attack chains) MUST confirm the chain and authorize.
+    ///   - MALICIOUS scenarios (real attack chains) MUST confirm the chain and authorize.
     ///
-    /// These are synthetic signal sequences — no real malware, no process execution. They
+    /// These are synthetic signal sequences - no real malware, no process execution. They
     /// exercise the decision logic exactly as the live pipeline would drive it.
     /// </summary>
     [Collection("ResponsePolicy")]
@@ -58,7 +58,7 @@ namespace Sentinel.Tests
 
         /// <summary>
         /// Feed a whole scenario through the chain and return true if ANY signal in the
-        /// sequence authorized a destructive response — mirrors how the live orchestrator
+        /// sequence authorized a destructive response - mirrors how the live orchestrator
         /// evaluates each detection as it arrives.
         /// </summary>
         private static bool ScenarioAuthorizesKill(IEnumerable<DetectionEvent> signals)
@@ -76,7 +76,7 @@ namespace Sentinel.Tests
         }
 
         // =====================================================================
-        // BENIGN CORPUS — must NEVER authorize a kill.
+        // BENIGN CORPUS - must NEVER authorize a kill.
         // =====================================================================
 
         [Fact]
@@ -190,7 +190,7 @@ namespace Sentinel.Tests
         }
 
         // =====================================================================
-        // MALICIOUS CORPUS — must confirm the chain and authorize.
+        // MALICIOUS CORPUS - must confirm the chain and authorize.
         // =====================================================================
 
         [Fact]
@@ -257,7 +257,7 @@ namespace Sentinel.Tests
         }
 
         // =====================================================================
-        // CORPUS SUMMARY — a single aggregate assertion so a regression that flips any
+        // CORPUS SUMMARY - a single aggregate assertion so a regression that flips any
         // scenario is impossible to miss, and the benign/malicious split is explicit.
         // =====================================================================
 

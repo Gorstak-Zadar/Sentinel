@@ -12,12 +12,12 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v1.6.7: ETW Provider Tamper Monitor — detects ETW provider stripping and EtwEventWrite patching.
+    /// v1.6.7: ETW Provider Tamper Monitor - detects ETW provider stripping and EtwEventWrite patching.
     /// 
     /// Blind spot addressed: Attackers can patch ntdll!EtwEventWrite in OTHER processes (not just
     /// Sentinel's own, which SyscallStubMonitor covers) to blind all ETW consumers for those processes.
     /// They can also use logman/wevtutil to stop/modify security trace sessions. Current EtwSessionGuard
-    /// only watches Sentinel's own session — it doesn't detect global ETW manipulation.
+    /// only watches Sentinel's own session - it doesn't detect global ETW manipulation.
     /// 
     /// Detection approach:
     /// - Monitor for logman.exe, wevtutil.exe, tracerpt.exe command-line patterns that stop/modify
@@ -50,7 +50,7 @@ namespace Sentinel.Core
             "EventLog-Security", "EventLog-System", "EventLog-Application",
             "SentinelUnifiedTrace", "DiagTrack", "Circular Kernel Context Logger",
             "UBPM", "NetTrace", "NtfsLog", "WdiContextLog",
-            // v2.6.0: DNS Client Operational log — DnsQueryMonitor reads event IDs 3006/3008 from
+            // v2.6.0: DNS Client Operational log - DnsQueryMonitor reads event IDs 3006/3008 from
             // this session. An attacker disabling it blinds all DNS-layer detections (DGA, rapid
             // query, covert mesh, webhook sink correlations).
             "Microsoft-Windows-DNS Client Events/Operational",
@@ -92,7 +92,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[EtwProviderTamperMonitor] Started — monitoring ETW provider integrity");
+            _logger.LogInformation("[EtwProviderTamperMonitor] Started - monitoring ETW provider integrity");
             await Task.Delay(30000, ct); // Let other monitors start first
 
             // Capture baseline ETW sessions
@@ -141,7 +141,7 @@ namespace Sentinel.Core
                                 "before performing malicious actions. This is a common EDR-evasion technique (MITRE T1562.006).",
                     Confidence = 0.92,
                     Tier = DetectionTier.Tier1Behavioral,
-                    AuthorizedResponse = ResponseAction.LogOnly, // Can't kill — session already gone
+                    AuthorizedResponse = ResponseAction.LogOnly, // Can't kill - session already gone
                     SignalType = SignalType.AntiTamper,
                     ProcessName = "SYSTEM",
                     ProcessId = 0,
@@ -157,7 +157,7 @@ namespace Sentinel.Core
         /// <summary>
         /// Check EtwEventWrite prologue in critical processes (lsass, EventLog host).
         /// Uses ReadProcessMemory for remote byte comparison. Function address is resolved
-        /// via PE export table walk (no GetProcAddress P/Invoke — avoids AV evasion heuristic).
+        /// via PE export table walk (no GetProcAddress P/Invoke - avoids AV evasion heuristic).
         /// </summary>
         private async Task CheckProcessEtwPatchingAsync(CancellationToken ct)
         {
@@ -171,7 +171,7 @@ namespace Sentinel.Core
             if (!NativeProcessMemory.CopyRemote(Process.GetCurrentProcess().Handle, etwAddr, ourPrologue, out _))
                 return;
 
-            // RET / NOP / JMP short / JMP near — common ETW blind patches
+            // RET / NOP / JMP short / JMP near - common ETW blind patches
             byte[] patchedBytes = { 0xC3, 0x90, 0xEB, 0xE9 };
 
             foreach (int pid in GetCriticalEtwProcesses())
@@ -232,14 +232,14 @@ namespace Sentinel.Core
             var pids = new List<int>();
             try
             {
-                // lsass — credential telemetry + LSASS audit events
+                // lsass - credential telemetry + LSASS audit events
                 foreach (var proc in Process.GetProcessesByName("lsass"))
                 {
                     pids.Add(proc.Id);
                     proc.Dispose();
                 }
 
-                // EventLog service host — runs in a svchost; supplies Security/System/Application logs
+                // EventLog service host - runs in a svchost; supplies Security/System/Application logs
                 using var searcher = new System.Management.ManagementObjectSearcher(
                     "SELECT ProcessId FROM Win32_Service WHERE Name = 'EventLog' AND State = 'Running'");
                 foreach (System.Management.ManagementObject obj in searcher.Get())

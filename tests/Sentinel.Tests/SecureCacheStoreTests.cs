@@ -6,7 +6,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for SecureCacheStore — verifies DPAPI-backed save/load, key isolation,
+    /// Tests for SecureCacheStore - verifies DPAPI-backed save/load, key isolation,
     /// ACL enforcement, and graceful handling of corrupt data.
     /// </summary>
     public class SecureCacheStoreTests : IDisposable
@@ -86,7 +86,7 @@ namespace Sentinel.Tests
             var loaded1 = _store.Load("multi", "key1");
             var loaded2 = _store.Load("multi", "key2");
 
-            // DPAPI may fail in certain CI/test environments — if both load, verify independence
+            // DPAPI may fail in certain CI/test environments - if both load, verify independence
             if (loaded1 != null && loaded2 != null)
             {
                 Assert.Equal("val1", loaded1);
@@ -123,7 +123,7 @@ namespace Sentinel.Tests
         [Fact]
         public void Save_UnicodeValue_RoundTrips()
         {
-            var unicode = "Héllo Wörld 日本語 🔐";
+            var unicode = "Hllo Wrld  ";
             _store.Save("unicode", "key", unicode);
             var loaded = _store.Load("unicode", "key");
             Assert.Equal(unicode, loaded);

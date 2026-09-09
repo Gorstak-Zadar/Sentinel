@@ -5,7 +5,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for SignerTrustService — verifies Authenticode signature trust checking,
+    /// Tests for SignerTrustService - verifies Authenticode signature trust checking,
     /// test override mechanism, confidence adjustment, and cache behavior.
     /// </summary>
     public class SignerTrustServiceTests
@@ -102,7 +102,7 @@ namespace Sentinel.Tests
             }
             catch
             {
-                // AV may block — skip gracefully
+                // AV may block - skip gracefully
             }
         }
 

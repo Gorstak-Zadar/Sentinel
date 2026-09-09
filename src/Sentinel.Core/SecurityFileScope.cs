@@ -6,7 +6,7 @@ namespace Sentinel.Core
 {
     /// <summary>
     /// Kernel-File ETW NameCreate of browser cache / .tmp filled 500-event fusion
-    /// chains and grew the service to ~1.6 GB private — Windows then trimmed it
+    /// chains and grew the service to ~1.6 GB private - Windows then trimmed it
     /// (LatencyMon hard pagefaults). Fusion scoring only looks at 60s of module /
     /// script / installer drops.
     /// </summary>

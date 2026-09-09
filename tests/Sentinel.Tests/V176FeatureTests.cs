@@ -127,7 +127,7 @@ namespace Sentinel.Tests
                 var monitor = new ForumHrWatchMonitor(engine, NullLogger<ForumHrWatchMonitor>.Instance);
                 monitor.RecordDnsQuery(0, "forum.hr");
                 monitor.RecordDnsQuery(0, "www.forum.hr");
-                monitor.RecordDnsQuery(99999, "api.forum.hr"); // non-existent PID — no crash
+                monitor.RecordDnsQuery(99999, "api.forum.hr"); // non-existent PID - no crash
                 engine.Stop();
                 await logger.DisposeAsync();
             }

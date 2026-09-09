@@ -4,14 +4,14 @@ using Sentinel.Core;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for DriverLoadMonitor — verifies service name validation, 
+    /// Tests for DriverLoadMonitor - verifies service name validation, 
     /// CN extraction from distinguished names, and known CA classification.
     /// </summary>
     public class DriverLoadMonitorTests
     {
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // ScoringEngine.CategorizeDetection for driver-related rules
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("BYOVD: Vulnerable Driver Installed")]
@@ -21,13 +21,13 @@ namespace Sentinel.Tests.Monitors
             // Driver rules don't have a specific category in the string-pattern fallback
             // but they should not crash
             var category = ScoringEngine.CategorizeDetection(ruleName);
-            // These might map to Unknown if not in RuleCategoryRegistry — that's OK
+            // These might map to Unknown if not in RuleCategoryRegistry - that's OK
             Assert.True(Enum.IsDefined(typeof(DetectionCategory), category));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Service name validation logic (mirrors private IsValidServiceName)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("WdFilter")]
@@ -70,9 +70,9 @@ namespace Sentinel.Tests.Monitors
             Assert.True(IsValidServiceName(new string('A', 256)));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Known public CA detection (prevent revoking legitimate vendor certs)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("CN=DigiCert SHA2 Assured ID CA, O=DigiCert Inc")]
@@ -95,9 +95,9 @@ namespace Sentinel.Tests.Monitors
             Assert.False(ContainsKnownPublicCa(dn));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Helper re-implementations for testing private logic
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         private static bool IsValidServiceName(string? name)
         {

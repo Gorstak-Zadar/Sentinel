@@ -13,7 +13,7 @@ namespace Sentinel.Core
     /// - Rapid sequential file renames to new extensions
     /// - Mass file writes in user directories
     /// - Ransom note creation patterns (README/DECRYPT files appearing in many folders)
-    /// Purely behavioral — no file name or extension blocklists.
+    /// Purely behavioral - no file name or extension blocklists.
     ///
     /// Fed by FileActivityMonitor via RecordRename() for every observed file rename event.
     /// </summary>
@@ -25,7 +25,7 @@ namespace Sentinel.Core
         private readonly ConcurrentDictionary<int, string> _processNames = new();
 
         // Browser and known high-IO apps that rename files legitimately (cache, IndexedDB, etc.)
-        // SECURITY: Name-only matching here is supplemented by path verification — an attacker
+        // SECURITY: Name-only matching here is supplemented by path verification - an attacker
         // naming malware "chrome.exe" from C:\Temp would still be caught.
         private static readonly HashSet<string> RansomwareIoWhitelist = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -50,7 +50,7 @@ namespace Sentinel.Core
 
         /// <summary>
         /// Called by FileActivityMonitor for every file rename event observed.
-        /// Thread-safe — designed to be called from FileSystemWatcher callbacks.
+        /// Thread-safe - designed to be called from FileSystemWatcher callbacks.
         /// </summary>
         public void RecordRename(int processId, string processName)
         {
@@ -60,7 +60,7 @@ namespace Sentinel.Core
             if (_verifiedWhitelistPids.TryGetValue(processId, out var cachedOk))
             {
                 if (cachedOk) return;
-                // cached false → fall through and count renames
+                // cached false -> fall through and count renames
             }
             else
             {
@@ -91,7 +91,7 @@ namespace Sentinel.Core
                         }
                     }
 
-                    // 2) Signed installer / packager (Git-2.x-64-bit.exe, ChromeSetup, …)
+                    // 2) Signed installer / packager (Git-2.x-64-bit.exe, ChromeSetup, ...)
                     if (!legitimate && !string.IsNullOrEmpty(imagePath) &&
                         (InstallerHeuristics.LooksLikeInstallerName(processName, imagePath) ||
                          InstallerHeuristics.IsInstallerExtractor(processName, imagePath)) &&
@@ -110,7 +110,7 @@ namespace Sentinel.Core
             _processNames.TryAdd(processId, processName);
         }
 
-        /// <summary>Back-compat shim for tests — delegates to <see cref="InstallerHeuristics"/>.</summary>
+        /// <summary>Back-compat shim for tests - delegates to <see cref="InstallerHeuristics"/>.</summary>
         internal static bool LooksLikeInstallerName(string processName, string? imagePath = null)
             => InstallerHeuristics.LooksLikeInstallerName(processName, imagePath);
 

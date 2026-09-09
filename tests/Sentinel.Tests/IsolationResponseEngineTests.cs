@@ -8,7 +8,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Tests for IsolationResponseEngine — verifies Docker/VM/ISO container
+    /// Tests for IsolationResponseEngine - verifies Docker/VM/ISO container
     /// threat handling, input validation, and graceful error handling.
     /// </summary>
     public class IsolationResponseEngineTests : IDisposable
@@ -32,7 +32,7 @@ namespace Sentinel.Tests
         [Fact]
         public async Task HandleIsoThreatAsync_NonExistentPid_DoesNotThrow()
         {
-            // Should handle gracefully — PID doesn't exist
+            // Should handle gracefully - PID doesn't exist
             await _engine.HandleIsoThreatAsync(99999, @"C:\fake\file.iso");
         }
 
@@ -46,7 +46,7 @@ namespace Sentinel.Tests
         [Fact]
         public async Task HandleDockerThreatAsync_ValidFormatId_DoesNotCrash()
         {
-            // Valid Docker container ID format (64 hex chars) — should attempt action
+            // Valid Docker container ID format (64 hex chars) - should attempt action
             // but fail gracefully since Docker isn't necessarily running
             var fakeId = "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890";
             await _engine.HandleDockerThreatAsync(fakeId);
@@ -65,9 +65,9 @@ namespace Sentinel.Tests
             await _engine.HandleVmThreatAsync(99997, "");
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Input validation (static helpers)
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890", true)]

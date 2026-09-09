@@ -45,7 +45,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[LnkUncGuard] Started — scanning Desktop/StartMenu/Taskbar for UNC .lnk shortcuts");
+            _logger.LogInformation("[LnkUncGuard] Started - scanning Desktop/StartMenu/Taskbar for UNC .lnk shortcuts");
 
             // Initial pass after short settle
             try { await Task.Delay(TimeSpan.FromSeconds(15), ct); } catch (OperationCanceledException) { return; }
@@ -146,7 +146,7 @@ namespace Sentinel.Core
             await _detectionEngine.EmitAsync(new DetectionEvent
             {
                 RuleName = "LNK: UNC/Remote Shortcut Removed",
-                Evidence = $"Malicious shortcut '{lnkPath}' → Target='{target}' Args='{args}'" +
+                Evidence = $"Malicious shortcut '{lnkPath}' -> Target='{target}' Args='{args}'" +
                            (quarantined != null ? $" | Quarantined as {Path.GetFileName(quarantined)}" : " | Deleted"),
                 Reasoning = "Attackers plant .lnk files on Desktop/Start Menu/Taskbar that point to UNC " +
                             "network paths or remote launchers. Opening the shortcut executes remote code " +
@@ -179,7 +179,7 @@ namespace Sentinel.Core
                     roots.Add(p!);
             }
 
-            // Service runs as SYSTEM — enumerate interactive user profiles for Desktops
+            // Service runs as SYSTEM - enumerate interactive user profiles for Desktops
             try
             {
                 var usersRoot = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), @"..\Users");
@@ -208,7 +208,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Parse Shell Link (.lnk) without COM — reads LinkInfo / StringData for Target + Args.
+        /// Parse Shell Link (.lnk) without COM - reads LinkInfo / StringData for Target + Args.
         /// Spec: MS-SHLLINK.
         /// </summary>
         internal static bool TryReadShortcut(string path, out string? targetPath, out string? arguments)
@@ -277,7 +277,7 @@ namespace Sentinel.Core
                     offset += (int)linkInfoSize;
                 }
 
-                // StringData — NAME, RELATIVE, WORKING DIR, ARGS, ICON
+                // StringData - NAME, RELATIVE, WORKING DIR, ARGS, ICON
                 // HasName=0x04, HasRelativePath=0x08, HasWorkingDir=0x10, HasArguments=0x20, HasIconLocation=0x40
                 bool isUnicode = (linkFlags & 0x80) != 0; // IsUnicode
                 string? ReadStringData(ref int off)
@@ -396,7 +396,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[ScarewareWindowMonitor] Started — scanning window titles for scareware/fake UAC");
+            _logger.LogInformation("[ScarewareWindowMonitor] Started - scanning window titles for scareware/fake UAC");
 
             while (!ct.IsCancellationRequested)
             {
@@ -467,7 +467,7 @@ namespace Sentinel.Core
                                   "Real ransomware and fake tech-support scams present full-screen or " +
                                   "dialog UI demanding payment or credentials."
                                 : "Non-system process displayed a window title mimicking Windows UAC, " +
-                                  "Defender, or Update prompts — a common credential-harvesting technique.",
+                                  "Defender, or Update prompts - a common credential-harvesting technique.",
                             Confidence = isScareware ? 0.88 : 0.82,
                             Tier = DetectionTier.Tier1Behavioral,
                             AuthorizedResponse = ResponseAction.KillProcessTree,
@@ -520,7 +520,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[CursorTakeoverMonitor] Started — sampling cursor velocity variance");
+            _logger.LogInformation("[CursorTakeoverMonitor] Started - sampling cursor velocity variance");
 
             while (!ct.IsCancellationRequested)
             {
@@ -616,7 +616,7 @@ namespace Sentinel.Core
 
     /// <summary>
     /// Alert-only browser cookie DB integrity monitor.
-    /// Port of Detection/CookieMonitor.ps1 — does NOT kill browsers or force-restore
+    /// Port of Detection/CookieMonitor.ps1 - does NOT kill browsers or force-restore
     /// (those behaviors caused more damage than they prevented). User-session (Agent).
     /// </summary>
     public sealed class CookieIntegrityMonitor : BackgroundService
@@ -637,7 +637,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[CookieIntegrityMonitor] Started — hashing browser cookie DBs");
+            _logger.LogInformation("[CookieIntegrityMonitor] Started - hashing browser cookie DBs");
 
             // Baseline first without alerting
             try { await ScanAsync(alert: false, ct); } catch { /* ignore */ }

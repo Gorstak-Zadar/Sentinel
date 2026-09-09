@@ -1,4 +1,4 @@
-// ThreatIntelFeedBlocker — Threat intelligence feed observation + optional proactive block
+// ThreatIntelFeedBlocker - Threat intelligence feed observation + optional proactive block
 //
 // Default (v1.8.3+): OBSERVE ONLY
 //   - Loads Spamhaus DROP, Feodo Tracker, EmergingThreats into memory
@@ -29,7 +29,7 @@ namespace Sentinel.Core
         private readonly SentinelConfig _config;
         private readonly ILogger<ThreatIntelFeedBlocker> _logger;
 
-        // All IPs/CIDRs loaded from feeds — used for connection checking
+        // All IPs/CIDRs loaded from feeds - used for connection checking
         private readonly ConcurrentDictionary<string, string> _blockedIps = new(StringComparer.OrdinalIgnoreCase);
 
         // Track which IPs already have firewall rules (proactive mode only)
@@ -60,7 +60,7 @@ namespace Sentinel.Core
         private const int MaxIpsPerFeed = 2000;
         private const int MaxTotalRules = 5000;
 
-        // Minimum CIDR prefix length — /8–/15 ranges are far too broad and hit legitimate CDNs/OCSP
+        // Minimum CIDR prefix length - /8-/15 ranges are far too broad and hit legitimate CDNs/OCSP
         private const int MinCidrPrefix = 16;
 
         private const string RuleNamePrefix = "Sentinel-ThreatIntel-";
@@ -81,7 +81,7 @@ namespace Sentinel.Core
         {
             bool proactive = _config.ThreatIntelProactiveFirewall && _config.ActiveResponse;
             _logger.LogInformation(
-                "[ThreatIntelFeedBlocker] Starting — mode={Mode} (ProactiveFirewall={Proactive}, ActiveResponse={AR}), initial delay {Delay}s",
+                "[ThreatIntelFeedBlocker] Starting - mode={Mode} (ProactiveFirewall={Proactive}, ActiveResponse={AR}), initial delay {Delay}s",
                 proactive ? "PROACTIVE-FIREWALL" : "OBSERVE-ONLY",
                 _config.ThreatIntelProactiveFirewall,
                 _config.ActiveResponse,
@@ -216,7 +216,7 @@ namespace Sentinel.Core
             }
 
             _logger.LogInformation(
-                "[ThreatIntelFeedBlocker] Feed refresh complete — {Total} IPs/CIDRs tracked, proactiveRules={Rules}, mode={Mode}",
+                "[ThreatIntelFeedBlocker] Feed refresh complete - {Total} IPs/CIDRs tracked, proactiveRules={Rules}, mode={Mode}",
                 _blockedIps.Count, _rulesCreated.Count, proactive ? "proactive" : "observe-only");
         }
 
@@ -253,7 +253,7 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// Validate dotted-quad IPv4 or CIDR. Prefix must be /16–/32 (reject /0–/15 — too broad).
+        /// Validate dotted-quad IPv4 or CIDR. Prefix must be /16-/32 (reject /0-/15 - too broad).
         /// Internal for unit tests.
         /// </summary>
         internal static bool IsValidIpOrCidr(string value)
@@ -358,7 +358,7 @@ namespace Sentinel.Core
                     }
                 }
 
-                _logger.LogInformation("[ThreatIntelFeedBlocker] Created firewall rules — total tracked IPs with rules: {Count}", _rulesCreated.Count);
+                _logger.LogInformation("[ThreatIntelFeedBlocker] Created firewall rules - total tracked IPs with rules: {Count}", _rulesCreated.Count);
             }
             catch (Exception ex)
             {
@@ -507,8 +507,8 @@ namespace Sentinel.Core
                         Reasoning = "Active TCP connection to an IP address listed in public threat intelligence feeds " +
                                     "(Spamhaus DROP, Feodo Tracker, or EmergingThreats). " +
                                     (response == ResponseAction.NetworkIsolate
-                                        ? "ActiveResponse on — isolating this IP only (reactive)."
-                                        : "Observation mode — logged only; no firewall change."),
+                                        ? "ActiveResponse on - isolating this IP only (reactive)."
+                                        : "Observation mode - logged only; no firewall change."),
                         Metadata = new Dictionary<string, string>
                         {
                             { "RemoteIp", remoteIp },
@@ -563,7 +563,7 @@ namespace Sentinel.Core
                 var addrBytes = address.GetAddressBytes();
                 if (netBytes.Length != 4 || addrBytes.Length != 4) return false;
 
-                // Network byte order → host uint
+                // Network byte order -> host uint
                 uint net = ((uint)netBytes[0] << 24) | ((uint)netBytes[1] << 16) | ((uint)netBytes[2] << 8) | netBytes[3];
                 uint addr = ((uint)addrBytes[0] << 24) | ((uint)addrBytes[1] << 16) | ((uint)addrBytes[2] << 8) | addrBytes[3];
                 uint mask = prefix == 0 ? 0u : uint.MaxValue << (32 - prefix);

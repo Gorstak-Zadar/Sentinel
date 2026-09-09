@@ -4,14 +4,14 @@ using Sentinel.Core;
 namespace Sentinel.Tests.Monitors
 {
     /// <summary>
-    /// Tests for TokenTheftMonitor — verifies path classification, legitimate system
+    /// Tests for TokenTheftMonitor - verifies path classification, legitimate system
     /// token holder detection, impersonator allowlisting, and OS process identification.
     /// </summary>
     public class TokenTheftMonitorTests
     {
-        // ═══════════════════════════════════════════════════════════════
-        // IsSuspiciousPath — staging/drop locations
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // IsSuspiciousPath - staging/drop locations
+        // 
 
         [Theory]
         [InlineData(@"C:\Users\victim\AppData\Local\Temp\payload.exe")]
@@ -36,9 +36,9 @@ namespace Sentinel.Tests.Monitors
             Assert.False(TokenTheftMonitor.IsSuspiciousPath(path!));
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // IsLegitimateSystemTokenHolder — known SYSTEM services
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // IsLegitimateSystemTokenHolder - known SYSTEM services
+        // 
 
         [Theory]
         [InlineData("svchost")]
@@ -65,9 +65,9 @@ namespace Sentinel.Tests.Monitors
             Assert.False(TokenTheftMonitor.IsLegitimateSystemTokenHolder(name!));
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // IsLegitimateImpersonator — services that legitimately impersonate
-        // ═══════════════════════════════════════════════════════════════
+        // 
+        // IsLegitimateImpersonator - services that legitimately impersonate
+        // 
 
         [Theory]
         [InlineData("sqlservr")]
@@ -87,9 +87,9 @@ namespace Sentinel.Tests.Monitors
             Assert.False(TokenTheftMonitor.IsLegitimateImpersonator(name));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // IsLikelyProtectedOsProcess
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Theory]
         [InlineData("svchost")]
@@ -110,9 +110,9 @@ namespace Sentinel.Tests.Monitors
             Assert.False(TokenTheftMonitor.IsLikelyProtectedOsProcess(name));
         }
 
-        // ═══════════════════════════════════════════════════════════════
+        // 
         // Token theft signal model
-        // ═══════════════════════════════════════════════════════════════
+        // 
 
         [Fact]
         public void TokenTheftSignal_SystemToken_Model()

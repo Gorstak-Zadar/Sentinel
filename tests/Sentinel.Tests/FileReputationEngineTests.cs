@@ -9,7 +9,7 @@ using Sentinel.Core;
 namespace Sentinel.Tests
 {
     /// <summary>
-    /// Unit tests for FileReputationEngine — the multi-signal file reputation scoring system.
+    /// Unit tests for FileReputationEngine - the multi-signal file reputation scoring system.
     /// Tests verify composite scoring, static PE analysis, contextual risk, caching, and verdict determination.
     /// </summary>
     public class FileReputationEngineTests : IDisposable
@@ -205,7 +205,7 @@ namespace Sentinel.Tests
             var testFile = Path.Combine(_tempDir, "dedup_test.txt");
             File.WriteAllText(testFile, "Dedup test " + Guid.NewGuid());
 
-            // Fire multiple concurrent evaluations — should deduplicate
+            // Fire multiple concurrent evaluations - should deduplicate
             var tasks = new Task<FileReputationResult>[5];
             for (int i = 0; i < 5; i++)
             {

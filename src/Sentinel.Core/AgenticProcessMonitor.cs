@@ -63,7 +63,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[AgenticProcessMonitor] Started — AI/MCP agent abuse detection");
+            _logger.LogInformation("[AgenticProcessMonitor] Started - AI/MCP agent abuse detection");
 
             while (!ct.IsCancellationRequested)
             {
@@ -182,7 +182,7 @@ namespace Sentinel.Core
                     Evidence =
                         $"AI/dev agent parent '{parentName}' (PID {ppid}) spawned '{childName}' (PID {pid}). " +
                         (credTouch ? "Child image path touches credential stores. " : "") +
-                        (burst ? $"Parent spawn burst count≈{count}. " : ""),
+                        (burst ? $"Parent spawn burst count~={count}. " : ""),
                     Reasoning =
                         "Agentic coding tools can be jailbroken or config-poisoned to run recon, " +
                         "install packages, harvest credentials, and exfiltrate data with little human input. " +

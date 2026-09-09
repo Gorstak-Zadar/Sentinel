@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v1.6.8: BrowserC2Guard — Full browser-based C2 detection expanding ChromeRemoteDebuggingRule.
+    /// v1.6.8: BrowserC2Guard - Full browser-based C2 detection expanding ChromeRemoteDebuggingRule.
     ///
     /// Blind spots addressed:
     /// - ChromeRemoteDebuggingRule only detects the initial launch with --remote-debugging-port.
@@ -25,14 +25,14 @@ namespace Sentinel.Core
     /// 1. Scan running browsers for active --remote-debugging-port (catches pre-existing debug sessions)
     /// 2. Detect headless chrome/chromium launched as a network proxy (no visible window + network I/O)
     /// 3. Validate browser extension manifests for dangerous permissions (debugger, webRequest, nativeMessaging)
-    /// 4. On corroboration with BeaconingDetector signals on the same PID → escalate to KillProcessTree
+    /// 4. On corroboration with BeaconingDetector signals on the same PID -> escalate to KillProcessTree
     /// 5. Detect DevTools WebSocket connections from non-browser processes (CDP session hijacking)
     ///
     /// Response:
-    /// - Headless proxy + beaconing → KillProcessTree (Tier1, 0.90)
-    /// - Remote debugging by non-browser parent → KillProcessTree (Tier1, 0.85) [existing rule, re-evaluated]
-    /// - Suspicious extension permissions → LogOnly (Tier2, 0.55-0.70)
-    /// - Debug port active + beaconing corroboration → NetworkIsolate (Tier1, 0.88)
+    /// - Headless proxy + beaconing -> KillProcessTree (Tier1, 0.90)
+    /// - Remote debugging by non-browser parent -> KillProcessTree (Tier1, 0.85) [existing rule, re-evaluated]
+    /// - Suspicious extension permissions -> LogOnly (Tier2, 0.55-0.70)
+    /// - Debug port active + beaconing corroboration -> NetworkIsolate (Tier1, 0.88)
     ///
     /// Scans every 30s. Runs in service session (SYSTEM) for process inspection.
     /// </summary>
@@ -91,7 +91,7 @@ namespace Sentinel.Core
 
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[BrowserC2Guard] Started — scanning for browser-based C2 every 30s");
+            _logger.LogInformation("[BrowserC2Guard] Started - scanning for browser-based C2 every 30s");
             await Task.Delay(20000, ct); // Let other monitors initialize first
 
             while (!ct.IsCancellationRequested)
@@ -137,7 +137,7 @@ namespace Sentinel.Core
                     // Headless + debug port = potential C2 proxy
                     if (isHeadless && hasDebugPort)
                     {
-                        // Check parent — if parent is node/python/automation tool from suspicious path, escalate
+                        // Check parent - if parent is node/python/automation tool from suspicious path, escalate
                         var parentInfo = GetParentInfo(proc.Id);
                         bool suspiciousParent = !string.IsNullOrEmpty(parentInfo.name) &&
                             !BrowserProcessNames.Contains(Sentinel.Core.StringNet48.ReplaceIgnoreCase(parentInfo.name!, ".exe", ""));
@@ -314,7 +314,7 @@ namespace Sentinel.Core
                                 _alertedExtensions.Add(extId);
                             }
                         }
-                        catch { } // Malformed manifest — skip
+                        catch { } // Malformed manifest - skip
                     }
                 }
                 catch { } // Access denied to extensions directory

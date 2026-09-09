@@ -1,4 +1,4 @@
-# Sentinel — Requirements
+# Sentinel - Requirements
 
 **Version: 2.2.9**
 
@@ -31,8 +31,8 @@ Focus: transparency, safety, real-world threat detection, and blue-team educatio
 
 The system must implement two detection tiers with strictly enforced response contracts:
 
-- **Tier 1 (Behavioral):** Active response allowed when `Sentinel:ActiveResponse` is true (default **true**). `EnforceActiveResponse` (default **false**) — when true, treats disabling ActiveResponse as tampering and force-re-enables it. Default false allows lab/observe installs to stay passive.
-- **Tier 2 (Indicator):** Log only — response action is **never** permitted regardless of configuration.
+- **Tier 1 (Behavioral):** Active response allowed when `Sentinel:ActiveResponse` is true (default **true**). `EnforceActiveResponse` (default **false**) - when true, treats disabling ActiveResponse as tampering and force-re-enables it. Default false allows lab/observe installs to stay passive.
+- **Tier 2 (Indicator):** Log only - response action is **never** permitted regardless of configuration.
 
 ### FR-2: Tier 1 Detection Rules
 
@@ -62,13 +62,14 @@ The system must detect the following behavioral threats:
 | T1-20 | AI agent / MCP abuse | Coding agents spawning shells, LOLBins, credential tools; burst recon patterns |
 | T1-21 | Package supply-chain runtime | Package managers spawning LOLBins; executables under package trees; AI agent config poison (CLAUDE.md, .cursorrules, MCP configs) |
 | T1-22 | Indirect syscall / Hell's Gate | Non-image executable memory containing a well-formed stub table: `mov r10,rcx; mov eax,SSN; syscall; ret` or a copied ntdll SharedUserData prologue, with 3+ distinct SSNs (loose JIT `0F 05` bytes are not a hit) |
-| T1-23 | MitM attack chain | Planted self-signed root cert removal, ghost process → rogue Cast kill, FCM Send-Tab-to-Self block, rogue Cast firewall block (when `MitmDefense.Enabled`) |
+| T1-23 | MitM attack chain | Planted self-signed root cert removal, ghost process -> rogue Cast kill, FCM Send-Tab-to-Self block, rogue Cast firewall block (when `MitmDefense.Enabled`) |
 | T1-24 | Lazarus Dream Job (CVE-2026-68820 campaign) | SecurityPDF / FudModule names, libmupdf sideload in staging, Temp\\new.exe from PDF parent, published C2; does **not** patch afd.sys |
 | T1-25 | LegacyHive (CVE-2026-62832) | Another user's HKU hive loaded while not logged on; hive-path reparse; custom HKU names |
 | T1-26 | Cloud Files / ShieldBreak (CVE-2026-62713) | Unknown CfApi sync roots; Cloud Files placeholders in staging; OneDrive exempt |
 | T1-27 | Generic kernel-EoP / isolation-FS loaders | Staging unsigned PE matching exploit/CVE/Device\\Afd shape; unionfs/wcifs drops (not afd.sys patch) |
 | T1-28 | Installer / Package Manager EoP | msiexec MSI from staging; ms-appinstaller / winget HTTP source; AlwaysInstallElevated |
-| T1-29 | WMI persistence + policy rewrite | Filter/consumer/binding triple; hostile CommandLine/ActiveScript consumers; WmiPrvSE/wmiadap module walk; StdRegProv Policies hive attribution; WMI-Activity ETW 5859–5861 |
+| T1-29 | WMI persistence + policy rewrite | Filter/consumer/binding triple; hostile CommandLine/ActiveScript consumers; WmiPrvSE/wmiadap module walk; StdRegProv Policies hive attribution; WMI-Activity ETW 5859-5861 |
+| T1-30 | Infostealer credential access + collect/package/exfil | Non-owning process reads browser credential/session stores (Login Data, Web Data, Cookies, Local State, key4.db, logins.json) or developer/cloud secrets (`.ssh`, `.aws`, `.azure`, gcloud, `.kube`, `.docker`, `.npmrc`, `.netrc`, `.git-credentials`, GnuPG) with Restart-Manager PID attribution; archive of user document trees; kill only when correlated with outbound (composites C-28/C-29). Raw file-access legs are Tier2 observe (LSASS-free stealer coverage) |
 
 ### FR-3: Tier 2 Detection Rules
 
@@ -80,18 +81,18 @@ The system must detect the following indicators (log only):
 | T2-02 | High-entropy process names (Shannon entropy > 4.2) |
 | T2-03 | Suspicious Win32 API names in command line, post-exploitation recon commands, persistence mechanism patterns |
 | T2-04 | Dynamic rules (`DynamicRulesEvaluator`) and consultant JSONL signals (sticky LogOnly; never kill) |
-| T2-05 | Optional OS service outbound activity (DiagTrack, whesvc, etc.) — observe-only, never stop/kill/isolate |
-| T2-06 | Bulk transfer / torrent client traffic volume spikes — observe-only, never classified as Exfil terminal |
-| T2-07 | KEV patch posture (CVE-2026-68820): Win11 UBR below 9168 or last CU before 2026-08-11 — LogOnly + toast, never force-patch |
-| T2-08 | Missed Patch Tuesday: last CU before the latest second Tuesday after 7-day grace — LogOnly + toast, never force-patch |
-| T2-09 | MOTW-strip PE / ISO / VSIX / .rdp / AppInstaller in Downloads — LogOnly (game ISOs never a kill seed) |
-| T2-10 | ClickFix encoded Run, VS Code encoded shell, RDP client LOLBin spawn — LogOnly observe fuel |
+| T2-05 | Optional OS service outbound activity (DiagTrack, whesvc, etc.) - observe-only, never stop/kill/isolate |
+| T2-06 | Bulk transfer / torrent client traffic volume spikes - observe-only, never classified as Exfil terminal |
+| T2-07 | KEV patch posture (CVE-2026-68820): Win11 UBR below 9168 or last CU before 2026-08-11 - LogOnly + toast, never force-patch |
+| T2-08 | Missed Patch Tuesday: last CU before the latest second Tuesday after 7-day grace - LogOnly + toast, never force-patch |
+| T2-09 | MOTW-strip PE / ISO / VSIX / .rdp / AppInstaller in Downloads - LogOnly (game ISOs never a kill seed) |
+| T2-10 | ClickFix encoded Run, VS Code encoded shell, RDP client LOLBin spawn - LogOnly observe fuel |
 
 ### FR-4: Composite Detections
 
 The system must implement two correlation engines that fire composite detections:
 
-**BehavioralCorrelationEngine** — hand-authored, 60-second window:
+**BehavioralCorrelationEngine** - hand-authored, 60-second window:
 
 | ID | Composite | Min Confidence |
 |----|-----------|---------------|
@@ -107,8 +108,8 @@ The system must implement two correlation engines that fire composite detections
 | C-10 | Spoofed Process Phoning Home | 0.92 |
 | C-11 | Evasion + Persistence Install | 0.91 |
 | C-12 | Escalation + C2 Channel | 0.90 |
-| C-13 | Covert RAT: Unsigned + Hidden + Network | 0.88–0.92 |
-| C-14 | Confirmed C2 Beacon: Unsigned Process | 0.88–0.93 |
+| C-13 | Covert RAT: Unsigned + Hidden + Network | 0.88-0.92 |
+| C-14 | Confirmed C2 Beacon: Unsigned Process | 0.88-0.93 |
 | C-15 | Covert C2: Unsigned + Sustained Connection | 0.90 |
 | C-16 | Covert Surveillance + Remote Channel | 0.94 |
 | C-17 | Remote Control Abuse Toolkit | 0.93 |
@@ -122,13 +123,15 @@ The system must implement two correlation engines that fire composite detections
 | C-25 | MOTW Bypass Execution Chain | 0.91 |
 | C-26 | VS Code Workspace Abuse Chain | 0.91 |
 | C-27 | WMI Persistence + Policy Rewrite | 0.94 |
+| C-28 | Infostealer: Credential Access + Outbound | 0.95 |
+| C-29 | Data Staging + Exfiltration | 0.93 |
 
-**WeightedCorrelationEngine (v2.0)** — explainable score cards:
+**WeightedCorrelationEngine (v2.0)** - explainable score cards:
 
 - Category weights summed per PID within a 90s window (Credential=50, Injection=44, Persistence=31, Network=18, BYOVD=60, etc.)
-- Emits `Weighted Correlation: Multi-Signal Threat` when total ≥ threshold (default 100), ≥2 distinct categories, and a terminal-family contribution or high score
+- Emits `Weighted Correlation: Multi-Signal Threat` when total >= threshold (default 100), >=2 distinct categories, and a terminal-family contribution or high score
 - Every detection receives `ScoreCardTotal`, `ScoreCardBreakdown`, `ScoreCardExplanation` metadata
-- Optional EventGraph diversity boost (0–25 pts) when `EnableGraphBoost=true`
+- Optional EventGraph diversity boost (0-25 pts) when `EnableGraphBoost=true`
 - Config: `Sentinel:WeightedCorrelation` (`Enabled`, `Threshold`, `MinDistinctCategories`, `EnableGraphBoost`)
 
 ### FR-5: Monitoring Sources
@@ -143,9 +146,10 @@ The system must implement two correlation engines that fire composite detections
 | Process ancestry | CreateToolhelp32Snapshot (~5s refresh) | WMI on constrained SKUs |
 | Webcam/Mic access | Process module enumeration (camera/mic DLL detection) | None |
 | Hash reputation | CIRCL + MalwareBazaar + optional VT proxy | Unknown (fail closed for Safe) |
-| Windows Event Log trail | Application log / source Sentinel (IDs 1000–1500) | Self-disables gracefully on stripped Windows |
+| Windows Event Log trail | Application log / source Sentinel (IDs 1000-1500) | Self-disables gracefully on stripped Windows |
 | PE / URL ML scoring | Offline FastTree models (`MlModels/pe_model.zip`, `url_model.zip`) | Skipped if models absent; soft signal only |
-| WMI-Activity ETW | Microsoft-Windows-WMI-Activity events 5859–5861 (permanent consumer / binding) | `WmiPersistenceMonitor` 30s poll of filter/consumer/binding |
+| WMI-Activity ETW | Microsoft-Windows-WMI-Activity events 5859-5861 (permanent consumer / binding) | `WmiPersistenceMonitor` 30s poll of filter/consumer/binding |
+| Sensitive file access | `SensitiveFileAccessMonitor` FileSystemWatcher on user profiles for credential/session stores + dev secrets + document archives; Restart Manager (`RmGetList`) owning-process attribution | None (event-driven) |
 
 ### FR-6: Response Actions
 
@@ -164,11 +168,11 @@ The system must implement two correlation engines that fire composite detections
 | Source | Behavior |
 |--------|----------|
 | `Sentinel:ActiveResponse` | Default **true** in config and install |
-| `Sentinel:ObserveUntilChain` | Default **true** — demotes all kill/quarantine/isolate to LogOnly until multi-signal chain confirms terminal attack |
-| `Sentinel:ChainConfirmMinSignals` | Default **2** — distinct rules on same PID within window required |
-| `Sentinel:ChainConfirmWindowSeconds` | Default **300** — rolling correlation window |
-| `Sentinel:SilentObserve` | Default **true** — no toasts or auto evidence packs until chain-confirmed |
-| `Sentinel:EnforceActiveResponse` | Default **false** — when true, AntiTamper force-re-enables ActiveResponse if flipped off |
+| `Sentinel:ObserveUntilChain` | Default **true** - demotes all kill/quarantine/isolate to LogOnly until multi-signal chain confirms terminal attack |
+| `Sentinel:ChainConfirmMinSignals` | Default **2** - distinct rules on same PID within window required |
+| `Sentinel:ChainConfirmWindowSeconds` | Default **300** - rolling correlation window |
+| `Sentinel:SilentObserve` | Default **true** - no toasts or auto evidence packs until chain-confirmed |
+| `Sentinel:EnforceActiveResponse` | Default **false** - when true, AntiTamper force-re-enables ActiveResponse if flipped off |
 | CLI `--active-response` | Optional force-enable at service start (legacy / override; not required for normal install) |
 
 **Removed (not required):** pre-kill **DeceptionEngine** / attacker-hostile deception tactics. Removed for Defender / AV compatibility; design rule is "no offensive deception tactics."
@@ -180,30 +184,30 @@ The system must implement two correlation engines that fire composite detections
 - Size-based rotation: 20 MB per file, up to 5 rotated files
 - Each entry must include: `type`, `timestamp`, `data` (with `ruleName`, `evidence`, `reasoning`, `confidence`, `tier`, `processName`, `processId`, `metadata`)
 - Rate limiting: max **1000** entries/second, burst of **5000**
-- File sharing: `FileShare.ReadWrite` — concurrent readers must not be blocked
+- File sharing: `FileShare.ReadWrite` - concurrent readers must not be blocked
 - Graceful degradation: log file access failure must NOT crash the service
 - Self-healing: writer must retry opening the file on each write if the initial open failed
 - Stale file handling: locked/inaccessible files renamed to `.stale.<timestamp>` and fresh file created
-- **Windows Event Log trail (v1.9.5):** critical events additionally written to Application log / source `Sentinel` (IDs 1000–1500) when available. Self-disables on barebone Windows. Config: `Sentinel:WindowsEventLog`. Never replaces JSONL as primary.
+- **Windows Event Log trail (v1.9.5):** critical events additionally written to Application log / source `Sentinel` (IDs 1000-1500) when available. Self-disables on barebone Windows. Config: `Sentinel:WindowsEventLog`. Never replaces JSONL as primary.
 
 ### FR-8: Explainability
 
 Every `DetectionEvent` must include:
-- `RuleName` — which rule fired
-- `Evidence` — what was specifically observed
-- `Reasoning` — why it is suspicious (human-readable)
-- `Confidence` — 0.0–1.0 score calibrated per rule
-- `Metadata` — key-value pairs with raw observable data
-- `AttackTechniques` — MITRE ATT&CK technique IDs where applicable (v2.0)
-- `ScoreCardTotal` / `ScoreCardBreakdown` / `ScoreCardExplanation` — weighted correlation score card fields when emitted by WeightedCorrelationEngine (v2.0)
+- `RuleName` - which rule fired
+- `Evidence` - what was specifically observed
+- `Reasoning` - why it is suspicious (human-readable)
+- `Confidence` - 0.0-1.0 score calibrated per rule
+- `Metadata` - key-value pairs with raw observable data
+- `AttackTechniques` - MITRE ATT&CK technique IDs where applicable (v2.0)
+- `ScoreCardTotal` / `ScoreCardBreakdown` / `ScoreCardExplanation` - weighted correlation score card fields when emitted by WeightedCorrelationEngine (v2.0)
 
 ### FR-9: Configuration & CLI
 
 - Primary configuration: compiled defaults in the binary. Optional DPAPI `config.enc` for Hardened Mode / victim identity only. Disk JSON is not loaded.
 - CLI may support:
-  - `--active-response` — force-enable Tier1 destructive actions (does not replace default-true config)
-  - `--log <path>` — override log file path
-  - `--verbose` — enable debug logging
+  - `--active-response` - force-enable Tier1 destructive actions (does not replace default-true config)
+  - `--log <path>` - override log file path
+  - `--verbose` - enable debug logging
 - CLI flags override config when present
 
 ### FR-9a: Agent Settings UI (v1.7.9+)
@@ -230,7 +234,7 @@ The user-session Agent must provide a Settings window (tray menu + double-click)
 - Must **not** transmit the shared secret in any header
 - Fail closed (skip reporting) if secret missing or shorter than 16 characters
 
-### FR-12: Evidence packs (v1.7.7–1.7.8 / v1.9.3–1.9.4)
+### FR-12: Evidence packs (v1.7.7-1.7.8 / v1.9.3-1.9.4)
 
 - Automatic local evidence packs under `%ProgramData%\Sentinel\IncidentReports` on every chain-confirmed nuke
 - Reportable-grade defaults: integrity seal (SHA-256 + machine HMAC), victim affidavit, chain of custody, ZIP export, national portal helper
@@ -248,22 +252,22 @@ The user-session Agent must provide a Settings window (tray menu + double-click)
 ### FR-14: Plugin architecture (v2.0)
 
 - Interfaces: `IDetector`, `ITelemetryProvider`, `ICorrelationRule`, `IResponsePlugin`
-- `PluginRegistry` DI singleton — register correlation rules without editing core files
-- `RulePackLoader` — loads HMAC-signed `*.pack.json` packs from `%ProgramData%\Sentinel\rules\packs\` as `FragmentCorrelationRule` plugins; fail-closed on invalid HMAC
+- `PluginRegistry` DI singleton - register correlation rules without editing core files
+- `RulePackLoader` - loads HMAC-signed `*.pack.json` packs from `%ProgramData%\Sentinel\rules\packs\` as `FragmentCorrelationRule` plugins; fail-closed on invalid HMAC
 - See `docs/RULE_PACKS.md`
 
-### FR-15: Service↔Agent IPC (v2.0)
+### FR-15: Service<->Agent IPC (v2.0)
 
 - `ServiceAgentIpcHost` named pipe `SentinelIpc-v2` with HMAC token authentication
 - Commands: `ping`, `ops`, `health` (read-only) plus `scan` / `scan_status` (on-demand audit). No ActiveResponse control over the pipe
-- HMAC token stored under `%ProgramData%\Sentinel\Secure\.ipc_token` (SYSTEM + Admins full; **Interactive Users read** — not all Authenticated Users)
+- HMAC token stored under `%ProgramData%\Sentinel\Secure\.ipc_token` (SYSTEM + Admins full; **Interactive Users read** - not all Authenticated Users)
 - Agent falls back to `ops_metrics.json` file when pipe is unavailable
 
 ### FR-16: Ops metrics (v2.0)
 
 - `OpsMetricsPublisher` writes `%ProgramData%\Sentinel\ops_metrics.json` every ~10s
 - Metrics include: telemetry/sec, detections/sec, drops, composite/weighted counts, correlation latency percentiles
-- Agent Settings → Ops page displays live metrics (prefers IPC, falls back to file)
+- Agent Settings -> Ops page displays live metrics (prefers IPC, falls back to file)
 
 ### FR-17: Observe-first / work-first posture (v1.9.7)
 
@@ -276,7 +280,7 @@ The user-session Agent must provide a Settings window (tray menu + double-click)
 
 - `Sentinel:MitmDefense` opt-in suite for post-incident MitM attack response
 - Default `Enabled: false` on clean installs
-- When enabled: `TlsCertificateMonitor` removes high-confidence planted roots immediately; `GhostProcessMonitor` kills invisible/empty-name PID → Cast without the normal 2-scan wait; `CastDeviceGuard` auto-blocks rogue Cast by IOC MAC prefix and known IPs; `NullSessionGuard` blocks FCM TCP 5228; `AdvancedResponseEngine` exempts MitmDefense actions from ObserveUntilChain demotion
+- When enabled: `TlsCertificateMonitor` removes high-confidence planted roots immediately; `GhostProcessMonitor` kills invisible/empty-name PID -> Cast without the normal 2-scan wait; `CastDeviceGuard` auto-blocks rogue Cast by IOC MAC prefix and known IPs; `NullSessionGuard` blocks FCM TCP 5228; `AdvancedResponseEngine` exempts MitmDefense actions from ObserveUntilChain demotion
 - Config fields: `Enabled`, `RemovePlantedCerts`, `BlockFcmPushChannel`, `AutoBlockRogueCast`, `RogueCastMacPrefixes`, `KnownRogueCastIps`
 
 ### FR-19: Settings dashboard (v2.2.2)
@@ -303,15 +307,15 @@ The user-session Agent must provide a Settings window (tray menu + double-click)
 - No kernel drivers required for core detection (userland EDR)
 - Never quarantine OS-critical / WRP paths
 - Never NetworkIsolate private/LAN addresses
-- Weak single-signal heuristics (shell+port, Downloads network, SeImpersonate alone, bulk-transfer tools, System32 redistributable writes) must be LogOnly — never kill seeds
+- Weak single-signal heuristics (shell+port, Downloads network, SeImpersonate alone, bulk-transfer tools, System32 redistributable writes) must be LogOnly - never kill seeds
 - DLL unloaders (`DllUnloadEngine`) exempt from observe-until-chain: FreeLibrary on identity failure; quarantine hijack-name plants on drop (file only, never kill the host from that path)
 
 ### NFR-2: Reliability
-- Monitors must fail independently — one monitor failure must not crash the service
+- Monitors must fail independently - one monitor failure must not crash the service
 - All exceptions must be caught and logged; no silent failures
 - All `IDisposable` / `IAsyncDisposable` objects must be properly disposed
 - Telemetry queue must be **bounded** (DropOldest under flood) to prevent OOM
-- Optional features (ETW, Event Log, toast, TI proxy) must fail soft and self-disable permanently after hard failure — JSONL and core detection continue
+- Optional features (ETW, Event Log, toast, TI proxy) must fail soft and self-disable permanently after hard failure - JSONL and core detection continue
 
 ### NFR-3: Performance
 - Must not materially impact system performance during normal operation
@@ -334,7 +338,7 @@ The user-session Agent must provide a Settings window (tray menu + double-click)
 - Prefer native APIs / P/Invoke / COM for kill, firewall, DNS, ARP
 - Installer and some integrity helpers may still shell `sc`/`icacls`/`netsh`/`secedit`/`LGPO` (documented exceptions)
 - Prefer cancellable async delays; short `Thread.Sleep` allowed only for documented settle/STA cases
-- No async/await on Agent STA thread — all background work on dedicated `Thread` instances
+- No async/await on Agent STA thread - all background work on dedicated `Thread` instances
 
 ### NFR-7: Intentionally out of scope
 - Pre-kill offensive deception (removed for AV compatibility)
@@ -356,13 +360,14 @@ The user-session Agent must provide a Settings window (tray menu + double-click)
 | 1.9.5 | Windows Event Log trail (critical only); graceful degradation on barebone Windows |
 | 1.9.7 | Work-first posture law; ProductPosture gate; proactive host mutation default-deny |
 | 1.9.9 | Privacy service observe-only; bulk transfer / torrent = T2 observe, never Exfil terminal |
-| 2.0.0 | WeightedCorrelationEngine + score cards; MITRE ATT&CK mapping; plugin architecture + signed rule packs; ops metrics; Service↔Agent IPC; SelfPathGuard; EnforceActiveResponse default corrected to false |
+| 2.0.0 | WeightedCorrelationEngine + score cards; MITRE ATT&CK mapping; plugin architecture + signed rule packs; ops metrics; Service<->Agent IPC; SelfPathGuard; EnforceActiveResponse default corrected to false |
 | 2.0.1 | MitmDefense suite requirements (FR-18); planted-cert / ghost-Cast / rogue-Cast / FCM opt-in defense |
 | 2.2.0 | FR-19 dashboard bearer (no Referer auth); FR-20 game-path reputation skip; V217 monitors registered; kiosk LGPO must not weaken the host |
-| 2.2.3 | T1-24 Dream Job; T1-25 LegacyHive; T1-26 Cloud Files/ShieldBreak; KEV UBR toast; C-20–C-22 |
-| 2.2.4 | T1-27/T1-28 generic CVE-class; T2-08–T2-10 MOTW/ClickFix/Patch Tuesday; C-23–C-26; CveShield Windows OS KEV |
+| 2.2.3 | T1-24 Dream Job; T1-25 LegacyHive; T1-26 Cloud Files/ShieldBreak; KEV UBR toast; C-20-C-22 |
+| 2.2.4 | T1-27/T1-28 generic CVE-class; T2-08-T2-10 MOTW/ClickFix/Patch Tuesday; C-23-C-26; CveShield Windows OS KEV |
 | 2.2.5 | Module identity unload: foreign mapped PE FreeLibrary-APC immediately; count is not a signal; MZ/compact unbacked RWX execute-strip |
 | 2.2.6 | Keep all of Windows except Temp; never kill host unless a user-writable drop failed to unmap; JIT RWX (no MZ) is not ALLOCVM_REMOTE |
 | 2.2.7 | Module identity unload is permanent Tier1; hijack-name plants quarantined on drop (file only); no config flag may disable |
 | 2.2.8 | T1-29 WMI triple + policy rewrite; C-27; WMI-Activity ETW provider #10; wmiadap module walk |
 | 2.2.9 | Unified web dashboard in native window; WebDashboardService re-enabled; BrowserLauncher removed |
+| 2.5.9 | T1-30 infostealer credential-access + collect/package/exfil; `SensitiveFileAccessMonitor` (browser cred/session stores + dev secrets + document archives, Restart-Manager PID attribution); composites C-28 Infostealer: Credential Access + Outbound, C-29 Data Staging + Exfiltration; raw file-access legs Tier2 observe, kill only via composite |

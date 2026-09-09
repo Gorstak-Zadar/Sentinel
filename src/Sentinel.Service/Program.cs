@@ -20,7 +20,7 @@ namespace Sentinel.Service
     /// monitor's constructor can throw (missing WMI/System.Management, absent registry hive,
     /// perf counters, a service, etc.). Resolving each member behind an isolated try/catch means
     /// one un-constructable monitor is skipped with a warning instead of faulting host startup
-    /// and taking the whole group — and the process — down with it.
+    /// and taking the whole group - and the process - down with it.
     /// </summary>
     internal static class SafeMonitorResolver
     {
@@ -52,7 +52,7 @@ namespace Sentinel.Service
     {
         public static async Task Main(string[] args)
         {
-            // Isolated hard-fault attribution — no host, no monitors, no response actions.
+            // Isolated hard-fault attribution - no host, no monitors, no response actions.
             if (args.Length >= 1 && args[0].Equals("--pagefault-diag", StringComparison.OrdinalIgnoreCase))
             {
                 Environment.ExitCode = PageFaultDiag.Run(args);
@@ -114,7 +114,7 @@ namespace Sentinel.Service
             AppendDiagnostic("startup_trace.log",
                 $"[{DateTime.UtcNow:O}] Main() entered. Args: {string.Join(" ", args)}\n");
 
-            // v2.5.5: Hardening is always-on — no early config read needed.
+            // v2.5.5: Hardening is always-on - no early config read needed.
             // Self-protect Sentinel process and apply full lockdown immediately.
             HardeningModule.ApplyOrFail();
 
@@ -130,7 +130,7 @@ namespace Sentinel.Service
                 responseEngine.SetReinfectionCorrelator(correlator);
 
             // DIAGNOSTIC v1.4.8: Log unhandled exceptions that kill the host.
-            // The service was dying after ~16 seconds with no crash trace — this
+            // The service was dying after ~16 seconds with no crash trace - this
             // catches whatever unobserved Task exception is triggering host shutdown.
             AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             {
@@ -148,7 +148,7 @@ namespace Sentinel.Service
 
             // STABILITY v1.4.9: Use host.StartAsync() + manual infinite wait instead of host.Run().
             // host.Run() returns when ANY hosted service task completes, killing the process.
-            // We start the host and then block Main forever — only SCM stop signal exits.
+            // We start the host and then block Main forever - only SCM stop signal exits.
             AppendDiagnostic("startup_trace.log",
                 $"[{DateTime.UtcNow:O}] Calling host.StartAsync()...\n");
 
@@ -171,7 +171,7 @@ namespace Sentinel.Service
                 $"[{DateTime.UtcNow:O}] host.StartAsync() completed. Blocking Main forever (ManualResetEvent)...\n");
 
             // Block Main() forever. NOTHING can make this return except process termination.
-            // This prevents the .NET Host's "BackgroundService completed → shutdown" behavior
+            // This prevents the .NET Host's "BackgroundService completed -> shutdown" behavior
             // from propagating to a process exit.
             Thread.Sleep(Timeout.Infinite);
         }
@@ -190,7 +190,7 @@ namespace Sentinel.Service
                 var eqIdx = args[i].IndexOf('=');
                 if (eqIdx <= 0)
                 {
-                    Console.Error.WriteLine($"Invalid format: '{args[i]}' — expected Key=Value");
+                    Console.Error.WriteLine($"Invalid format: '{args[i]}' - expected Key=Value");
                     continue;
                 }
                 var key = args[i].Substring(0, eqIdx).Trim();
@@ -309,7 +309,7 @@ namespace Sentinel.Service
                     config.ObserveUntilChain = true;
                     if (!ProxyAuthHelper.HasSharedSecret(threatReportingConfig))
                         threatReportingConfig.ProxySharedSecret = ThreatReportingConfig.CompiledProxySharedSecret;
-                    // v2.5.5: HardeningModule.RestrictivePortHardeningEnabled is always-on — no sync needed.
+                    // v2.5.5: HardeningModule.RestrictivePortHardeningEnabled is always-on - no sync needed.
                     services.AddSingleton(encryptedStore);
 
                     // CLI flag overrides
@@ -333,7 +333,7 @@ namespace Sentinel.Service
                     // Infrastructure & Utilities
                     services.AddSingleton<SentinelMetrics>();
                     services.AddSingleton<ThreatReportService>();
-                    // v1.9.5: Windows Event Log trail — self-disables on barebone/stripped images
+                    // v1.9.5: Windows Event Log trail - self-disables on barebone/stripped images
                     services.AddSingleton<SentinelEventLogWriter>();
                     services.AddSingleton<AutoIncidentReporter>();
                     services.AddSingleton<JsonlEventLogger>(_ => new JsonlEventLogger(config.LogPath));
@@ -350,7 +350,7 @@ namespace Sentinel.Service
                     services.AddSingleton<UsbDeviceFingerprinter>();
                     services.AddSingleton<IoCScanner>();
                     services.AddSingleton<ParentPidSpoofDetector>();
-                    // 1.8.4 ToastService: CriticalOnly (default true) — no SuppressAllToasts / SilentObserve gate
+                    // 1.8.4 ToastService: CriticalOnly (default true) - no SuppressAllToasts / SilentObserve gate
                     services.AddSingleton<ToastService>();
                     // v2.2: One-time system scan engine (triggered via IPC from dashboard)
                     services.AddSingleton<ScanEngine>();
@@ -378,7 +378,7 @@ namespace Sentinel.Service
                     services.AddSingleton<DllUnloadEngine>();
                     services.AddSingleton<IncidentResponseService>();
 
-                    // Unified ETW Session — single session subscribing to 9 system providers
+                    // Unified ETW Session - single session subscribing to 9 system providers
                     // Provides event-driven telemetry at ~50ms latency for all monitors
                     services.AddSingleton<UnifiedEtwSession>();
                     services.AddSingleton<EtwEventDispatcher>();
@@ -446,17 +446,17 @@ namespace Sentinel.Service
                     services.AddHostedService<SentinelEventLogHeartbeatService>();
                     // v2.0: ops metrics snapshot for Agent Ops dashboard
                     services.AddHostedService<OpsMetricsPublisher>();
-                    // v2.0: authenticated Service↔Agent named pipe (RT-HIGH-4)
+                    // v2.0: authenticated Service<->Agent named pipe (RT-HIGH-4)
                     services.AddHostedService<ServiceAgentIpcHost>();
-                    // v2.0: signed correlation rule packs → PluginRegistry
+                    // v2.0: signed correlation rule packs -> PluginRegistry
                     services.AddHostedService<RulePackLoader>();
 
-                    // ─────────────────────────────────────────────────────────────────
-                    // v1.4.4: Monitor Groups — replaces flat AddHostedService registrations.
+                    // 
+                    // v1.4.4: Monitor Groups - replaces flat AddHostedService registrations.
                     // Groups provide staggered startup, independent failure restart, and
                     // priority-based ordering. Critical monitors start first with unlimited
                     // restart; peripheral monitors start last with limited restart.
-                    // ─────────────────────────────────────────────────────────────────
+                    // 
 
                     // Singletons that need to be accessible via DI (referenced by other components)
                     services.AddSingleton<BeaconingDetector>();
@@ -468,7 +468,7 @@ namespace Sentinel.Service
                     services.AddSingleton<PseudoSandbox>();
                     services.AddSingleton<IsolationResponseEngine>();
 
-                    // ── Group 1: Critical (Self-Protection) ──────────────────────────
+                    //  Group 1: Critical (Self-Protection) 
                     // Starts immediately, restarts indefinitely. These monitors protect
                     // Sentinel itself and must never stay down.
                     services.AddSingleton<IHostedService>(sp =>
@@ -511,7 +511,7 @@ namespace Sentinel.Service
                     services.AddSingleton<WfpIntegrityMonitor>();
                     services.AddSingleton<DriverLoadMonitor>();
 
-                    // ── Group 2: Core Detection ──────────────────────────────────────
+                    //  Group 2: Core Detection 
                     // Starts after self-test (2s delay). Primary behavioral detection.
                     // Restart up to 5 times before degrading.
                     services.AddSingleton<IHostedService>(sp =>
@@ -550,7 +550,8 @@ namespace Sentinel.Service
                             ("CveClassCoverageMonitor",      s => s.GetRequiredService<CveClassCoverageMonitor>()),
                             ("MotwBypassMonitor",            s => s.GetRequiredService<MotwBypassMonitor>()),
                             ("ContainerIsolationTamperMonitor", s => s.GetRequiredService<ContainerIsolationTamperMonitor>()),
-                            ("WpadProxyMonitor",             s => s.GetRequiredService<WpadProxyMonitor>())
+                            ("WpadProxyMonitor",             s => s.GetRequiredService<WpadProxyMonitor>()),
+                            ("SensitiveFileAccessMonitor",   s => s.GetRequiredService<SensitiveFileAccessMonitor>())
                         );
                         return new MonitorGroup(
                             new MonitorGroupConfig
@@ -604,8 +605,9 @@ namespace Sentinel.Service
                     services.AddSingleton<MotwBypassMonitor>();
                     services.AddSingleton<ContainerIsolationTamperMonitor>();
                     services.AddSingleton<WpadProxyMonitor>();
+                    services.AddSingleton<SensitiveFileAccessMonitor>();
 
-                    // ── Group 3: Credential Protection ────────────────────────────────
+                    //  Group 3: Credential Protection 
                     // Starts after core detection (4s). Protects credentials and sessions.
                     services.AddSingleton<IHostedService>(sp =>
                     {
@@ -645,7 +647,7 @@ namespace Sentinel.Service
                     services.AddSingleton<RemoteSessionGuard>();
                     services.AddSingleton<TokenPrivilegeAuditMonitor>();
 
-                    // ── Group 4: Network Integrity ────────────────────────────────────
+                    //  Group 4: Network Integrity 
                     // Starts after credential group (6s). Monitors network-layer attacks.
                     services.AddSingleton<IHostedService>(sp =>
                     {
@@ -711,7 +713,7 @@ namespace Sentinel.Service
                     services.AddSingleton<CovertMeshMonitor>();
                     services.AddSingleton<CovertWebhookMonitor>();
 
-                    // ── Group 5: System Integrity ─────────────────────────────────────
+                    //  Group 5: System Integrity 
                     // Starts delayed (10s). Monitors OS-level configuration drift.
                     services.AddSingleton<IHostedService>(sp =>
                     {
@@ -783,9 +785,9 @@ namespace Sentinel.Service
                     services.AddSingleton<LegacyHiveMonitor>();
                     services.AddSingleton<CloudFilesHydrationMonitor>();
 
-                    // ── Group 6: Peripheral & Environmental ───────────────────────────
+                    //  Group 6: Peripheral & Environmental 
                     // Starts late (30s). Monitors hardware peripherals and external media.
-                    // Lower priority — log and continue on failure.
+                    // Lower priority - log and continue on failure.
                     services.AddSingleton<IHostedService>(sp =>
                     {
                         var monitors = SafeMonitorResolver.Build(sp,
@@ -866,7 +868,7 @@ namespace Sentinel.Service
 
         protected override void OnStop()
         {
-            // Cooperative SCM stop of the watchdog — mark expected so any exit hook in this
+            // Cooperative SCM stop of the watchdog - mark expected so any exit hook in this
             // process treats it as a normal lifecycle stop, not a tamper suppression (B1).
             Sentinel.Core.ShutdownContext.MarkExpected(
                 Sentinel.Core.ExpectedShutdownReason.ServiceControllerStop);

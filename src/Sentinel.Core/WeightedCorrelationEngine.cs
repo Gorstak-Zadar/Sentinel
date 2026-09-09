@@ -10,14 +10,14 @@ using Sentinel.Core.Plugins;
 namespace Sentinel.Core
 {
     /// <summary>
-    /// v2.0 — Explainable weighted multi-signal correlation.
+    /// v2.0 - Explainable weighted multi-signal correlation.
     ///
     /// Complements BehavioralCorrelationEngine (hand-authored composites) with a
     /// transparent score card:
     ///
-    ///   Network=18, Memory/Injection=44, Persistence=31, Credential=50, …
-    ///   Total ≥ Threshold (default 100) + ≥2 distinct weight categories
-    ///   + at least one terminal-family contribution → emit composite.
+    ///   Network=18, Memory/Injection=44, Persistence=31, Credential=50, ...
+    ///   Total >= Threshold (default 100) + >=2 distinct weight categories
+    ///   + at least one terminal-family contribution -> emit composite.
     ///
     /// Score cards are always attached to detections for ops/explainability even
     /// when the threshold is not met.
@@ -37,7 +37,7 @@ namespace Sentinel.Core
         private static readonly TimeSpan EmitCooldown = TimeSpan.FromSeconds(60);
         private static readonly TimeSpan PruneInterval = TimeSpan.FromSeconds(60);
 
-        /// <summary>Category → weight (0–100 scale contribution, not confidence).</summary>
+        /// <summary>Category -> weight (0-100 scale contribution, not confidence).</summary>
         public static readonly IReadOnlyDictionary<string, int> DefaultWeights =
             new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
@@ -210,7 +210,7 @@ namespace Sentinel.Core
                 if (!weights.TryGetValue(cat, out var w))
                     w = weights.TryGetValue("Generic", out var g) ? g : 10;
 
-                // Scale weight by confidence (0.5–1.0 floor so weak signals still contribute less)
+                // Scale weight by confidence (0.5-1.0 floor so weak signals still contribute less)
                 double conf = s.Confidence > 0 ? Math.Min(1.0, s.Confidence) : 0.55;
                 int scaled = (int)Math.Round(w * (0.5 + 0.5 * conf));
 
@@ -226,7 +226,7 @@ namespace Sentinel.Core
 
             card.TotalScore = card.CategoryContributions.Values.Sum();
 
-            // v2.0: EventGraph diversity boost (PROCESS→FILE/ENDPOINT fan-out)
+            // v2.0: EventGraph diversity boost (PROCESS->FILE/ENDPOINT fan-out)
             if (_eventGraph != null && _config.EnableGraphBoost)
             {
                 var diversity = _eventGraph.GetProcessDiversity(pid, processName);
@@ -257,7 +257,7 @@ namespace Sentinel.Core
             sb.Append(string.Join(" + ", card.CategoryContributions.Select(kv => $"{kv.Key}={kv.Value}")));
             sb.Append($" = {card.TotalScore}");
             sb.Append(card.MeetsThreshold
-                ? $" ≥ threshold {card.Threshold} (emit)"
+                ? $" >= threshold {card.Threshold} (emit)"
                 : $" < threshold {card.Threshold} (observe)");
             return sb.ToString();
         }
@@ -337,6 +337,8 @@ namespace Sentinel.Core
             if (ContainsAny(r, "BYOVD", "Vulnerable Driver", "kdmapper")) return "BYOVD";
             if (ContainsAny(r, "Token Theft", "Impersonat", "SeImpersonate", "Potato")) return "TokenTheft";
             if (ContainsAny(r, "LSASS", "Credential Dump", "Mimikatz", "SAM hive", "DCSync")) return "Credential";
+            if (ContainsAny(r, "Sensitive File Access", "Infostealer")) return "Credential";
+            if (ContainsAny(r, "Archive of User Documents", "Data Staging")) return "Exfil";
             if (ContainsAny(r, "Reverse Shell", "Bind Shell", "revshell", "meterpreter")) return "ReverseShell";
             if (ContainsAny(r, "Ransomware", "Shadow Copy", "Mass File Rename", "Bulk Encrypt")) return "Ransomware";
             if (ContainsAny(r, "Beacon", "C2", "Command-and-Control")) return "C2";

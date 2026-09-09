@@ -146,6 +146,44 @@ namespace Sentinel.Core
                 return;
             }
 
+            // Infostealer chain (RedLine / Lumma / Vidar class): a non-owning process reads a
+            // browser credential/session store or a developer secret file, then makes an outbound
+            // connection. This is the LSASS-free cousin of "Credential Dump + Exfiltration" -
+            // modern stealers never touch LSASS. The raw file-read leg is Tier2/observe on its own
+            // (SensitiveFileAccessMonitor); it becomes kill-grade only here, correlated with C2.
+            var hasSensitiveFileAccess = currentSignals.Any(s =>
+                s.RuleName.Contains("Sensitive File Access") ||
+                (s.Metadata != null && s.Metadata.ContainsKey("SensitiveFileAccess")));
+            if (hasSensitiveFileAccess && types.Contains(SignalType.NetworkC2))
+            {
+                await EmitCompositeAsync(pid, "Infostealer: Credential Access + Outbound", 0.95,
+                    "Non-owning process read a browser credential/session store or developer secret file, then communicated outbound.",
+                    "Infostealer kill chain: the process accessed credential material (browser Login Data / " +
+                    "Cookies / Local State, or .ssh / .aws / cloud tokens) it does not own, then established an " +
+                    "outbound channel on the same PID. Behavioral proof of credential theft + exfil without any " +
+                    "LSASS access - the pattern used by commodity stealers.",
+                    tagCoercionToolkit: true);
+                return;
+            }
+
+            // Collect -> package -> exfil: an archive of the user's document directories followed by
+            // outbound network activity on the same process. Pairs with the infostealer chain as the
+            // "stage and send" half of data theft. Archive-staging leg is Tier2/observe alone.
+            var hasArchiveStaging = currentSignals.Any(s =>
+                s.RuleName.Contains("Archive of User Documents") ||
+                s.RuleName.Contains("Data Staging: Archive") ||
+                (s.Metadata != null && s.Metadata.ContainsKey("ArchiveStaging")));
+            if (hasArchiveStaging &&
+                (types.Contains(SignalType.NetworkC2) || types.Contains(SignalType.ReverseShell)))
+            {
+                await EmitCompositeAsync(pid, "Data Staging + Exfiltration", 0.93,
+                    "Archive of user document directories correlated with outbound network communication.",
+                    "Collect-package-exfil chain: the process packaged files from the user's document tree " +
+                    "(Documents / Desktop / Downloads / Pictures / OneDrive) into an archive, then established " +
+                    "an outbound channel on the same PID - the classic stage-and-send data theft pattern.");
+                return;
+            }
+
             if (types.Contains(SignalType.ProcessInjection) &&
                 (types.Contains(SignalType.NetworkC2) || types.Contains(SignalType.ReverseShell)))
             {

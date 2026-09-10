@@ -2,6 +2,58 @@
 
 
 
+## [2.6.1] - 2026-09-10
+
+### Fixed - Quarantine now actually removes the file; no more re-quarantining the same DLL
+
+Addresses a reported case where the same signed third-party DLL (e.g. a 7-Zip DLL) was quarantined
+again on a fresh install, which correctly looked like "the first quarantine did nothing." Two
+independent defects combined to produce it, plus an identity-based false positive that should not
+have flagged the DLL at all.
+
+- **Quarantine deletion is now guaranteed, not best-effort (`QuarantineManager`).** A DLL flagged
+  because a live process mapped it is held by the OS with a delete lock, so the previous in-place
+  `File.Delete` threw (`UnauthorizedAccessException` was not even caught) and the failure was
+  swallowed - the encrypted vault copy was written, success was reported, but the *original file
+  survived on disk* and was re-detected on the next scan / install. `QuarantineFileAtomicAsync` now
+  retries the delete with backoff and, if the file is still locked, schedules a guaranteed
+  delete-on-reboot via `MoveFileEx(MOVEFILE_DELAY_UNTIL_REBOOT)`. A new `WasLastQuarantineDeferred`
+  flag lets callers report the deferred-to-reboot state honestly.
+- **`DllUnloadEngine` no longer reports quarantine success it did not achieve.** `RemediateDroppedDll`
+  now returns a result and only logs "Quarantined" / emits the quarantine detection event when the
+  vault write succeeded, distinguishing "original removed" from "locked, deletion scheduled for next
+  reboot" from "refused - file left on disk." All three remediation call sites only mark success and
+  record remediation/alert history when remediation actually succeeded, so a failed or refused
+  quarantine is retried on the next scan instead of being marked permanently handled.
+- **Stopped quarantining legitimately-signed third-party DLLs in Program Files (`ModuleIdentity`).**
+  The module classifier only allowed *Microsoft*-signed DLLs under Program Files, so a validly
+  Authenticode-signed third-party DLL (7-Zip, signed by its own publisher) loaded into a host in a
+  different directory (e.g. a shell extension in `explorer.exe`) fell through to `Deny("foreign-path")`
+  and was quarantined on identity alone - a false positive that also violated the product constraint
+  against identity-based (path/signer) quarantine as a primary signal. Any Authenticode-trusted DLL
+  under Program Files that is not a known search-order-hijack name is now allowed
+  (`signed-programfiles`). The hijack-name and user-writable-drop defenses are unchanged, so real
+  sideload plants are still caught.
+
+### Fixed - AgentWatchdog false alerts and premature relaunch back-off
+
+- **Interactive relaunch now specifies a desktop.** `AgentWatchdog.TryLaunchInUserSession` built its
+  `STARTUPINFO` without `lpDesktop`, so the SYSTEM-service-to-user-session `CreateProcessAsUser`
+  relaunch had no window station/desktop to attach to and could fail or start invisibly. It now sets
+  `lpDesktop = "winsta0\\default"`, matching the existing `VolumeMountMonitor` launch site.
+- **Absent-poll tracking split from relaunch rate-limiting.** A single `_killCount` incremented on
+  every 10s poll where the agent was missing, which (a) fired the anti-tamper "Agent Repeatedly
+  Killed" alert on a benign slow start and (b) exhausted the relaunch budget in ~50s, abandoning a
+  genuinely-crashed agent for the rest of the window. Consecutive-absent polls (`_absentPolls`, reset
+  the moment the agent is seen) now drive the alert, and actual relaunch attempts (`_relaunchCount`)
+  drive the rate limit.
+
+### Scope
+
+Userland only, no new egress, no new dependencies - installer size is unchanged within normal
+per-release variation. These are correctness fixes to the DLL-unload/quarantine and agent-watchdog
+paths; detection tiers, response contracts, and the observe-until-chain law are unchanged.
+
 ## [2.6.0] - 2026-09-10
 
 ### Added - Protective VPN-shield remediation for confirmed local network tampering

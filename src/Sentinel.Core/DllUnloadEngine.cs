@@ -201,11 +201,20 @@ namespace Sentinel.Core
                 if (!TryConsumeRateLimit())
                     return result;
 
-                await RemediateDroppedDll(dllPath, writerName ?? "", writerPid);
-                result.UnloadedDlls.Add(dllPath);
-                result.Success = true;
-
-                await EmitHijackPlantQuarantinedAsync(dllPath, fileName, dir, writerPid, writerName);
+                // Only mark success and emit the "quarantined" event if remediation actually
+                // removed (or scheduled removal of) the file. A refused/failed quarantine must
+                // not report success - otherwise the file survives while we claim we handled it.
+                if (await RemediateDroppedDll(dllPath, writerName ?? "", writerPid))
+                {
+                    result.UnloadedDlls.Add(dllPath);
+                    result.Success = true;
+                    await EmitHijackPlantQuarantinedAsync(dllPath, fileName, dir, writerPid, writerName);
+                }
+                else
+                {
+                    // Let a later scan retry: do not leave this path marked as handled.
+                    _alertHistory.TryRemove(alertKey, out _);
+                }
             }
             catch (Exception ex)
             {
@@ -351,10 +360,14 @@ namespace Sentinel.Core
                         var rkey = $"diskq:{plant.ToLowerInvariant()}";
                         if (_remediationHistory.ContainsKey(rkey)) continue;
                         if (!TryConsumeRateLimit()) break;
-                        _remediationHistory[rkey] = DateTimeOffset.UtcNow;
-                        await RemediateDroppedDll(plant, name!, processId);
-                        result.UnloadedDlls.Add(plant);
-                        result.Success = true;
+                        // Record history only on actual success, so a failed/refused quarantine
+                        // is retried on the next scan instead of being marked permanently handled.
+                        if (await RemediateDroppedDll(plant, name!, processId))
+                        {
+                            _remediationHistory[rkey] = DateTimeOffset.UtcNow;
+                            result.UnloadedDlls.Add(plant);
+                            result.Success = true;
+                        }
                     }
 
                     if (result.Success)
@@ -410,9 +423,13 @@ namespace Sentinel.Core
                     var rkey = $"{processId}:{dllPath.ToLowerInvariant()}";
                     if (_remediationHistory.ContainsKey(rkey)) continue;
                     if (!TryConsumeRateLimit()) break;
-                    _remediationHistory[rkey] = DateTimeOffset.UtcNow;
-                    await RemediateDroppedDll(dllPath, name!, processId);
-                    result.UnloadedDlls.Add(dllPath);
+                    // Record history only on actual success, so a failed/refused quarantine is
+                    // retried on the next scan rather than being marked permanently handled.
+                    if (await RemediateDroppedDll(dllPath, name!, processId))
+                    {
+                        _remediationHistory[rkey] = DateTimeOffset.UtcNow;
+                        result.UnloadedDlls.Add(dllPath);
+                    }
                 }
 
                 foreach (var (path, _, _) in hostileLoaded)
@@ -542,26 +559,68 @@ namespace Sentinel.Core
             return list;
         }
 
-        private async Task RemediateDroppedDll(string dllPath, string processName, int processId)
+        /// <summary>
+        /// Quarantines a hostile DLL and reports whether the ORIGINAL was actually removed.
+        /// Returns true only when quarantine succeeded (vault written AND the source file is
+        /// gone now or guaranteed to be deleted on reboot). Returns false when quarantine was
+        /// refused or failed - the caller must NOT then claim the file was neutralized.
+        ///
+        /// This closes the "quarantined the same DLL again" bug: the previous code logged
+        /// "Quarantined" unconditionally and ignored the return value, so a locked/mapped DLL
+        /// (which cannot be deleted in place) survived on disk while Sentinel reported success -
+        /// and was re-detected on the next scan / install as if nothing had happened.
+        /// </summary>
+        private async Task<bool> RemediateDroppedDll(string dllPath, string processName, int processId)
         {
             try
             {
                 await Task.Delay(150);
-                if (File.Exists(dllPath))
-                    await _quarantineManager.QuarantineFileAtomicAsync(dllPath, forceQuarantineSigned: true);
+                if (!File.Exists(dllPath))
+                {
+                    // Already gone (e.g. removed by a prior remediation) - nothing to do.
+                    return true;
+                }
+
+                var vaultPath = await _quarantineManager.QuarantineFileAtomicAsync(
+                    dllPath, forceQuarantineSigned: true);
+
+                if (vaultPath == null)
+                {
+                    // QuarantineManager refused (OS-critical path, size cap, or verification
+                    // error). The file is UNTOUCHED - do not pretend it was quarantined.
+                    _logger.LogWarning(
+                        "[DllUnloadEngine] Quarantine REFUSED for '{Dll}' (host {Name} PID {Pid}) - file left on disk",
+                        dllPath, processName, processId);
+                    return false;
+                }
 
                 // No zero-byte Hidden|System stub after quarantine - that pattern scores as
                 // wiper/ransom agent behavior (Alyac MSIL.Ransom.Agent). Re-drops are caught
                 // by FileActivityMonitor; sideload names must not be re-planted either
                 // (search order would bind the stub instead of System32).
 
-                _logger.LogInformation(
-                    "[DllUnloadEngine] Quarantined '{Dll}' (host {Name} PID {Pid})",
-                    dllPath, processName, processId);
+                if (_quarantineManager.WasLastQuarantineDeferred)
+                {
+                    // Vault copy exists and a delete-on-reboot is scheduled, but the original
+                    // is still on disk until the next boot because a process still maps it.
+                    // Report this honestly instead of claiming it is already gone.
+                    _logger.LogWarning(
+                        "[DllUnloadEngine] Quarantined '{Dll}' (host {Name} PID {Pid}) - LOCKED, deletion scheduled for next reboot",
+                        dllPath, processName, processId);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "[DllUnloadEngine] Quarantined '{Dll}' (host {Name} PID {Pid}) - original removed",
+                        dllPath, processName, processId);
+                }
+
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "[DllUnloadEngine] Failed to quarantine '{Dll}'", dllPath);
+                return false;
             }
         }
 

@@ -57,8 +57,20 @@ namespace Sentinel.Core
         private static readonly TimeSpan StartupGrace = TimeSpan.Zero;
 
         private DateTimeOffset _lastRelaunchTime = DateTimeOffset.MinValue;
-        private int _killCount;
-        private DateTimeOffset _firstKillInWindow = DateTimeOffset.MinValue;
+
+        // Two independent counters, previously conflated into one "_killCount" that
+        // incremented on every 10s absent poll:
+        //   _absentPolls    - consecutive polls where the agent was missing. Drives the
+        //                     anti-tamper alert. Reset to 0 the moment the agent is seen,
+        //                     so a slow first start (agent not yet in the process list, or
+        //                     user not yet logged in) does not accumulate a false alert.
+        //   _relaunchCount  - number of actual relaunch attempts in the current window.
+        //                     Drives the rate-limit back-off, so a single crashed agent
+        //                     that we keep trying to start does not get counted as many
+        //                     "kills" and prematurely exhaust the relaunch budget.
+        private int _absentPolls;
+        private int _relaunchCount;
+        private DateTimeOffset _windowStart = DateTimeOffset.MinValue;
         private bool _alertFired;
 
         public AgentWatchdog(
@@ -100,34 +112,43 @@ namespace Sentinel.Core
         {
             // Is the agent already running in ANY session?
             if (IsAgentRunning())
-                return;
-
-            // Agent is gone - track kills for anti-tamper alerting
-            var now = DateTimeOffset.UtcNow;
-            if (now - _firstKillInWindow > KillWindowDuration)
             {
-                // Reset window
-                _killCount = 0;
-                _firstKillInWindow = now;
+                // Agent is healthy - clear the consecutive-absent streak so a transient
+                // gap (slow start, brief crash) never accumulates toward the alert.
+                _absentPolls = 0;
+                return;
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            if (now - _windowStart > KillWindowDuration)
+            {
+                // Roll the rate-limit / alert window.
+                _windowStart = now;
+                _relaunchCount = 0;
                 _alertFired = false;
             }
 
-            _killCount++;
-            _logger.LogWarning("[AgentWatchdog] Agent not running - kill #{Count} in current window", _killCount);
+            _absentPolls++;
+            _logger.LogWarning(
+                "[AgentWatchdog] Agent not running - absent poll #{Polls} (relaunches this window: {Relaunches})",
+                _absentPolls, _relaunchCount);
 
-            if (_killCount >= KillThresholdForAlert && !_alertFired)
+            // Anti-tamper alert is driven by CONSECUTIVE absent polls, not by every poll ever.
+            // A genuine slow start clears _absentPolls the moment the agent appears; only a
+            // process that repeatedly vanishes keeps the streak climbing.
+            if (_absentPolls >= KillThresholdForAlert && !_alertFired)
             {
                 _alertFired = true;
                 await _detectionEngine.EmitAsync(new DetectionEvent
                 {
                     RuleName = "Anti-Tamper: Agent Process Repeatedly Killed",
-                    Evidence = $"Sentinel.Agent.exe has been absent {_killCount} times in the last " +
-                               $"{KillWindowDuration.TotalMinutes:F0} minutes. Watchdog is relaunching it.",
+                    Evidence = $"Sentinel.Agent.exe has been continuously absent across {_absentPolls} consecutive " +
+                               $"{PollInterval.TotalSeconds:F0}s checks. Watchdog is relaunching it.",
                     Reasoning = "The Sentinel user-session agent keeps dying. This may indicate an attacker " +
                                 "is repeatedly terminating the agent to suppress tray notifications and prevent " +
                                 "the user from seeing active threat alerts. Could also be an AV/EDR product " +
                                 "incorrectly blocking the agent binary.",
-                    Confidence = _killCount >= KillThresholdForAlert + 2 ? 0.90 : 0.70,
+                    Confidence = _absentPolls >= KillThresholdForAlert + 2 ? 0.90 : 0.70,
                     Tier = DetectionTier.Tier1Behavioral,
                     AuthorizedResponse = ResponseAction.LogOnly,
                     ProcessName = AgentProcessName,
@@ -135,7 +156,7 @@ namespace Sentinel.Core
                     SignalType = SignalType.AntiTamper,
                     Metadata = new System.Collections.Generic.Dictionary<string, string>
                     {
-                        ["KillCount"] = _killCount.ToString(),
+                        ["AbsentPolls"] = _absentPolls.ToString(),
                         ["WindowMinutes"] = KillWindowDuration.TotalMinutes.ToString("F0")
                     }
                 });
@@ -148,10 +169,13 @@ namespace Sentinel.Core
                 return;
             }
 
-            if (_killCount > MaxRelaunchesInWindow)
+            // Rate-limit on ACTUAL relaunch attempts, not on absent polls. One agent that
+            // stays dead should keep being relaunched (subject to cooldown) rather than
+            // exhausting the budget in a few polls and being abandoned for the window.
+            if (_relaunchCount >= MaxRelaunchesInWindow)
             {
                 _logger.LogWarning("[AgentWatchdog] Relaunch rate limit reached ({Count}/{Max}) - backing off",
-                    _killCount, MaxRelaunchesInWindow);
+                    _relaunchCount, MaxRelaunchesInWindow);
                 return;
             }
 
@@ -200,6 +224,7 @@ namespace Sentinel.Core
             }
 
             _lastRelaunchTime = DateTimeOffset.UtcNow;
+            _relaunchCount++;
 
             // Try privileged launch (SYSTEM service -> user session) first
             bool launched = TryLaunchInUserSession(agentPath);
@@ -216,7 +241,8 @@ namespace Sentinel.Core
                 _logger.LogWarning("[AgentWatchdog] Relaunched {Agent}", AgentProcessName);
                 await _eventLogger.LogEventAsync("agent_relaunched", new
                 {
-                    KillCount = _killCount,
+                    RelaunchCount = _relaunchCount,
+                    AbsentPolls = _absentPolls,
                     AgentPath = agentPath,
                     Timestamp = DateTimeOffset.UtcNow
                 }, ct);
@@ -309,6 +335,11 @@ namespace Sentinel.Core
                 var si = new STARTUPINFO
                 {
                     cb = Marshal.SizeOf<STARTUPINFO>(),
+                    // Interactive session launch REQUIRES an explicit desktop. Without this
+                    // the process has no window station/desktop to attach to and either fails
+                    // to start or starts on an invisible desktop (tray never appears). Mirrors
+                    // the CreateProcessAsUser call in VolumeMountMonitor.
+                    lpDesktop = @"winsta0\default",
                     dwFlags = STARTF_USESHOWWINDOW,
                     wShowWindow = SW_HIDE
                 };

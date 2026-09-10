@@ -113,6 +113,23 @@ namespace Sentinel.Core
                 !IsUserWritableDrop(mod))
                 return Allow("microsoft-signed-programfiles");
 
+            // Any Authenticode-trusted third-party DLL installed under Program Files is a
+            // legitimately-installed component (7-Zip, Notepad++, GPU/vendor tools, shell
+            // extensions), NOT a foreign-path injection - even when its host process lives
+            // elsewhere (e.g. a shell extension loaded into explorer.exe). Quarantining these
+            // on signer!=Microsoft alone is identity-based response, which the constraints
+            // forbid: we must act on what a module DOES, not who signed it.
+            //
+            // The search-order-hijack defense is preserved: known hijack-target names
+            // (dbghelp/version/winmm/...) are still denied above when planted in the app dir,
+            // and any DLL in a user-writable drop (Temp/Downloads/AppData) is denied below.
+            // So a signed DLL in Program Files that is not a hijack name is allowed.
+            if (IsProgramFilesTree(mod) &&
+                !IsUserWritableDrop(mod) &&
+                !DllUnloadEngine.IsSideloadTargetFileName(mod) &&
+                IsAuthenticodeTrusted(mod))
+                return Allow("signed-programfiles");
+
             if (IsUserWritableDrop(mod))
                 return Deny("user-writable-drop");
 
@@ -233,6 +250,18 @@ namespace Sentinel.Core
         {
             if (isMicrosoftSigned == null) return false;
             try { return isMicrosoftSigned(path); }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// True when the module carries a valid Authenticode signature that chains to a
+        /// trusted root - regardless of publisher. Used only to spare legitimately-installed
+        /// third-party DLLs under Program Files from foreign-path quarantine. Fails closed:
+        /// any verification error is treated as untrusted.
+        /// </summary>
+        private static bool IsAuthenticodeTrusted(string path)
+        {
+            try { return SecurityValidation.VerifyAuthenticodeSignature(path); }
             catch { return false; }
         }
 

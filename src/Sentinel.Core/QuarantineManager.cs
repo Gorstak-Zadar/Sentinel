@@ -231,21 +231,89 @@ namespace Sentinel.Core
             }
             catch { /* restore still possible by filename guess */ }
 
-            // Remove original attributes and delete
-            try
+            // Remove original attributes and delete. The vault copy is already written,
+            // so from here the goal is to guarantee the ORIGINAL leaves disk - if it does
+            // not, quarantine has not actually neutralized anything and the same file will
+            // be re-detected on the next scan / next install (the "why did it quarantine
+            // the same DLL again" bug). A DLL that was flagged because a live process mapped
+            // it is HELD by the OS with a delete lock, so an in-place delete throws
+            // UnauthorizedAccessException / IOException even after the host is killed (the
+            // unmap is not instantaneous). We retry briefly, then fall back to a
+            // delete-on-reboot so the file is guaranteed gone after the next boot rather
+            // than silently surviving.
+            bool removedNow = await TryDeleteWithRetriesAsync(filePath);
+            if (!removedNow)
             {
-                File.SetAttributes(filePath, FileAttributes.Normal);
-                File.Delete(filePath);
+                bool scheduled = TryScheduleDeleteOnReboot(filePath);
+                // finalPath is still returned: the encrypted vault copy exists and the file
+                // is either gone or guaranteed to be deleted on reboot. Callers that need to
+                // know it is still on disk until reboot can check WasLastQuarantineDeferred.
+                _lastQuarantineDeferredToReboot = scheduled || File.Exists(filePath);
             }
-            catch (IOException)
+            else
             {
-                // Retry deletion
-                await Task.Delay(100);
-                File.Delete(filePath);
+                _lastQuarantineDeferredToReboot = false;
             }
 
             return finalPath;
         }
+
+        /// <summary>
+        /// True when the most recent successful <see cref="QuarantineFileAtomicAsync"/> could
+        /// not delete the original in place (locked because a process still maps it) and had to
+        /// schedule a delete-on-reboot. The vault copy exists either way; this tells the caller
+        /// the source file is still on disk until the next boot, so it must not claim the file
+        /// was removed. Best-effort/advisory - single-writer service, not thread-safe by design.
+        /// </summary>
+        public bool WasLastQuarantineDeferred => _lastQuarantineDeferredToReboot;
+        private bool _lastQuarantineDeferredToReboot;
+
+        private static async Task<bool> TryDeleteWithRetriesAsync(string filePath)
+        {
+            for (int attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    if (!File.Exists(filePath)) return true;
+                    File.SetAttributes(filePath, FileAttributes.Normal);
+                    File.Delete(filePath);
+                    return !File.Exists(filePath);
+                }
+                catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    // File is locked (mapped into a running process) - the host kill has not
+                    // fully unmapped it yet. Brief backoff and retry.
+                    await Task.Delay(120);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
+            return !File.Exists(filePath);
+        }
+
+        /// <summary>
+        /// Schedules the OS to delete <paramref name="filePath"/> on the next reboot via
+        /// MoveFileEx(MOVEFILE_DELAY_UNTIL_REBOOT). Used when a quarantined file is locked and
+        /// cannot be deleted in place, so a mapped hostile DLL is still guaranteed to be gone
+        /// after reboot instead of surviving to be "re-quarantined" forever.
+        /// </summary>
+        private static bool TryScheduleDeleteOnReboot(string filePath)
+        {
+            try
+            {
+                // lpNewFileName = null with MOVEFILE_DELAY_UNTIL_REBOOT means "delete on reboot".
+                return MoveFileEx(filePath, null, MOVEFILE_DELAY_UNTIL_REBOOT);
+            }
+            catch { return false; }
+        }
+
+        private const uint MOVEFILE_DELAY_UNTIL_REBOOT = 0x00000004;
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+        private static extern bool MoveFileEx(string lpExistingFileName, string? lpNewFileName, uint dwFlags);
 
         /// <summary>
         /// Lists quarantine entries (encrypted blob filename + optional original path from .meta).

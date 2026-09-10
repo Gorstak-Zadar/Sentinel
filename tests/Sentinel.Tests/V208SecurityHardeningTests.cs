@@ -18,7 +18,10 @@ namespace Sentinel.Tests
         [Fact]
         public void ProductInfo_Version_Is210()
         {
-            Assert.Equal("2.5.7", ProductInfo.Version);
+            // v2.6.0: version is computed from the single source of truth (version.txt /
+            // stamped assembly version), so assert it tracks that rather than a frozen literal.
+            var asmVersion = typeof(ProductInfo).Assembly.GetName().Version?.ToString(3);
+            Assert.Equal(asmVersion, ProductInfo.Version);
         }
 
         [Fact]

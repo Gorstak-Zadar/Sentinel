@@ -132,7 +132,9 @@ namespace Sentinel.Tests
         [Fact]
         public void ProductInfo_MatchesTwoOneTwoCurrentVersion()
         {
-            Assert.Equal("2.5.7", ProductInfo.Version);
+            // v2.6.0: version is computed from version.txt / stamped assembly version.
+            var asmVersion = typeof(ProductInfo).Assembly.GetName().Version?.ToString(3);
+            Assert.Equal(asmVersion, ProductInfo.Version);
         }
 
         [Theory]

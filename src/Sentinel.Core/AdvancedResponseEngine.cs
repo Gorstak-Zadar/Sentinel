@@ -23,6 +23,7 @@ namespace Sentinel.Core
         private DllUnloadEngine? _dllUnloadEngine;
         private ChainTracer? _chainTracer;
         private ReinfectionCorrelator? _reinfectionCorrelator;
+        private VpnShieldEngine? _vpnShieldEngine;
 
         // v1.6.0: Rolling kill budget to prevent response weaponization (FP kill storms)
         private readonly ConcurrentQueue<long> _killTimestampsMs = new();
@@ -201,6 +202,9 @@ namespace Sentinel.Core
 
         public void SetIncidentResponseService(IncidentResponseService irs) => _incidentResponse = irs;
 
+        /// <summary>v2.6.0: Wire the VPN-shield engine after DI to avoid circular construction.</summary>
+        public void SetVpnShieldEngine(VpnShieldEngine engine) => _vpnShieldEngine = engine;
+
         /// <summary>v1.6.1: Wire DetectionEngine after DI to avoid circular construction.</summary>
         public void SetDetectionEngine(DetectionEngine engine) => _detectionEngine = engine;
 
@@ -263,6 +267,7 @@ namespace Sentinel.Core
             bool shouldRemoveCertAndKillAdder = false;
             bool shouldRemoveCert = false;
             bool shouldRemoveRegistryEntry = false;
+            bool shouldRaiseVpnShield = false;
             string reason = "LogOnly";
 
             // HARDENING v1.3.8: Absolute self-exclusion - never take action against our own processes.
@@ -418,6 +423,17 @@ namespace Sentinel.Core
                         effectiveKillAuthorized = true;
                     reason = $"MitmDefense action ({detection.AuthorizedResponse})";
                 }
+                else if (chainAuthorized && !dllExempt &&
+                         detection.AuthorizedResponse == ResponseAction.VpnShieldUp)
+                {
+                    // v2.6.0: A chain-confirmed network-tamper incident authored the protective
+                    // VPN-shield action. This is a network-integrity remediation with no malicious
+                    // process to terminate (SYSTEM/PID 0 origin) - do NOT promote it to a process
+                    // nuke. Keep the author action; the VpnShieldUp branch below handles it, still
+                    // Tier1-guarded and still re-checking ProductPosture.AllowsVpnShield.
+                    effectiveTier = DetectionTier.Tier1Behavioral;
+                    reason = "ChainConfirmed network-tamper (VPN shield remediation)";
+                }
                 else if (chainAuthorized && !dllExempt)
                 {
                     // Nuke with everything once the chain is proven.
@@ -503,6 +519,26 @@ namespace Sentinel.Core
                 {
                     shouldIsolateNetwork = true;
                     reason = $"NetworkIsolate (AuthorizedResponse={effectiveResponse})";
+                }
+                else
+                {
+                    reason = "LogOnly (observe-until-chain)";
+                }
+            }
+            else if (effectiveResponse == ResponseAction.VpnShieldUp && effectiveTier == DetectionTier.Tier1Behavioral)
+            {
+                // v2.6.0: Protective VPN-shield remediation for a confirmed network-tamper
+                // incident. Tier1-guarded like every other action (Tier2 can never reach here).
+                // Additionally gated on the operator opt-in ProductPosture.AllowsVpnShield -
+                // default-deny: with VpnShield disabled this stays LogOnly and no tunnel is raised.
+                if (ar && ProductPosture.AllowsVpnShield(_config))
+                {
+                    shouldRaiseVpnShield = true;
+                    reason = $"VpnShieldUp (AuthorizedResponse={effectiveResponse}, network-tamper remediation)";
+                }
+                else if (!ProductPosture.AllowsVpnShield(_config))
+                {
+                    reason = "LogOnly (VpnShield disabled - opt-in via VpnShield.Enabled)";
                 }
                 else
                 {
@@ -701,6 +737,32 @@ namespace Sentinel.Core
                 await _eventLogger.LogEventAsync("response", responseLog);
                 TryWriteWindowsEventLog(detection, responseLog.ActionTaken, responseLog.Reason);
                 NotifyReinfectionCorrelator(detection);
+            }
+            else if (shouldRaiseVpnShield)
+            {
+                // v2.6.0: Confirmed network tamper -> raise a protective userland VPN tunnel,
+                // clean the network, and drop the tunnel once verified clean (fail-safe: the
+                // tunnel stays up if the path cannot be verified clean). Fire-and-forget: the
+                // engine runs its own clean-and-verify loop and never throws to this path.
+                stopwatch.Stop();
+                _metrics.RecordResponse(stopwatch.ElapsedMilliseconds);
+
+                if (_vpnShieldEngine != null)
+                {
+                    var shieldDetection = detection;
+                    _ = _vpnShieldEngine.RaiseShieldAsync(shieldDetection, CancellationToken.None);
+                }
+
+                var shieldLog = new ResponseEvent
+                {
+                    ProcessId = detection.ProcessId,
+                    ProcessName = detection.ProcessName,
+                    ActionTaken = "VPN_SHIELD",
+                    Reason = $"Triggered by rule: {detection.RuleName}. {reason}",
+                    ExecutionTimeMs = stopwatch.ElapsedMilliseconds
+                };
+                await _eventLogger.LogEventAsync("response", shieldLog);
+                TryWriteWindowsEventLog(detection, shieldLog.ActionTaken, shieldLog.Reason);
             }
             else if (shouldIsolateNetwork)
             {

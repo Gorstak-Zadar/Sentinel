@@ -103,9 +103,34 @@ namespace Sentinel.Core
         }
     }
 
-    /// <summary>Central product version for metrics/UI (keep in sync with version.txt).</summary>
+    /// <summary>
+    /// Central product version for metrics/UI. v2.6.0: computed at runtime from the single
+    /// source of truth (<c>version.txt</c> shipped next to the binary, which the build stamps
+    /// from the repo-root <c>version.txt</c>), falling back to the stamped assembly version.
+    /// Previously a hand-maintained <c>const</c> that silently drifted from <c>version.txt</c>
+    /// every release - computing it here means it can never go stale again.
+    /// </summary>
     public static class ProductInfo
     {
-        public const string Version = "2.5.7";
+        private static readonly string _version = ResolveVersion();
+
+        public static string Version => _version;
+
+        private static string ResolveVersion()
+        {
+            try
+            {
+                var versionFile = Path.Combine(System.AppContext.BaseDirectory, "version.txt");
+                if (File.Exists(versionFile))
+                {
+                    var text = File.ReadAllText(versionFile).Trim();
+                    if (!string.IsNullOrEmpty(text))
+                        return text;
+                }
+            }
+            catch { /* fall through to assembly version */ }
+
+            return typeof(ProductInfo).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
+        }
     }
 }

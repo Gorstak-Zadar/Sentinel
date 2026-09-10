@@ -215,7 +215,11 @@ namespace Sentinel.Tests
         [Fact]
         public void Version_IsCurrent()
         {
-            Assert.Equal("2.5.7", ProductInfo.Version);
+            // v2.6.0: ProductInfo.Version is computed from version.txt / the stamped assembly
+            // version - it must track the single source of truth, not a frozen literal that
+            // silently drifts every release. Assert it matches the loaded assembly version.
+            var asmVersion = typeof(ProductInfo).Assembly.GetName().Version?.ToString(3);
+            Assert.Equal(asmVersion, ProductInfo.Version);
         }
     }
 
@@ -239,7 +243,8 @@ namespace Sentinel.Tests
             Assert.Equal(1, snap.TelemetryReceived);
             Assert.Equal(1, snap.CompositesEmitted);
             Assert.Equal(1, snap.WeightedCompositesEmitted);
-            Assert.Equal("2.5.7", snap.ProductVersion);
+            // v2.6.0: snapshot version tracks the computed ProductInfo.Version, not a literal.
+            Assert.Equal(ProductInfo.Version, snap.ProductVersion);
         }
     }
 }

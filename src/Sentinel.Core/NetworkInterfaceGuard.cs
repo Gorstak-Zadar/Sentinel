@@ -129,6 +129,119 @@ namespace Sentinel.Core
             }
         }
 
+        /// <summary>
+        /// v2.6.0: On-demand network clean for the VPN-shield remediation chain.
+        ///
+        /// Unlike the periodic loop (which gates cleaning on
+        /// <see cref="ResponsePolicy.MayPerformInlineHostMutation"/>), this is invoked ONLY by
+        /// <c>VpnShieldEngine</c> after a network-tamper incident is already chain-confirmed
+        /// and the user is behind the protective tunnel - so the mutation is already authorized.
+        /// It unbridges, re-enables disabled physical adapters, and restores DNS to baseline.
+        /// Best-effort and non-throwing (graceful degradation).
+        /// </summary>
+        public async Task ForceCleanAsync(CancellationToken ct)
+        {
+            try { RemoveNetworkBridge(); } catch (Exception ex) { _logger.LogDebug(ex, "[NetworkInterfaceGuard] ForceClean: bridge removal error"); }
+            try { await RestoreDisabledAdaptersAsync(ct).ConfigureAwait(false); } catch (Exception ex) { _logger.LogDebug(ex, "[NetworkInterfaceGuard] ForceClean: adapter restore error"); }
+            try { RestoreDnsToBaseline(); } catch (Exception ex) { _logger.LogDebug(ex, "[NetworkInterfaceGuard] ForceClean: DNS restore error"); }
+        }
+
+        /// <summary>
+        /// v2.6.0: Returns true when the interface state matches the clean baseline captured at
+        /// startup - no network bridge present, no baselined physical adapter left disabled, and
+        /// every interface's registry DNS matches its baseline. Used by <c>VpnShieldEngine</c> to
+        /// decide when it is safe to drop the protective tunnel. Fail-safe: on any error this
+        /// returns <c>false</c> (treat as "not verified clean", keep the shield up).
+        /// </summary>
+        public bool IsNetworkClean()
+        {
+            try
+            {
+                // 1. No network bridge interface present.
+                bool hasBridge = NetworkInterface.GetAllNetworkInterfaces()
+                    .Any(ni => ni.Description.Contains("MAC Bridge") ||
+                               ni.Description.Contains("Multiplexor Driver"));
+                if (hasBridge) return false;
+
+                // 2. No baselined physical adapter left administratively down.
+                try
+                {
+                    var scope = new ManagementScope(@"root\StandardCimv2");
+                    scope.Connect();
+                    var query = new ObjectQuery("SELECT InterfaceIndex, AdminStatus FROM MSFT_NetAdapter WHERE Virtual = false");
+                    using var searcher = new ManagementObjectSearcher(scope, query);
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        int index = Convert.ToInt32(obj["InterfaceIndex"]);
+                        int adminStatus = Convert.ToInt32(obj["AdminStatus"]);
+                        if (_baselinePhysicalInterfaceIndices.Contains(index) && adminStatus == 2)
+                            return false; // a baselined adapter is still Down
+                    }
+                }
+                catch { return false; }
+
+                // 3. Every interface's registry DNS matches its baseline.
+                foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (_baselineDnsServers.TryGetValue(ni.Id, out var baselineDns))
+                    {
+                        var currentDns = GetRegistryDns(ni.Id);
+                        if (!string.IsNullOrEmpty(currentDns) && !currentDns!.Equals(baselineDns))
+                            return false; // DNS still drifted from baseline
+                    }
+                }
+
+                return true;
+            }
+            catch
+            {
+                return false; // fail-safe: unknown state == not clean
+            }
+        }
+
+        private async Task RestoreDisabledAdaptersAsync(CancellationToken ct)
+        {
+            try
+            {
+                var scope = new ManagementScope(@"root\StandardCimv2");
+                scope.Connect();
+                var query = new ObjectQuery("SELECT InterfaceIndex, Name, AdminStatus FROM MSFT_NetAdapter WHERE Virtual = false");
+                using var searcher = new ManagementObjectSearcher(scope, query);
+                foreach (ManagementObject obj in searcher.Get())
+                {
+                    if (ct.IsCancellationRequested) return;
+                    int index = Convert.ToInt32(obj["InterfaceIndex"]);
+                    string name = obj["Name"]?.ToString() ?? "";
+                    int adminStatus = Convert.ToInt32(obj["AdminStatus"]);
+                    if (_baselinePhysicalInterfaceIndices.Contains(index) && adminStatus == 2)
+                    {
+                        _logger.LogWarning("[NetworkInterfaceGuard] VPN-shield clean: re-enabling adapter '{Name}' (Index {Index})", name, index);
+                        obj.InvokeMethod("Enable", null);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[NetworkInterfaceGuard] RestoreDisabledAdaptersAsync error");
+            }
+            await Task.CompletedTask;
+        }
+
+        private void RestoreDnsToBaseline()
+        {
+            foreach (var ni in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (_baselineDnsServers.TryGetValue(ni.Id, out var baselineDns))
+                {
+                    var currentDns = GetRegistryDns(ni.Id);
+                    if (!string.IsNullOrEmpty(currentDns) && !currentDns!.Equals(baselineDns))
+                    {
+                        SetRegistryDns(ni.Id, baselineDns);
+                    }
+                }
+            }
+        }
+
         private void BaselinePhysicalAdapters()
         {
             try

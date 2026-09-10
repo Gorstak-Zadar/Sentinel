@@ -2,6 +2,58 @@
 
 
 
+## [2.6.0] - 2026-09-10
+
+### Added - Protective VPN-shield remediation for confirmed local network tampering
+
+Closes a path-level gap: when the local network is actively under a man-in-the-middle attack,
+Sentinel could detect and clean the tampering, but the user's traffic was exposed on the hostile
+path during the window between detection and cleanup. The VPN shield encrypts and reroutes traffic
+off the compromised path *while* the network is cleaned, then drops the tunnel once the path is
+verified clean.
+
+- **`VpnShieldEngine` (new engine).** On a confirmed network-tamper incident it raises a userland
+  VPN tunnel (a standard RAS dial via `rasapi32` - `RasDial`/`RasEnumConnections`/`RasHangUp`, no
+  shell-out, visible in Task Manager / the network list / event logs), then runs a clean-and-verify
+  loop: it asks `NetworkInterfaceGuard` to unbridge, re-enable disabled adapters, and restore DNS,
+  re-checks integrity, and drops the tunnel only after the path is verified clean for
+  `CleanSweepsRequired` consecutive sweeps. Single-flight, `CancellationToken`-threaded, no static
+  mutable state, all faults logged (graceful degradation). Tunnel transport is behind an
+  `IVpnTunnel` abstraction so the orchestration is unit-tested without dialing.
+- **Fail-safe by design.** If the network cannot be *verified* clean (or verification errors), the
+  tunnel STAYS UP. On `MaxShieldSeconds` expiry the incident is escalated and the tunnel is held -
+  Sentinel never silently drops an unverified-clean shield.
+- **Trusted provider preferred; VPN Gate is a caveated last resort.** `VpnShieldConfig.ProviderProfile`
+  (a paid Proton/Mullvad or corporate RAS entry) is always preferred. VPN Gate public relays are a
+  fallback only when `UseVpnGateFallback` is set and no trusted profile exists - and the incident log
+  records that a volunteer relay is a tradeoff, not a clean win (it replaces a local attacker with a
+  remote unknown one).
+- **New `ResponseAction.VpnShieldUp`.** Ordered below `KillProcess` so `KillAuthorized` stays false -
+  a non-kill, non-destructive-to-processes network-integrity remediation. `AdvancedResponseEngine`
+  gains a Tier1-guarded branch that additionally re-checks `ProductPosture.AllowsVpnShield`
+  (default-deny), and chain confirmation never rewrites a `VpnShieldUp` action into a process nuke
+  (`ApplyTierLaw` / `PromoteChainConfirmedFields` preserve it).
+- **New `Network Tamper: Local MitM Chain` composite.** `BehavioralCorrelationEngine` correlates
+  PID-0 SYSTEM network-tamper signals in a dedicated host-wide path and emits the shield composite
+  when **>= 2 distinct tamper vectors** appear within the correlation window. Vectors: `ARP`
+  (ARP poisoning / gateway MAC change), `DNS` (unauthorized DNS change / poison / hijack), `Route`
+  (route injection / persistent route), `Bridge` (adapter bridging), `AdapterDown`, `WPAD`
+  (rogue WPAD/PAC auto-proxy), and `WiFiDeauth` / `WiFiEvilTwin` (deauth flood and evil-twin BSSID
+  change). A single vector never self-confirms; WPAD (a `WeakObserveSeed`) also continues to feed the
+  existing `WPAD Proxy Hijack Chain`.
+- **Config.** `VpnShieldConfig` on `SentinelConfig.VpnShield` (default `Enabled=false`), with
+  `ProviderProfile`, `UseVpnGateFallback`, `VpnGateEntryName`, `VerifyIntervalSeconds`,
+  `CleanSweepsRequired`, `MaxShieldSeconds`. `ProductPosture.AllowsVpnShield` gates the whole path.
+
+### Scope
+
+Userland only, consistent with the product's hard constraints - the tunnel is a standard, visible
+Windows VPN connection (no kernel driver, no self-hiding). The shield fires only when the local
+*path* is under active attack but the host is not yet compromised; process-level threats (C2
+beaconing, DoH exfil, covert mesh/webhook) are still answered with kill/isolate, not a tunnel that
+would merely carry the malicious traffic. Never speculative: gated on a confirmed multi-vector
+network-tamper chain plus explicit `VpnShield.Enabled` opt-in.
+
 ## [2.5.9] - 2026-09-09
 
 ### Added - Infostealer credential-access + collect/package/exfil coverage

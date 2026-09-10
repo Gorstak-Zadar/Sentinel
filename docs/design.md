@@ -1,6 +1,6 @@
 # Sentinel - Design Document
 
-**Version: 2.5.6**
+**Version: 2.6.0**
 
 ---
 
@@ -41,7 +41,8 @@ Monitors -> TelemetryFusionEngine -> DetectionEngine -> AdvancedResponseEngine -
 | `OpsMetricsPublisher` | Writes `%ProgramData%\Sentinel\ops_metrics.json` |
 | `SelfPathGuard` | Hardlink-aware install self-exclusion |
 | `EncryptedConfigStore` | DPAPI `config.enc` for Hardened Mode / victim identity only; cannot disable detection or rewrite compiled HMAC |
-| `ProductInfo.Version` | `2.5.6` |
+| `ProductInfo.Version` | `2.6.0` |
+| `VpnShieldEngine` + `VpnShieldConfig` | **v2.6.0.** Protective VPN-shield remediation for confirmed local network tampering (raise userland tunnel -> clean -> verify clean -> drop; fail-safe holds tunnel). New `ResponseAction.VpnShieldUp`; `ProductPosture.AllowsVpnShield` gate (default off) |
 
 All components are wired via Microsoft.Extensions.DependencyInjection. No static mutable state anywhere.
 
@@ -282,6 +283,7 @@ Organized by MonitorGroup. Each group has staggered startup, independent failure
 | `DllUnloadEngine` | Unloads mapped modules that fail identity. Hijack-name plants quarantined on drop (file only, including steamapps). Never FreeLibrary lsass/csrss/wininit/DISM/NTLite. No VM_READ on games. |
 | `ChainTracer` | Attack chain walker: kills non-critical processes in chain, quarantines binaries, removes persistence. |
 | `IncidentResponseService` | Automated incident resolution: persistence removal, quarantine orchestration. Integrates with ChainTracer. |
+| `VpnShieldEngine` | **v2.6.0.** Protective VPN-shield remediation for confirmed local network tampering. On the `Network Tamper: Local MitM Chain` composite (>=2 distinct tamper vectors: ARP/DNS/Route/Bridge/AdapterDown/WPAD/WiFiDeauth/WiFiEvilTwin), raises a userland RAS VPN tunnel (visible; `rasapi32`, no shell), asks `NetworkInterfaceGuard` to clean (unbridge / re-enable adapters / restore DNS), verifies clean for `CleanSweepsRequired` sweeps, then drops the tunnel. Fail-safe: holds the tunnel if not verified clean. Trusted `ProviderProfile` preferred; VPN Gate fallback only if opted in (logged as a tradeoff). Gated on `ProductPosture.AllowsVpnShield` (default off). New `ResponseAction.VpnShieldUp` (non-kill, ordered below KillProcess); never promoted to a process nuke on chain-confirm. |
 | `IsolationResponseEngine` | Handles threats from isolated environments: ISO dismount, Docker stop+rm+rmi, Hyper-V/VM stop. |
 | `DynamicRulesEvaluator` | Loads HMAC-signed JSON rules from `{BaseDirectory}/rules`. Install-entropy signing key; fail-closed if missing. Property allowlist + SecureCompare. |
 | `ResponseCoordinator` | Per-PID semaphore-based response serialization. Prevents duplicate kills, supports escalation. |

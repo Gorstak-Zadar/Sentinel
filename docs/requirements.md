@@ -63,6 +63,7 @@ The system must detect the following behavioral threats:
 | T1-21 | Package supply-chain runtime | Package managers spawning LOLBins; executables under package trees; AI agent config poison (CLAUDE.md, .cursorrules, MCP configs) |
 | T1-22 | Indirect syscall / Hell's Gate | Non-image executable memory containing a well-formed stub table: `mov r10,rcx; mov eax,SSN; syscall; ret` or a copied ntdll SharedUserData prologue, with 3+ distinct SSNs (loose JIT `0F 05` bytes are not a hit) |
 | T1-23 | MitM attack chain | Planted self-signed root cert removal, ghost process -> rogue Cast kill, FCM Send-Tab-to-Self block, rogue Cast firewall block (when `MitmDefense.Enabled`) |
+| T1-31 | Local network path MitM (v2.6.0) | >=2 distinct local-network tamper vectors (ARP poisoning, DNS hijack, route injection, adapter bridging, rogue WPAD/PAC proxy, Wi-Fi deauth flood / evil-twin BSSID) within the correlation window -> `Network Tamper: Local MitM Chain` composite -> protective VPN shield (when `VpnShield.Enabled`): raise tunnel, clean path, verify clean, drop. Fail-safe holds tunnel until verified clean |
 | T1-24 | Lazarus Dream Job (CVE-2026-68820 campaign) | SecurityPDF / FudModule names, libmupdf sideload in staging, Temp\\new.exe from PDF parent, published C2; does **not** patch afd.sys |
 | T1-25 | LegacyHive (CVE-2026-62832) | Another user's HKU hive loaded while not logged on; hive-path reparse; custom HKU names |
 | T1-26 | Cloud Files / ShieldBreak (CVE-2026-62713) | Unknown CfApi sync roots; Cloud Files placeholders in staging; OneDrive exempt |
@@ -162,6 +163,7 @@ The system must implement two correlation engines that fire composite detections
 | RemoveCert / RemoveCertAndKillAdder | Planted / high-confidence rogue certificates |
 | RemoveRegistryEntry | Malicious autorun / service / COM persistence |
 | DismountVolume | ISO/VHD/SUBST hosts for threats |
+| VpnShieldUp (v2.6.0) | Confirmed local network tamper: raise a userland RAS VPN tunnel (visible; no kernel), clean the path (unbridge / re-enable adapters / restore DNS), verify clean, then drop the tunnel. Fail-safe: hold tunnel if not verified clean. Non-kill (ordered below KillProcess). Gated on `VpnShield.Enabled` (`ProductPosture.AllowsVpnShield`, default off); prefers trusted `ProviderProfile`, VPN Gate fallback only if opted in |
 
 **ActiveResponse model:**
 
@@ -283,6 +285,28 @@ The user-session Agent must provide a Settings window (tray menu + double-click)
 - When enabled: `TlsCertificateMonitor` removes high-confidence planted roots immediately; `GhostProcessMonitor` kills invisible/empty-name PID -> Cast without the normal 2-scan wait; `CastDeviceGuard` auto-blocks rogue Cast by IOC MAC prefix and known IPs; `NullSessionGuard` blocks FCM TCP 5228; `AdvancedResponseEngine` exempts MitmDefense actions from ObserveUntilChain demotion
 - Config fields: `Enabled`, `RemovePlantedCerts`, `BlockFcmPushChannel`, `AutoBlockRogueCast`, `RogueCastMacPrefixes`, `KnownRogueCastIps`
 
+### FR-21: Protective VPN-shield remediation (v2.6.0)
+
+- `Sentinel:VpnShield` opt-in remediation for confirmed local network tampering (path-level MitM)
+- Default `Enabled: false` on clean installs (`ProductPosture.AllowsVpnShield` gate)
+- Trigger: the `Network Tamper: Local MitM Chain` composite fires when **>= 2 distinct** local-network
+  tamper vectors (`ARP`, `DNS`, `Route`, `Bridge`, `AdapterDown`, `WPAD`, `WiFiDeauth`, `WiFiEvilTwin`)
+  occur within the correlation window. A single vector never self-confirms; WPAD (a `WeakObserveSeed`)
+  also continues to feed the existing `WPAD Proxy Hijack Chain`
+- Action (`ResponseAction.VpnShieldUp`, non-kill, ordered below `KillProcess`): `VpnShieldEngine` raises
+  a userland RAS VPN tunnel (`rasapi32`, visible - no kernel driver, no self-hiding), asks
+  `NetworkInterfaceGuard` to clean (unbridge / re-enable adapters / restore DNS), verifies the path is
+  clean for `CleanSweepsRequired` consecutive sweeps, then drops the tunnel
+- **Fail-safe:** if the path cannot be *verified* clean (or verification errors), the tunnel STAYS UP;
+  on `MaxShieldSeconds` expiry the incident is escalated and the tunnel is held - never silently dropped
+- Trusted `ProviderProfile` (paid Proton/Mullvad or corporate RAS entry) is preferred; VPN Gate public
+  relays are a fallback only when `UseVpnGateFallback` is set and no trusted profile exists, and the
+  incident log records the volunteer-relay tradeoff
+- Chain confirmation must never rewrite a `VpnShieldUp` action into a process nuke; process-level
+  threats (C2, DoH exfil, covert mesh/webhook) are still answered with kill/isolate, not a tunnel
+- Config fields: `Enabled`, `ProviderProfile`, `UseVpnGateFallback`, `VpnGateEntryName`,
+  `VerifyIntervalSeconds`, `CleanSweepsRequired`, `MaxShieldSeconds`
+
 ### FR-19: Settings dashboard (v2.2.2)
 
 - Tray **Settings** / double-click opens the **built-in** WinForms dashboard (`AgentDashboardForm`)
@@ -371,3 +395,4 @@ The user-session Agent must provide a Settings window (tray menu + double-click)
 | 2.2.8 | T1-29 WMI triple + policy rewrite; C-27; WMI-Activity ETW provider #10; wmiadap module walk |
 | 2.2.9 | Unified web dashboard in native window; WebDashboardService re-enabled; BrowserLauncher removed |
 | 2.5.9 | T1-30 infostealer credential-access + collect/package/exfil; `SensitiveFileAccessMonitor` (browser cred/session stores + dev secrets + document archives, Restart-Manager PID attribution); composites C-28 Infostealer: Credential Access + Outbound, C-29 Data Staging + Exfiltration; raw file-access legs Tier2 observe, kill only via composite |
+| 2.6.0 | T1-31 local network path MitM; FR-21 protective VPN-shield remediation; `VpnShieldEngine` + `VpnShieldConfig`; `ResponseAction.VpnShieldUp` (non-kill, `ProductPosture.AllowsVpnShield` default off); composite `Network Tamper: Local MitM Chain` (>=2 distinct tamper vectors incl. WPAD + Wi-Fi deauth/evil-twin); raise userland RAS tunnel -> clean -> verify clean -> drop, fail-safe holds tunnel |

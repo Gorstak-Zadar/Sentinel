@@ -377,6 +377,8 @@ namespace Sentinel.Service
                     services.AddSingleton<ChainTracer>();
                     services.AddSingleton<DllUnloadEngine>();
                     services.AddSingleton<IncidentResponseService>();
+                    // v2.6.0: Protective VPN-shield remediation for confirmed network tampering
+                    services.AddSingleton<VpnShieldEngine>();
 
                     // Unified ETW Session - single session subscribing to 9 system providers
                     // Provides event-driven telemetry at ~50ms latency for all monitors

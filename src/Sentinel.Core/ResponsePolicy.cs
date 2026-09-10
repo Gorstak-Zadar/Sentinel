@@ -367,7 +367,12 @@ namespace Sentinel.Core
             if (IsNukeComposite(detection))
             {
                 detection.Tier = DetectionTier.Tier1Behavioral;
-                if (detection.AuthorizedResponse < ResponseAction.KillProcessTree)
+                // v2.6.0: A network-tamper composite authors the non-kill VPN-shield remediation
+                // (SYSTEM/PID 0 origin, no process to terminate). Do NOT rewrite it into a
+                // process nuke - preserve the author action so the response engine can raise the
+                // protective tunnel instead of quarantine-and-kill.
+                if (detection.AuthorizedResponse != ResponseAction.VpnShieldUp &&
+                    detection.AuthorizedResponse < ResponseAction.KillProcessTree)
                     detection.AuthorizedResponse = ResponseAction.QuarantineAndKill;
                 detection.Metadata["TierLaw"] = "Composite";
                 return;
@@ -843,7 +848,18 @@ namespace Sentinel.Core
         /// </summary>
         public static bool IsMitmDefenseAction(DetectionEvent detection, SentinelConfig config)
         {
-            if (!ProductPosture.AllowsMitmDefenseMutations(config) || detection == null)
+            if (detection == null || config == null)
+                return false;
+
+            // v2.6.0: The protective VPN-shield remediation is a network-integrity action in the
+            // same MITM family, but gated on its OWN posture switch (VpnShield.Enabled), NOT on
+            // MitmDefense.Enabled. Check it before the MitmDefense gate so enabling VpnShield
+            // alone is sufficient to exempt it from the multi-signal chain gate. Still non-kill;
+            // the response engine Tier1-guards it and re-checks ProductPosture.AllowsVpnShield.
+            if (detection.AuthorizedResponse == ResponseAction.VpnShieldUp)
+                return ProductPosture.AllowsVpnShield(config);
+
+            if (!ProductPosture.AllowsMitmDefenseMutations(config))
                 return false;
 
             if (detection.AuthorizedResponse == ResponseAction.RemoveCert ||
@@ -911,6 +927,15 @@ namespace Sentinel.Core
         {
             if (detection == null) return;
             detection.Tier = DetectionTier.Tier1Behavioral;
+            // v2.6.0: The protective VPN-shield action is a non-kill network-integrity
+            // remediation (SYSTEM/PID 0 origin, no malicious process to terminate). Chain
+            // confirmation must NOT rewrite it into a process nuke - preserve the author action.
+            if (detection.AuthorizedResponse == ResponseAction.VpnShieldUp)
+            {
+                detection.Metadata ??= new Dictionary<string, string>();
+                detection.Metadata[ChainConfirmedKey] = "true";
+                return;
+            }
             // KillAuthorized is derived from AuthorizedResponse >= KillProcess
             if (detection.AuthorizedResponse < ResponseAction.KillProcessTree)
                 detection.AuthorizedResponse = ResponseAction.QuarantineAndKill;

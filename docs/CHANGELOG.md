@@ -2,6 +2,26 @@
 
 
 
+## [2.6.2] - 2026-09-10
+
+### Fixed - Removed ~2 MB of shipped bloat from the installer payload
+
+Two things had leaked into the published payload over time and inflated the installer without
+adding any function:
+
+- **Duplicate `HardeningResources\` folder.** `dotnet publish` emitted a second copy of `LGPO.exe`
+  and `GSecurity.inf` under `HardeningResources\` in each of the service and agent trees, on top of
+  the copies `build.ps1` places at the install root. The runtime loads LGPO / GSecurity only from
+  the install root (`AppContext.BaseDirectory`, `HardeningModule.ApplyLgpoSecurityPolicy`), never
+  from `HardeningResources\`, so that whole subfolder was dead weight (~0.9 MB per tree).
+- **Debug symbols (`*.pdb`).** Framework-dependent `dotnet publish` includes `.pdb` files by
+  default; `Sentinel.Core.pdb` alone shipped in both trees (~1 MB total). Debug symbols have no
+  place in an end-user release installer.
+
+`installer/build.ps1` now prunes both from each publish tree after publishing and before the
+installer is compiled. The fix is loss-free: the root `LGPO.exe` / `GSecurity.inf` the hardening
+code actually reads are kept. No code, dependency, or behavior change.
+
 ## [2.6.1] - 2026-09-10
 
 ### Fixed - Quarantine now actually removes the file; no more re-quarantining the same DLL

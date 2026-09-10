@@ -112,6 +112,31 @@ foreach ($target in @("service", "agent")) {
     }
 }
 
+# 3d. Trim shipped bloat from each publish tree (~2 MB off the installer).
+#     Two things leaked into the published payload over time:
+#       * A duplicate HardeningResources\ subfolder (LGPO.exe + GSecurity.inf again) that
+#         dotnet publish emits as content. The runtime loads LGPO/GSecurity from the install
+#         ROOT (AppContext.BaseDirectory, see HardeningModule.ApplyLgpoSecurityPolicy), never
+#         from HardeningResources\, so that whole subfolder is dead weight (~0.9 MB x2 trees).
+#       * *.pdb debug symbols, which framework-dependent publish includes by default and which
+#         have no place in an end-user release installer (~1 MB).
+#     Removing them is loss-free: the root LGPO.exe/GSecurity.inf the code actually reads are
+#     kept by the copy step above.
+foreach ($target in @("service", "agent")) {
+    $dest = Join-Path $PublishDir $target
+
+    $hrDir = Join-Path $dest "HardeningResources"
+    if (Test-Path $hrDir) {
+        Remove-Item -Path $hrDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "Pruned unused HardeningResources\ from $target\" -ForegroundColor Yellow
+    }
+
+    Get-ChildItem $dest -Filter "*.pdb" -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
+        Remove-Item -Path $_.FullName -Force -ErrorAction SilentlyContinue
+    }
+    Write-Host "Pruned *.pdb from $target\" -ForegroundColor Yellow
+}
+
 # 4. Locate Inno Setup Compiler
 Write-Host "Locating Inno Setup compiler..." -ForegroundColor Yellow
 $DefaultIsccPaths = @(

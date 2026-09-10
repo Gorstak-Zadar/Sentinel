@@ -3,7 +3,7 @@
 Userland endpoint detection and response (EDR) for Windows. Monitors running processes, network activity, file system changes, and kernel driver loads in real time. When a multi-signal chain confirms a kill-grade attack - credential dump, reverse shell, C2 beaconing, process injection, BYOVD - it kills the process tree and writes a sealed evidence pack.
 
 **Platform:** Windows 10/11 x64 - .NET Framework 4.8  
-**Version:** 2.5.6
+**Version:** 2.6.2
 
 ## What it does
 
@@ -15,7 +15,7 @@ Userland endpoint detection and response (EDR) for Windows. Monitors running pro
 
 ## Install
 
-Run `SentinelSetup-2.5.6.exe` as Administrator. Requires .NET Framework 4.8.
+Run `SentinelSetup-2.6.2.exe` as Administrator. Requires .NET Framework 4.8.
 
 The installer registers `Sentinel` as a Windows service and adds `Sentinel.Agent.exe` to the autorun. Uninstall via **Add or Remove Programs** - the uninstaller stops both processes, removes the service, and cleans up IPSec/firewall rules.
 

@@ -2,6 +2,43 @@
 
 
 
+## [2.6.3] - 2026-09-12
+
+### Added - Update/servicing-surface abuse observation (`UpdateServicingMonitor`)
+
+Answers a real question - "can something malicious ride in through the Windows update / CAB
+servicing path?" - without pretending to do something Sentinel cannot. Sentinel deliberately does
+**not** try to validate whether an update is genuine: that is impossible from userland, and a truly
+Microsoft-signed, CDN-delivered payload (Flame-tier certificate forgery) is invisible to any
+userland tool. Instead, honoring the behavioral-signals-only constraint, the new
+`UpdateServicingMonitor` (CoreDetection group, 12s poll) watches what the servicing surface *does*:
+
+- **Anomalous servicing children.** A servicing actor (`TrustedInstaller`, `tiworker`, `wusa`,
+  `dism`, `dismhost`, `expand`, `extrac32`, `pkgmgr`, `poqexec`, `drvinst`) spawning a shell, a
+  download cradle, or a credential/LOLBin tool - the WSUSpect / servicing-abuse post-detonation
+  shape.
+- **CAB/MSU extraction to abnormal paths.** `expand` / `extrac32` unpacking to a target outside the
+  legitimate WinSxS / servicing / Temp staging - the CVE-2021-40444 (MSHTML) path-traversal
+  delivery class.
+- **Non-Microsoft servicing binaries.** A process wearing a servicing-actor name whose on-disk
+  image is unsigned or not Microsoft-signed (impostor / BYOVD staging), scored through
+  `SignerTrustService`.
+- **Suspicious update source.** A `WUServer` policy pointing at a plain-HTTP (on-path tamperable)
+  or non-Microsoft WSUS host.
+
+Every signal is **Tier2 / `ResponseAction.LogOnly`** with `Family` left null - the monitor never
+self-authorizes a kill. Its value is composition: it does not re-observe file writes or service
+registration (that is `FileActivityMonitor` and `RegistryMonitor`, which are already
+servicing-path-aware); it contributes the servicing-context observe leg that the correlation layer
+chains with a driver/service drop or a subsequent beacon/credential-access leg. Legitimate
+servicing - a clean cumulative update via `TrustedInstaller`, NTLite/DISM offline image work, a
+UUP dump conversion - produces no anomalous child, no abnormal extraction path, and
+Microsoft-signed binaries, so it emits nothing.
+
+`ScoringEngine.CategorizeDetection` now maps the `servicing` token to the `Persistence` category so
+these monitor-emitted events corroborate correctly. New indicator `T2-11` in `docs/requirements.md`;
+threat-model rationale in `docs/THREAT_MODEL.md` (v2.6.3).
+
 ## [2.6.2] - 2026-09-10
 
 ### Fixed - Removed ~2 MB of shipped bloat from the installer payload

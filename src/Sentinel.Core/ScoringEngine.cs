@@ -370,7 +370,7 @@ namespace Sentinel.Core
             if (r.Contains("ransomware") || r.Contains("shadow copy")) return DetectionCategory.Ransomware;
             if (r.Contains("evasion") || r.Contains("tampering") || r.Contains("amsi") || ContainsEtwToken(r))
                 return DetectionCategory.SecurityEvasion;
-            if (r.Contains("persistence") || r.Contains("scheduled task")) return DetectionCategory.Persistence;
+            if (r.Contains("persistence") || r.Contains("scheduled task") || r.Contains("servicing")) return DetectionCategory.Persistence;
             if (r.Contains("privilege") || r.Contains("uac bypass")) return DetectionCategory.PrivilegeEscalation;
             if (r.Contains("unsigned")) return DetectionCategory.UnsignedBinary;
             if (r.Contains("entropy")) return DetectionCategory.HighEntropy;

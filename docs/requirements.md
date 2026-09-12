@@ -88,6 +88,7 @@ The system must detect the following indicators (log only):
 | T2-08 | Missed Patch Tuesday: last CU before the latest second Tuesday after 7-day grace - LogOnly + toast, never force-patch |
 | T2-09 | MOTW-strip PE / ISO / VSIX / .rdp / AppInstaller in Downloads - LogOnly (game ISOs never a kill seed) |
 | T2-10 | ClickFix encoded Run, VS Code encoded shell, RDP client LOLBin spawn - LogOnly observe fuel |
+| T2-11 | Update/servicing-surface abuse (`UpdateServicingMonitor`): a servicing actor (`TrustedInstaller`/`tiworker`/`wusa`/`dism`/`dismhost`/`expand`/`extrac32`/`pkgmgr`) spawning a shell/LOLBin/credential tool; CAB/MSU extraction to a path outside WinSxS/servicing/Temp staging (CVE-2021-40444 `..\` class); an unsigned or non-Microsoft-signed binary named as a servicing actor; a plain-HTTP or non-Microsoft WSUS/`AutoConfigURL`-style update source - all LOLBin/servicing observe fuel, never a solo kill (composes with `RegistryMonitor` service-drop + `FileActivityMonitor` writes) |
 
 ### FR-4: Composite Detections
 
@@ -151,6 +152,7 @@ The system must implement two correlation engines that fire composite detections
 | PE / URL ML scoring | Offline FastTree models (`MlModels/pe_model.zip`, `url_model.zip`) | Skipped if models absent; soft signal only |
 | WMI-Activity ETW | Microsoft-Windows-WMI-Activity events 5859-5861 (permanent consumer / binding) | `WmiPersistenceMonitor` 30s poll of filter/consumer/binding |
 | Sensitive file access | `SensitiveFileAccessMonitor` FileSystemWatcher on user profiles for credential/session stores + dev secrets + document archives; Restart Manager (`RmGetList`) owning-process attribution | None (event-driven) |
+| Update/servicing surface | `UpdateServicingMonitor` polls servicing actors (`TrustedInstaller`/`tiworker`/`wusa`/`dism`/`dismhost`/`expand`/`extrac32`/`pkgmgr`) for anomalous children, CAB/MSU extraction outside WinSxS/servicing/Temp staging, and unsigned/non-Microsoft servicing binaries (`SignerTrustService`); WSUS/`AutoConfigURL`-style plain-HTTP or non-Microsoft update source. All Tier2/LogOnly observe fuel | `GetProcessCommandLine`/`GetParentProcessId` via WMI `Win32_Process`; degrades to process-name enumeration if WMI absent |
 
 ### FR-6: Response Actions
 
@@ -396,3 +398,4 @@ The user-session Agent must provide a Settings window (tray menu + double-click)
 | 2.2.9 | Unified web dashboard in native window; WebDashboardService re-enabled; BrowserLauncher removed |
 | 2.5.9 | T1-30 infostealer credential-access + collect/package/exfil; `SensitiveFileAccessMonitor` (browser cred/session stores + dev secrets + document archives, Restart-Manager PID attribution); composites C-28 Infostealer: Credential Access + Outbound, C-29 Data Staging + Exfiltration; raw file-access legs Tier2 observe, kill only via composite |
 | 2.6.0 | T1-31 local network path MitM; FR-21 protective VPN-shield remediation; `VpnShieldEngine` + `VpnShieldConfig`; `ResponseAction.VpnShieldUp` (non-kill, `ProductPosture.AllowsVpnShield` default off); composite `Network Tamper: Local MitM Chain` (>=2 distinct tamper vectors incl. WPAD + Wi-Fi deauth/evil-twin); raise userland RAS tunnel -> clean -> verify clean -> drop, fail-safe holds tunnel |
+| 2.6.3 | T2-11 update/servicing-surface abuse; `UpdateServicingMonitor` (CoreDetection group): servicing actors spawning shells/LOLBins/cred tools, CAB/MSU extraction to abnormal paths (CVE-2021-40444 `..\` class), unsigned/non-Microsoft servicing binaries via `SignerTrustService`, plain-HTTP/non-Microsoft update source; all Tier2/LogOnly observe fuel, composes with `RegistryMonitor` service-drop + `FileActivityMonitor` writes; never self-authorizes a kill |

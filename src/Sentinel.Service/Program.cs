@@ -535,6 +535,7 @@ namespace Sentinel.Service
                             ("DataExfiltrationMonitor",      s => s.GetRequiredService<DataExfiltrationMonitor>()),
                             ("AdsDataStagingMonitor",        s => s.GetRequiredService<AdsDataStagingMonitor>()),
                             ("ScriptExecutionMonitor",       s => s.GetRequiredService<ScriptExecutionMonitor>()),
+                            ("UpdateServicingMonitor",       s => s.GetRequiredService<UpdateServicingMonitor>()),
                             ("ScriptHardeningMonitor",       s => s.GetRequiredService<ScriptHardeningMonitor>()),
                             ("NamedPipeMonitor",             s => s.GetRequiredService<NamedPipeMonitor>()),
                             ("RpcLateralMonitor",            s => s.GetRequiredService<RpcLateralMonitor>()),
@@ -589,6 +590,7 @@ namespace Sentinel.Service
                     services.AddSingleton<DataExfiltrationMonitor>();
                     services.AddSingleton<AdsDataStagingMonitor>();
                     services.AddSingleton<ScriptExecutionMonitor>();
+                    services.AddSingleton<UpdateServicingMonitor>();
                     services.AddSingleton<ScriptHardeningMonitor>();
                     services.AddSingleton<NamedPipeMonitor>();
                     services.AddSingleton<RpcLateralMonitor>();

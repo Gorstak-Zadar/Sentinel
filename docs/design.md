@@ -111,6 +111,7 @@ Organized by MonitorGroup. Each group has staggered startup, independent failure
 | `DataExfiltrationMonitor` | Host-wide outbound volume spikes; **torrent/P2P/aria2 bulk transfer = observe-only** (never Exfil terminal) | 15s |
 | `AdsDataStagingMonitor` | Detects non-standard NTFS Alternate Data Streams (>1KB) in Temp/Downloads | periodic |
 | `ScriptExecutionMonitor` | PowerShell Event 4104, parent-child anomalies, AMSI bypass, SAM extraction, script drops | 10s |
+| `UpdateServicingMonitor` | Update/servicing-surface abuse: servicing actors (`TrustedInstaller`/`wusa`/`dism`/`expand`/`extrac32`/`pkgmgr`) spawning shells/LOLBins/cred tools, CAB/MSU extraction to abnormal paths (CVE-2021-40444 `..\` class), non-Microsoft/HTTP WSUS source, unsigned/oddly-signed servicing binaries. All signals Tier2/LogOnly (never self-authorizes a kill); composes with `RegistryMonitor` service-drop + `FileActivityMonitor` writes | 12s |
 | `ScriptHardeningMonitor` | PS history integrity, SBL enforcement, downgrade, obfuscation scoring, profile persistence | 8s |
 | `NamedPipeMonitor` | Polls `\\.\pipe\` for C2/lateral movement patterns; GetNamedPipeServerProcessId attribution | 15s |
 | `RpcLateralMonitor` | Detects outbound lateral movement via RPC/DCOM/WMI/WinRM (ports 135/445/5985/5986) | 10s |

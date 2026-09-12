@@ -2,6 +2,18 @@
 
 
 
+## [2.6.4] - 2026-09-12
+
+### Fixed - GitHub release notes no longer break the release publish step
+
+The 2.6.3 release exposed a latent bug in `installer/release.ps1`: it passed the multi-line
+CHANGELOG-extracted release notes to `gh release create` inline via `--notes`. The embedded
+newlines split the argument, so `gh` failed and no GitHub release was created - even though the
+version bump, build, commit, and push had all already succeeded (a confusing "half-released" state
+that had to be finished by hand). The publish step now writes the notes to a temporary file and
+uses `--notes-file`, which is newline-safe, then cleans the file up. No behavior change to
+versioning, build, stamping, commit, or push.
+
 ## [2.6.3] - 2026-09-12
 
 ### Added - Update/servicing-surface abuse observation (`UpdateServicingMonitor`)

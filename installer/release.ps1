@@ -167,7 +167,18 @@ if ($NoPublish) {
 } else {
     Write-Step "Publishing GitHub release v$Next"
     $notes = Get-ChangelogNotes -Version $Next
-    Invoke-External gh @('release', 'create', "v$Next", $InstallerPath, '--title', "Sentinel $Next", '--notes', $notes)
+    # Write notes to a temp file and use --notes-file. Passing multi-line release notes
+    # inline via --notes breaks the gh invocation (the newlines split the argument), which
+    # previously left the commit pushed but no GitHub release created. --notes-file is
+    # newline-safe.
+    $notesFile = New-TemporaryFile
+    try {
+        Set-Content -Path $notesFile -Value $notes -Encoding UTF8
+        Invoke-External gh @('release', 'create', "v$Next", $InstallerPath, '--title', "Sentinel $Next", '--notes-file', $notesFile.FullName)
+    }
+    finally {
+        Remove-Item $notesFile -ErrorAction SilentlyContinue
+    }
 }
 
 Write-Host "==============================================" -ForegroundColor Green

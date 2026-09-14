@@ -29,6 +29,39 @@ namespace Sentinel.Core
             IntPtr hTargetProcessHandle, out IntPtr lpTargetHandle,
             int dwDesiredAccess, bool bInheritHandle, int dwOptions);
 
+        // Module enumeration (psapi). Exposed via kernel32 forwarders so the import
+        // table stays auditable. EnumProcessModulesEx + LIST_MODULES_ALL is the only
+        // reliable way for a 64-bit process to enumerate a 32-bit (WOW64) target's
+        // modules; Process.Modules / EnumProcessModules alone silently misses them.
+        public const uint LIST_MODULES_DEFAULT = 0x0;
+        public const uint LIST_MODULES_32BIT = 0x01;
+        public const uint LIST_MODULES_64BIT = 0x02;
+        public const uint LIST_MODULES_ALL = 0x03;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MODULEINFO
+        {
+            public IntPtr lpBaseOfDll;
+            public uint SizeOfImage;
+            public IntPtr EntryPoint;
+        }
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool EnumProcessModulesEx(IntPtr hProcess,
+            [Out] IntPtr[] lphModule, int cb, out int lpcbNeeded, uint dwFilterFlag);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern int GetModuleFileNameExW(IntPtr hProcess, IntPtr hModule,
+            [Out] System.Text.StringBuilder lpFilename, int nSize);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern int GetModuleBaseNameW(IntPtr hProcess, IntPtr hModule,
+            [Out] System.Text.StringBuilder lpBaseName, int nSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool GetModuleInformation(IntPtr hProcess, IntPtr hModule,
+            out MODULEINFO lpmodinfo, int cb);
+
         [DllImport("ntdll.dll")]
         public static extern int NtQuerySystemInformation(int systemInformationClass,
             IntPtr systemInformation, int systemInformationLength, out int returnLength);

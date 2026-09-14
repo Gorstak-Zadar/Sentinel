@@ -113,25 +113,142 @@ namespace Sentinel.Core
             return NativeResolver.DuplicateHandle(srcProc, src, dstProc, out dst, access, inherit, options);
         }
 
+        /// <summary>
+        /// Enumerates every mapped module (native + WOW64) of <paramref name="pid"/>.
+        ///
+        /// Process.Modules is backed by the Toolhelp/PSAPI default filter and, from a 64-bit
+        /// host, silently returns an empty or partial list for a 32-bit (WOW64) target - which
+        /// hid injected 32-bit modules from the unload/quarantine engine. We now always run the
+        /// PSAPI EnumProcessModulesEx(LIST_MODULES_ALL) path (native + WOW64 in one pass) and
+        /// merge it with the managed list, deduped by module base address. Enumeration failures
+        /// are logged rather than swallowed so coverage holes are visible.
+        /// </summary>
         public static List<(string Name, string Path, IntPtr Base, int Size)> EnumModules(int pid)
         {
-            var list = new List<(string, string, IntPtr, int)>();
-            if (!CanInspect(pid)) return list;
+            var byBase = new Dictionary<IntPtr, (string Name, string Path, IntPtr Base, int Size)>();
+
+            if (!CanInspect(pid))
+            {
+                MappedModuleCache.Replace(pid, new List<(string, string, IntPtr, int)>());
+                return new List<(string, string, IntPtr, int)>();
+            }
+
+            // 1) Managed snapshot. Cheap and works for same-bitness targets. May throw or
+            //    return a short list for cross-bitness targets - that is exactly the gap the
+            //    native pass below closes.
             try
             {
                 using var proc = System.Diagnostics.Process.GetProcessById(pid);
                 foreach (System.Diagnostics.ProcessModule mod in proc.Modules)
                 {
-                    list.Add((
+                    var entry = (
                         mod.ModuleName ?? "",
                         mod.FileName ?? "",
                         mod.BaseAddress,
-                        mod.ModuleMemorySize));
+                        mod.ModuleMemorySize);
+                    byBase[mod.BaseAddress] = entry;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[NativeProcessMemory] Process.Modules failed for PID {pid} (expected for cross-bitness targets; native pass follows): {ex.Message}");
+            }
+
+            // 2) Native LIST_MODULES_ALL pass. This is the authoritative enumeration and the
+            //    only one that reliably sees 32-bit modules from a 64-bit host.
+            EnumModulesNative(pid, byBase);
+
+            var list = new List<(string, string, IntPtr, int)>(byBase.Count);
+            foreach (var kv in byBase) list.Add(kv.Value);
+
             MappedModuleCache.Replace(pid, list);
             return list;
+        }
+
+        /// <summary>
+        /// PSAPI EnumProcessModulesEx(LIST_MODULES_ALL). Merges into <paramref name="byBase"/>,
+        /// keyed by module base address so it does not double-count entries the managed pass
+        /// already found. Requires PROCESS_QUERY_INFORMATION | PROCESS_VM_READ.
+        /// </summary>
+        private static void EnumModulesNative(int pid,
+            Dictionary<IntPtr, (string Name, string Path, IntPtr Base, int Size)> byBase)
+        {
+            IntPtr h = OpenRemoteHandle(AccessQuery | AccessVmRead, pid);
+            if (h == IntPtr.Zero)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[NativeProcessMemory] EnumModulesNative: could not open PID {pid} for module enumeration (err {Marshal.GetLastWin32Error()}).");
+                return;
+            }
+
+            try
+            {
+                // Size probe: first call reports the bytes needed for the full handle array.
+                if (!NativeResolver.EnumProcessModulesEx(h, Array.Empty<IntPtr>(), 0,
+                        out int needed, NativeResolver.LIST_MODULES_ALL) && needed <= 0)
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[NativeProcessMemory] EnumProcessModulesEx size probe failed for PID {pid} (err {Marshal.GetLastWin32Error()}).");
+                    return;
+                }
+
+                if (needed <= 0) return;
+                int count = needed / IntPtr.Size;
+                // Loop until the array is large enough (module set can grow between calls).
+                IntPtr[] handles = new IntPtr[count];
+                if (!NativeResolver.EnumProcessModulesEx(h, handles, needed, out int needed2,
+                        NativeResolver.LIST_MODULES_ALL))
+                {
+                    System.Diagnostics.Debug.WriteLine(
+                        $"[NativeProcessMemory] EnumProcessModulesEx fill failed for PID {pid} (err {Marshal.GetLastWin32Error()}).");
+                    return;
+                }
+                if (needed2 < needed) count = needed2 / IntPtr.Size;
+
+                var nameSb = new System.Text.StringBuilder(260);
+                var pathSb = new System.Text.StringBuilder(1024);
+
+                for (int i = 0; i < count && i < handles.Length; i++)
+                {
+                    IntPtr hMod = handles[i];
+                    if (hMod == IntPtr.Zero) continue;
+
+                    IntPtr baseAddr = hMod; // module handle == base address in the target
+                    if (byBase.ContainsKey(baseAddr)) continue; // managed pass already had it
+
+                    string path = "";
+                    pathSb.Clear();
+                    int pn = NativeResolver.GetModuleFileNameExW(h, hMod, pathSb, pathSb.Capacity);
+                    if (pn > 0) path = pathSb.ToString();
+
+                    string name = "";
+                    nameSb.Clear();
+                    int nn = NativeResolver.GetModuleBaseNameW(h, hMod, nameSb, nameSb.Capacity);
+                    if (nn > 0) name = nameSb.ToString();
+                    else if (path.Length > 0) name = System.IO.Path.GetFileName(path);
+
+                    int size = 0;
+                    if (NativeResolver.GetModuleInformation(h, hMod,
+                            out NativeResolver.MODULEINFO mi, Marshal.SizeOf<NativeResolver.MODULEINFO>()))
+                    {
+                        size = (int)Math.Min(mi.SizeOfImage, int.MaxValue);
+                        baseAddr = mi.lpBaseOfDll != IntPtr.Zero ? mi.lpBaseOfDll : hMod;
+                    }
+
+                    if (byBase.ContainsKey(baseAddr)) continue;
+                    byBase[baseAddr] = (name, path, baseAddr, size);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[NativeProcessMemory] EnumModulesNative failed for PID {pid}: {ex.Message}");
+            }
+            finally
+            {
+                CloseHandle(h);
+            }
         }
     }
 

@@ -2,6 +2,33 @@
 
 
 
+## [2.6.6] - 2026-09-14
+
+### Fixed - Cross-bitness module enumeration blind spot (`NativeProcessMemory.EnumModules`)
+
+Closes a real coverage gap in the injected/hijacked-module scanner. `EnumModules` was backed
+solely by `System.Diagnostics.Process.Modules`, which from a 64-bit host silently returns an empty
+or partial list for a 32-bit (WOW64) target and swallowed the failure in a bare `catch {}`. A
+module injected purely in memory into a running 32-bit process could therefore never reach
+`ModuleIdentity.Evaluate`, so `DllUnloadEngine.ScanProcessAsync` saw no hostile load and took no
+action. The failure was invisible - nothing distinguished "no extra modules" from "enumeration
+failed".
+
+`EnumModules` now runs two merged passes: the managed `Process.Modules` snapshot (cheap,
+same-bitness) followed by an authoritative native `EnumProcessModulesEx(LIST_MODULES_ALL)` pass
+that enumerates native **and** WOW64 modules in one call. Results are deduped by module base
+address, and every enumeration failure is now logged (`Debug.WriteLine`) instead of swallowed so
+coverage holes are observable.
+
+New auditable PSAPI P/Invokes were added to `NativeResolver` (`EnumProcessModulesEx`,
+`GetModuleFileNameExW`, `GetModuleBaseNameW`, `GetModuleInformation`, `MODULEINFO`,
+`LIST_MODULES_*`) as plain `[DllImport]`s, consistent with the file's "no GetProcAddress hiding"
+policy. Protected processes (PPL / anti-cheat / any target `CanInspect` refuses) remain
+intentionally out of scope - that gate is unchanged.
+
+Verified: build 0W/0E; all 148 module / DLL-unload tests green; live enumeration confirmed against
+self and multiple running processes.
+
 ## [2.6.5] - 2026-09-13
 
 ### Added - Winsock LSP catalog integrity observation (`WinsockLspIntegrityMonitor`)

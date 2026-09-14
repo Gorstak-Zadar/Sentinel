@@ -42,17 +42,24 @@ When a unit of work (a spec, a feature, a fix) is complete and verified, perform
    with `installer/release.ps1 -DryRun`). The release publishes GitHub notes by extracting this
    section, so the heading must exactly match the released `MAJOR.MINOR.PATCH`. Update
    `docs/THREAT_MODEL.md`, `docs/requirements.md`, or `docs/design.md` if behavior changed.
-2. **Release.** Run `installer/release.ps1`, which:
+2. **Build the release.** Run `installer/release.ps1`, which:
    - computes the next version per the policy and writes `version.txt`,
    - runs `installer/build.ps1` (publish Service + Agent, stamp, compile the Inno Setup installer,
-     copy to `releases/<version>/`),
-   - commits all changes as `Release <version>`,
-   - pushes to `origin` (branch `main`),
-   - creates a GitHub release `v<version>` with the installer attached (via `gh`).
-3. Use `installer/release.ps1 -DryRun` first if unsure; `-NoPublish` to skip the GitHub release.
+     copy to `releases/<version>/`).
+   Use `installer/release.ps1 -DryRun` first if unsure. Note: `release.ps1` also *attempts* a git
+   commit/push, but that step is best-effort and will (correctly) fail if `.git` is absent - it is
+   NOT the authoritative publish path. Do not treat a failed git step here as a blocker.
+3. **Publish.** Run `D:\Gorstak\push.ps1 -ProjectFilter sentinel` from `D:\Gorstak`. This is the
+   authoritative, owner-authorized push/release path: it inits the repo if needed, commits,
+   fetches + rebases onto `origin/main`, resolves divergence (force-with-lease, local wins), and
+   uploads the `releases/<version>/` installer as GitHub release `v<version>`. Run it without
+   pausing for confirmation - the owner has pre-authorized its behavior. A missing `.git` is not a
+   blocker; `push.ps1` recreates it. See `git-rules.md`.
 
 ### Git safety for releases
 
-- Push to `origin` on the current branch; never force-push (see `git-rules.md`).
-- Only the release commit is created automatically. Do not amend or rewrite pushed history.
+- The sanctioned push/release path is `push.ps1` (see `git-rules.md`). Its internal
+  `force-with-lease` (local wins on divergence) is owner-authorized and is NOT the forbidden
+  manual force-push.
+- Never type an ad-hoc `git push --force` / `--force-with-lease` by hand outside `push.ps1`.
 - Flag (do not commit) any file that looks like a secret before it enters a release commit.

@@ -3,7 +3,7 @@
 Userland endpoint detection and response (EDR) for Windows. Monitors processes, network activity, file system changes, and kernel driver loads in real time, and kills a process tree only when a multi-signal chain confirms a kill-grade attack.
 
 **Platform:** Windows 10/11 x64 - .NET Framework 4.8
-**Version:** 2.6.2
+**Version:** 2.6.8 (single source of truth: `version.txt`)
 
 ## Legal Disclaimer
 

@@ -2,6 +2,33 @@
 
 
 
+## [2.6.7] - 2026-09-15
+
+### Hardened - Evidence independence in the local network-tamper (VPN-shield) composite
+
+Closes an evidence-independence flaw in `BehavioralCorrelationEngine`'s `Network Tamper: Local
+MitM Chain` composite. The composite authorizes the protective VPN shield when it sees ">= 2
+distinct tamper vectors," but distinctness was keyed purely on a **vector label** derived from the
+rule name (`NetworkTamperVector`: ARP / DNS / Route / Bridge / WPAD / ...). Because a single root
+event - most notably one gateway MAC change, which is what ARP spoofing *is* - can legitimately
+trip several detectors at once, two labels (e.g. `ARP` + `Route`) could be produced by one
+underlying observation and self-confirm a MitM chain that was really a single fact. That is the
+general "N weak signals from one root observation masquerade as N independent legs" risk.
+
+The composite now counts **independent** vectors, not just distinct labels. A monitor may stamp a
+signal with an `ObservationKey` in metadata identifying the single root observation it derives
+from; `CountIndependentTamperVectors` groups signals by that key so co-derived vectors collapse to
+one leg, and only observations that introduce a genuinely new vector count toward the `>= 2`
+threshold. Signals with no `ObservationKey` are treated as independent, so legacy monitors that
+predate the key are unaffected - the gate only ever *removes* false independence, never adds it.
+The VPN shield remains non-kill, Tier1-guarded, and default-deny behind `ProductPosture.
+AllowsVpnShield`.
+
+Verified: build 0W/0E; full suite 2357/2357 green, including three new independence tests
+(co-derived vectors from one observation do not fire; two distinct observations still fire; mixed
+keyed + legacy signals remain independent) and all pre-existing VpnShield/correlation tests
+unchanged.
+
 ## [2.6.6] - 2026-09-14
 
 ### Fixed - Cross-bitness module enumeration blind spot (`NativeProcessMemory.EnumModules`)

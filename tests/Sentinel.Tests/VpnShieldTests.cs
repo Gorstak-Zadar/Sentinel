@@ -43,6 +43,15 @@ namespace Sentinel.Tests
             Timestamp = DateTime.UtcNow,
         };
 
+        // Tamper signal that declares the SINGLE root observation it derives from, so the
+        // evidence-independence gate can collapse co-derived vectors.
+        private static DetectionEvent TamperFromObservation(string rule, string observationKey)
+        {
+            var d = Tamper(rule);
+            d.Metadata["ObservationKey"] = observationKey;
+            return d;
+        }
+
         // ---- (1) Tier1 composite fires on 2 distinct tamper vectors ----
 
         [Fact]
@@ -125,6 +134,63 @@ namespace Sentinel.Tests
             await engine.RegisterSignalAsync(Tamper("WPAD Auto-Detect With Remote PAC"));
 
             Assert.Null(emitted);
+        }
+
+        // ---- Evidence independence: co-derived vectors from one root fact must NOT self-confirm ----
+
+        [Fact]
+        public async Task TwoVectorsFromSameObservation_DoNotFireComposite()
+        {
+            var engine = new BehavioralCorrelationEngine();
+            DetectionEvent? emitted = null;
+            engine.Initialize(ev => { emitted = ev; return Task.CompletedTask; });
+
+            // A single gateway MAC change is what ARP spoofing IS. If that one L2 event also
+            // trips a route-table re-read, the two signals carry different vector labels
+            // (ARP + Route) but rest on ONE root observation - not two independent proofs.
+            await engine.RegisterSignalAsync(
+                TamperFromObservation("ARP Spoof: Gateway MAC Changed", "gw-mac:00-11-22-33-44-55"));
+            await engine.RegisterSignalAsync(
+                TamperFromObservation("Route Injected: Default Gateway", "gw-mac:00-11-22-33-44-55"));
+
+            Assert.Null(emitted);
+        }
+
+        [Fact]
+        public async Task TwoVectorsFromDistinctObservations_FireComposite()
+        {
+            var engine = new BehavioralCorrelationEngine();
+            DetectionEvent? emitted = null;
+            engine.Initialize(ev => { emitted = ev; return Task.CompletedTask; });
+
+            // Two genuinely independent root facts: a gateway ARP change AND a separate,
+            // independently-observed DNS server change. Real multi-signal MitM proof -> fire.
+            await engine.RegisterSignalAsync(
+                TamperFromObservation("ARP Spoof: Gateway MAC Changed", "gw-mac:00-11-22-33-44-55"));
+            await engine.RegisterSignalAsync(
+                TamperFromObservation("Network: Unauthorized DNS Change", "dns:10.0.0.53"));
+
+            Assert.NotNull(emitted);
+            Assert.Equal("Network Tamper: Local MitM Chain", emitted!.RuleName);
+            Assert.Equal(DetectionTier.Tier1Behavioral, emitted.Tier);
+            Assert.Equal(ResponseAction.VpnShieldUp, emitted.AuthorizedResponse);
+        }
+
+        [Fact]
+        public async Task MixedKeyedAndLegacySignals_RemainIndependent()
+        {
+            var engine = new BehavioralCorrelationEngine();
+            DetectionEvent? emitted = null;
+            engine.Initialize(ev => { emitted = ev; return Task.CompletedTask; });
+
+            // Legacy monitors that predate ObservationKey emit no key: they must still be
+            // treated as independent so the gate only ever tightens, never loosens.
+            await engine.RegisterSignalAsync(
+                TamperFromObservation("ARP Spoof: Gateway MAC Changed", "gw-mac:aa-bb-cc-dd-ee-ff"));
+            await engine.RegisterSignalAsync(Tamper("Network Bridge Detected"));
+
+            Assert.NotNull(emitted);
+            Assert.Equal(ResponseAction.VpnShieldUp, emitted!.AuthorizedResponse);
         }
 
         // ---- (3) VpnShieldUp respects Tier: a Tier2 event never reaches the action ----

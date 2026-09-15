@@ -703,6 +703,74 @@ namespace Sentinel.Core
                 || n.IndexOf("BSSID Changed", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        /// <summary>
+        /// Metadata key a network monitor may set to identify the SINGLE underlying observation
+        /// (e.g. a gateway MAC change, one adapter, one route-table snapshot) that produced this
+        /// signal. Two signals that share the same observation key are NOT independent evidence,
+        /// even if they carry different <see cref="NetworkTamperVector"/> labels - they are two
+        /// views of one root fact. Used by <see cref="CountIndependentTamperVectors"/> so a lone
+        /// ARP/gateway event cannot masquerade as ARP + Route + DNS.
+        /// </summary>
+        internal const string ObservationKeyMeta = "ObservationKey";
+
+        /// <summary>
+        /// Counts DISTINCT tamper vectors that also rest on INDEPENDENT root observations.
+        /// A vector counts once; if several signals of DIFFERENT vector labels all share the same
+        /// <see cref="ObservationKeyMeta"/> value, they collapse to a single independent leg
+        /// (one root fact cannot be its own corroboration). Signals with no observation key are
+        /// treated as independent (each contributes its own vector) - legacy monitors that predate
+        /// the key are unaffected, so this only ever REMOVES false independence, never adds it.
+        /// </summary>
+        private static int CountIndependentTamperVectors(List<DetectionEvent> snapshot)
+        {
+            // Group signals by their root observation. Signals without a key each get a unique
+            // synthetic group so they remain independent.
+            var byObservation = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            int synthetic = 0;
+            foreach (var s in snapshot)
+            {
+                var vector = NetworkTamperVector(s);
+                string obsKey;
+                if (s.Metadata != null &&
+                    s.Metadata.TryGetValue(ObservationKeyMeta, out var k) &&
+                    !string.IsNullOrWhiteSpace(k))
+                {
+                    obsKey = k;
+                }
+                else
+                {
+                    // No provenance declared: this signal stands on its own root fact.
+                    obsKey = "__nokey__" + (synthetic++);
+                }
+
+                if (!byObservation.TryGetValue(obsKey, out var vset))
+                    byObservation[obsKey] = vset = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                vset.Add(vector);
+            }
+
+            // Each independent root observation contributes ONE leg regardless of how many
+            // vector labels it tripped. Independence is the number of distinct root facts that
+            // each carry at least one tamper vector.
+            int independentLegs = 0;
+            var seenVectors = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var kv in byObservation)
+            {
+                // Only count this observation if it introduces a tamper vector not already
+                // proven by another independent observation - keeps two independent facts that
+                // happen to share a vector label from double-counting either.
+                bool introducesNew = false;
+                foreach (var v in kv.Value)
+                {
+                    if (seenVectors.Add(v))
+                        introducesNew = true;
+                }
+                if (introducesNew)
+                    independentLegs++;
+            }
+
+            return independentLegs;
+        }
+
         /// <summary>Distinct tamper-vector label so 2 hits of the SAME vector don't self-confirm.</summary>
         private static string NetworkTamperVector(DetectionEvent s)
         {
@@ -756,7 +824,11 @@ namespace Sentinel.Core
             }
 
             var vectors = snapshot.Select(NetworkTamperVector).Distinct().ToList();
-            if (vectors.Count < 2) return; // need 2 independent tamper vectors
+            // Evidence-independence gate: distinct vector LABELS are not enough. Require >= 2
+            // vectors that rest on INDEPENDENT root observations, so a single gateway/ARP event
+            // that trips several detectors cannot self-confirm a MitM chain. Legacy signals with
+            // no ObservationKey are treated as independent, so this only tightens, never loosens.
+            if (CountIndependentTamperVectors(snapshot) < 2) return;
 
             // Re-emit cooldown so a burst of tamper signals doesn't spam shield actions
             // (the shield engine is single-flight anyway, but keep the log clean).

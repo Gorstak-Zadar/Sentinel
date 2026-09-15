@@ -193,6 +193,45 @@ namespace Sentinel.Tests
             Assert.Equal(ResponseAction.VpnShieldUp, emitted!.AuthorizedResponse);
         }
 
+        // ---- Real monitor-key shapes: proves the wired-in ObservationKey values behave ----
+
+        [Fact]
+        public async Task GatewayArpAndCoDerivedRoute_ShareGatewayKey_DoNotFire()
+        {
+            var engine = new BehavioralCorrelationEngine();
+            DetectionEvent? emitted = null;
+            engine.Initialize(ev => { emitted = ev; return Task.CompletedTask; });
+
+            // The ArpSpoofMonitor keys the gateway-MAC signal on "gw-mac:<ip>", and the
+            // poisoned-MAC signal that includes the gateway keys on the SAME "gw-mac:<ip>".
+            // One ARP fact -> must not self-confirm even though the labels differ.
+            await engine.RegisterSignalAsync(
+                TamperFromObservation("ARP Spoof: Gateway MAC Changed", "gw-mac:192.168.1.1"));
+            await engine.RegisterSignalAsync(
+                TamperFromObservation("Route Injected: Default Gateway", "gw-mac:192.168.1.1"));
+
+            Assert.Null(emitted);
+        }
+
+        [Fact]
+        public async Task WifiDeauthAndEvilTwin_HaveDistinctMonitorKeys_StillFire()
+        {
+            var engine = new BehavioralCorrelationEngine();
+            DetectionEvent? emitted = null;
+            engine.Initialize(ev => { emitted = ev; return Task.CompletedTask; });
+
+            // WifiSecurityMonitor keys deauth on "wifi-deauth:<ssid>" and evil-twin on
+            // "wifi-bssid:<bssid>" - deliberately distinct, so the two-step sequence remains
+            // two independent vectors and reaches the shield.
+            await engine.RegisterSignalAsync(
+                TamperFromObservation("WiFi Security: Deauthentication Flood Detected", "wifi-deauth:HomeNet"));
+            await engine.RegisterSignalAsync(
+                TamperFromObservation("WiFi Security: BSSID Changed (Possible Evil Twin)", "wifi-bssid:00-de-ad-be-ef-00"));
+
+            Assert.NotNull(emitted);
+            Assert.Equal(ResponseAction.VpnShieldUp, emitted!.AuthorizedResponse);
+        }
+
         // ---- (3) VpnShieldUp respects Tier: a Tier2 event never reaches the action ----
 
         [Fact]

@@ -655,31 +655,7 @@ namespace Sentinel.Core
         /// Returns true if a known OS-image servicing process is currently running.
         /// Used to validate that user tool working path exclusions are legitimate.
         /// </summary>
-        private static bool IsServicingProcessActive()
-        {
-            try
-            {
-                foreach (var proc in System.Diagnostics.Process.GetProcesses())
-                {
-                    try
-                    {
-                        var n = proc.ProcessName;
-                        proc.Dispose();
-                        if (n.Equals("dism") ||
-                            n.Equals("dismhost") ||
-                            n.Equals("ntlite") ||
-                            n.Equals("tiworker") ||
-                            n.Equals("trustedinstaller") ||
-                            n.Equals("msmgtoolkit") ||
-                            n.Equals("imagex"))
-                            return true;
-                    }
-                    catch { }
-                }
-            }
-            catch { }
-            return false;
-        }
+        private static bool IsServicingProcessActive() => ServicingWindow.IsActive();
 
         /// <summary>
         /// Filters AppData events to only monitor security-relevant activity:

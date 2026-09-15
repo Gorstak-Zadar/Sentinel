@@ -195,5 +195,68 @@ namespace Sentinel.Tests
                 _ => false);
             Assert.False(v.Allowed);
         }
+
+        // ---- Roslyn analyzer shadow-copy (real-world FP fix) ----
+
+        private const string VbcsCompiler =
+            @"C:\Program Files\dotnet\sdk\10.0.400\Roslyn\bincore\VBCSCompiler.exe";
+
+        [Theory]
+        [InlineData(@"Microsoft.Extensions.Logging.Generators.dll")]
+        [InlineData(@"Microsoft.Extensions.Options.SourceGeneration.dll")]
+        [InlineData(@"System.Text.Json.SourceGeneration.dll")]
+        [InlineData(@"xunit.analyzers.dll")]
+        [InlineData(@"xunit.analyzers.fixes.dll")]
+        public void RoslynAnalyzerShadowCopy_LoadedByBuildHost_IsAllowed(string dll)
+        {
+            // VBCSCompiler shadow-copies analyzers into %TEMP%\VBCSCompiler\AnalyzerAssemblyLoader
+            // and loads them from there - a documented SDK mechanism, not a sideload.
+            var module =
+                @"C:\Users\Admin\AppData\Local\Temp\VBCSCompiler\AnalyzerAssemblyLoader\" +
+                @"3ef653c8cd8a4babb66f992ca3e5ddc0\1\" + dll;
+
+            var v = ModuleIdentity.Evaluate(VbcsCompiler, module, _ => false);
+
+            Assert.True(v.Allowed, v.Reason + " for " + dll);
+            Assert.Equal("roslyn-analyzer-shadowcopy", v.Reason);
+        }
+
+        [Theory]
+        [InlineData(@"C:\Program Files\dotnet\dotnet.exe")]
+        [InlineData(@"C:\Program Files\dotnet\sdk\10.0.400\Roslyn\bincore\VBCSCompiler.exe")]
+        [InlineData(@"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe")]
+        public void RoslynAnalyzerShadowCopy_AcceptsKnownBuildHosts(string host)
+        {
+            var module =
+                @"C:\Users\Admin\AppData\Local\Temp\VBCSCompiler\AnalyzerAssemblyLoader\g\1\gen.dll";
+            var v = ModuleIdentity.Evaluate(host, module, _ => false);
+            Assert.True(v.Allowed, v.Reason + " for host " + host);
+            Assert.Equal("roslyn-analyzer-shadowcopy", v.Reason);
+        }
+
+        [Fact]
+        public void RoslynAnalyzerShadowCopy_AbusedByForeignHost_IsStillDenied()
+        {
+            // A hostile process cannot self-authorize by merely NAMING its drop folder
+            // "VBCSCompiler\AnalyzerAssemblyLoader" - the loading host must be a real SDK binary.
+            var module =
+                @"C:\Users\Admin\AppData\Local\Temp\VBCSCompiler\AnalyzerAssemblyLoader\g\1\payload.dll";
+
+            var v = ModuleIdentity.Evaluate(Ceprkac, module, _ => false);
+
+            Assert.False(v.Allowed);
+            Assert.Equal("user-writable-drop", v.Reason);
+        }
+
+        [Fact]
+        public void RoslynBuildHost_ButModuleOutsideShadowCopy_IsNotAutoAllowed()
+        {
+            // The exemption is scoped to the analyzer shadow-copy path only. A build host
+            // loading a DLL from an ordinary temp drop is still evaluated normally.
+            var module = @"C:\Users\Admin\AppData\Local\Temp\evil\payload.dll";
+            var v = ModuleIdentity.Evaluate(VbcsCompiler, module, _ => false);
+            Assert.False(v.Allowed);
+            Assert.Equal("user-writable-drop", v.Reason);
+        }
     }
 }

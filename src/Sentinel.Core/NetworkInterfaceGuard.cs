@@ -317,7 +317,12 @@ namespace Sentinel.Core
                         Reasoning = "A network adapter bridge was created on the system. Network bridges allow lateral movement pivoting, bypassing the host firewall, and direct traffic routing into secure network segments.",
                         Confidence = 0.90, Tier = DetectionTier.Tier1Behavioral,
                         AuthorizedResponse = ResponseAction.LogOnly, // We handle unbridging ourselves
-                        ProcessName = "SYSTEM", ProcessId = 0
+                        ProcessName = "SYSTEM", ProcessId = 0,
+                        Metadata = new Dictionary<string, string>
+                        {
+                            // Root observation = this specific bridge interface.
+                            [BehavioralCorrelationEngine.ObservationKeyMeta] = $"bridge:{bridge.Id}"
+                        }
                     });
                 }
 
@@ -453,7 +458,12 @@ namespace Sentinel.Core
                                 Reasoning = dnsReasoning,
                                 Confidence = dnsConfidence, Tier = DetectionTier.Tier1Behavioral,
                                 AuthorizedResponse = ResponseAction.LogOnly,
-                                ProcessName = "SYSTEM", ProcessId = 0
+                                ProcessName = "SYSTEM", ProcessId = 0,
+                                Metadata = new Dictionary<string, string>
+                                {
+                                    // Root observation = this interface's DNS config change.
+                                    [BehavioralCorrelationEngine.ObservationKeyMeta] = $"dns-iface:{ni.Id}"
+                                }
                             });
 
                             if (ResponsePolicy.MayPerformInlineHostMutation(_config))

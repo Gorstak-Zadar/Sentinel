@@ -749,7 +749,8 @@ namespace Sentinel.Service
                             ("WmiProviderIntegrityMonitor",     s => s.GetRequiredService<WmiProviderIntegrityMonitor>()),
                             ("KernelModuleAuditMonitor",        s => s.GetRequiredService<KernelModuleAuditMonitor>()),
                             ("LegacyHiveMonitor",               s => s.GetRequiredService<LegacyHiveMonitor>()),
-                            ("CloudFilesHydrationMonitor",      s => s.GetRequiredService<CloudFilesHydrationMonitor>())
+                            ("CloudFilesHydrationMonitor",      s => s.GetRequiredService<CloudFilesHydrationMonitor>()),
+                            ("StateReconciliationMonitor",      s => s.GetRequiredService<StateReconciliationMonitor>())
                         );
                         return new MonitorGroup(
                             new MonitorGroupConfig
@@ -766,6 +767,10 @@ namespace Sentinel.Service
                             sp.GetRequiredService<ILogger<MonitorGroup>>(),
                             sp.GetRequiredService<MonitorRegistry>());
                     });
+                    // State-baseline reconciliation (drift detection) - observe-only module-inventory
+                    // diff of long-lived processes. Reboot-durable baseline store + monitor.
+                    services.AddSingleton<ModuleBaselineStore>();
+                    services.AddSingleton<StateReconciliationMonitor>();
                     services.AddSingleton<FirewallIntegrityMonitor>();
                     services.AddSingleton<SecureBootIntegrityMonitor>();
                     services.AddSingleton<WindowsUpdateIntegrityMonitor>();

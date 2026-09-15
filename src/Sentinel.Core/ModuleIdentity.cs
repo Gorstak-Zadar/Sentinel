@@ -83,6 +83,18 @@ namespace Sentinel.Core
             if (image.Length > 0 && PathsEqual(mod, image))
                 return Allow("process-image");
 
+            // Roslyn build-server analyzer shadow-copy. VBCSCompiler / dotnet / MSBuild
+            // shadow-copy NuGet-cached analyzers and source generators into
+            // %TEMP%\VBCSCompiler\AnalyzerAssemblyLoader\<guid>\N\ and load them from there,
+            // so the .nuget\packages keep-tree never matches the loaded copy and every .NET
+            // build/test tripped "user-writable-drop" (Microsoft.Extensions.*.SourceGeneration,
+            // System.Text.Json.SourceGeneration, xunit.analyzers, ...). This is a documented SDK
+            // mechanism, not a sideload plant. Gated on the LOADING PROCESS being a Microsoft
+            // Roslyn/SDK host so a hostile process cannot self-authorize by merely naming its
+            // drop folder "VBCSCompiler\AnalyzerAssemblyLoader" - behavioral, not path-only.
+            if (IsRoslynAnalyzerShadowCopy(mod) && IsRoslynBuildHost(image))
+                return Allow("roslyn-analyzer-shadowcopy");
+
             if (IsGpuIcdName(mod))
                 return Allow("gpu-icd");
 
@@ -197,6 +209,45 @@ namespace Sentinel.Core
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// True when the module lives in the Roslyn build server's analyzer shadow-copy tree
+        /// (<c>...\VBCSCompiler\AnalyzerAssemblyLoader\...</c>). The compiler server copies
+        /// analyzers/source-generators out of the NuGet cache into a per-build temp folder and
+        /// loads them from there; that copy is not covered by the <c>.nuget\packages</c> keep-tree.
+        /// Structural match only - callers must ALSO confirm the loading host is a Roslyn/SDK
+        /// binary via <see cref="IsRoslynBuildHost"/> before allowing.
+        /// </summary>
+        public static bool IsRoslynAnalyzerShadowCopy(string? path)
+        {
+            var p = Normalize(path);
+            if (p.Length == 0) return false;
+            return ContainsDir(p, @"\vbcscompiler\analyzerassemblyloader\");
+        }
+
+        /// <summary>
+        /// True when the process image is a Microsoft Roslyn / .NET SDK build host that
+        /// legitimately shadow-copies and loads analyzers (VBCSCompiler, csc, vbc, dotnet,
+        /// MSBuild). Path-shaped identity of the HOST, used only to gate the analyzer
+        /// shadow-copy allowance so an arbitrary process cannot abuse the folder name.
+        /// </summary>
+        public static bool IsRoslynBuildHost(string? processImagePath)
+        {
+            var p = Normalize(processImagePath);
+            if (p.Length == 0) return false;
+            // Must sit in a Microsoft SDK/Roslyn tree AND be a known build-host image.
+            bool sdkTree = ContainsDir(p, @"\dotnet\") ||
+                           ContainsDir(p, @"\roslyn\") ||
+                           ContainsDir(p, @"\msbuild\") ||
+                           ContainsDir(p, @"\microsoft visual studio\") ||
+                           ContainsDir(p, @"\microsoft.net\");
+            if (!sdkTree) return false;
+            string file;
+            try { file = Path.GetFileName(p) ?? ""; }
+            catch { return false; }
+            return file is "vbcscompiler.exe" or "csc.exe" or "vbc.exe"
+                        or "dotnet.exe" or "msbuild.exe";
         }
 
         public static bool IsOsServicingPath(string? path)

@@ -435,6 +435,13 @@ namespace Sentinel.Core
         /// Locks the Secure directory ACL to SYSTEM full control + Administrators read.
         /// Entropy file itself is SYSTEM-only (see LockEntropyFileAcl).
         /// </summary>
+        /// <summary>
+        /// Public, best-effort reuse of the SYSTEM-full / Admins-read-execute directory ACL applied
+        /// to Sentinel's ProgramData surfaces. Used by other reboot-durable stores (e.g.
+        /// <see cref="ModuleBaselineStore"/>) so they don't reimplement the DACL. Never throws.
+        /// </summary>
+        public static void TryLockDirectoryAcl(string directoryPath) => LockDirectoryAcl(directoryPath);
+
         private static void LockDirectoryAcl(string directoryPath)
         {
             try

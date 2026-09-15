@@ -2,6 +2,68 @@
 
 
 
+## [2.6.8] - 2026-09-15
+
+### Added - State-baseline reconciliation (drift detection), surface #1: loaded-module inventory
+
+New third detection axis: **state-driven**, complementing the event-driven monitors. Closes the
+"silent / user-directed harm" blind spot - a module that merely runs (audio/hypnotic stream,
+screen flicker, etc.) with no network, credential, or file-destruction behavior, possibly signed
+with a stolen certificate, produces zero terminal telemetry and cannot be caught by
+observe-until-chain, but it must still be *mapped* somewhere.
+
+`StateReconciliationMonitor` (SystemIntegrity group, 5-min cadence, 30s boot-settle) keeps a
+**reboot-durable** baseline (`ModuleBaselineStore`, `System.Text.Json` under
+`%ProgramData%\Sentinel\baseline`, SYSTEM+Admins ACL) of the loaded-module set of a fixed list of
+long-lived, low-churn processes (`explorer`, `winlogon`, `services`, `lsass`, `csrss`, `dwm`,
+`sihost`, `taskhostw`, `runtimebroker`). Each pass diffs the live set against the baseline and runs
+new modules through **attribution**: a delta is suppressed if it has a trusted load position
+(`ModuleIdentity.Evaluate`), if a Windows servicing actor is/was recently active (`ServicingWindow`,
+lifted from `FileActivityMonitor.IsServicingProcessActive`), or if its Authenticode signer was
+already accepted on this host (per-machine first-seen-publisher ledger). Only unattributable deltas
+are surfaced.
+
+Contract: every surfaced delta is **Tier2 / `LogOnly` / `Family = null`** - observe-only, never
+auto-killed, no new response action, no host mutation. The signal is worded for *review*, not
+attribution of intent: it does not identify who placed a module or assert that anyone is targeting
+the user (a userland tool sees a module, not an operator). Honest ceiling documented in
+`THREAT_MODEL.md`: reconciliation raises attacker cost and shrinks the blind spot but does not
+deterministically stop user-directed harm - a payload in a high-churn host can blend in, and a
+validly-signed module that never misbehaves is surfaced for human review. Uninspectable processes
+(PPL/anti-cheat) are skipped without clobbering `MappedModuleCache`. Durable "unexplained since X"
+observations re-emit on a 30-min cadence so a module that later behaves terminally can chain in
+correlation - never self-confirming a kill.
+
+### Hardened - Evidence independence in the local network-tamper (VPN-shield) composite
+
+The `Network Tamper: Local MitM Chain` composite now counts **independent** tamper vectors, not
+just distinct rule-name labels. A single root observation (e.g. one gateway MAC change, which is
+what ARP spoofing *is*) could previously produce two vector labels and self-confirm a MitM chain.
+The network monitors now stamp an `ObservationKey` in metadata identifying the single root fact,
+and `CountIndependentTamperVectors` collapses co-derived vectors to one leg. Legacy signals with
+no key remain independent, so the gate only tightens, never loosens. Non-kill, Tier1-guarded,
+still default-deny behind `ProductPosture.AllowsVpnShield`.
+
+### Fixed - Roslyn analyzer shadow-copy false positive
+
+`ModuleIdentity` now recognizes the Roslyn build-server analyzer shadow-copy path
+(`%TEMP%\VBCSCompiler\AnalyzerAssemblyLoader\<guid>\...`), gated on the loading host being a
+genuine Microsoft SDK binary (`VBCSCompiler`/`csc`/`vbc`/`dotnet`/`MSBuild`). Ordinary .NET builds
+and test runs no longer trip foreign-path DLL quarantine - a real false positive that had been
+quarantining Microsoft/xUnit source-generator and analyzer DLLs on every build. A hostile process
+cannot self-authorize by merely naming its drop folder; the exemption is behavioral, not path-only.
+
+### Docs
+
+`THREAT_MODEL.md` gains a v2.6.8 section stating the silent/user-directed-harm blind spot and the
+honest ceiling of state reconciliation. README/design/threat-model version identity aligned to
+`version.txt`.
+
+Verified: build 0W/0E; full suite green (2376 tests), including 7 new reconciliation tests
+(attribution suppress/surface, Tier2Indicator + LogOnly + Family-null contract, observe-only holds
+under `ActiveResponse=true`, reboot-durable baseline round-trip + learn-mode) plus the prior
+evidence-independence and Roslyn-FP tests.
+
 ## [2.6.7] - 2026-09-15
 
 ### Hardened - Evidence independence in the local network-tamper (VPN-shield) composite

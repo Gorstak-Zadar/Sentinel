@@ -1,8 +1,69 @@
 # Sentinel - Threat Model
 
-**Version: 2.6.6**
+**Version: 2.6.8**
 
 This document assumes the attacker has read the source code.
+
+### v2.6.8 - silent / user-directed harm, and state-baseline reconciliation
+
+Addresses a threat class that every prior Sentinel defense structurally misses. Every terminal
+family (credential theft, C2, ransomware, injection-then-exfil) is defined around harm to the
+**system or its secrets**, and every kill decision is gated on behavior over time
+(`ObserveUntilChain`). Consider instead a module whose only purpose is to harm the **user**: it
+emits an audio / hypnotic stream, flickers the screen, or otherwise degrades sleep and wellbeing.
+It makes no network connection, touches no credentials, destroys no files, and may be signed with
+a **stolen but validly-chaining** certificate. It produces *zero* terminal telemetry and it never
+escalates - the steady state *is* the attack. `ObserveUntilChain` can never confirm it (there is no
+chain), and signature-based trust is defeated by the stolen cert. Neither of Sentinel's existing
+axes - behavior, or provenance - is sufficient alone against an attacker who deliberately closes
+both doors.
+
+The one thing such a payload cannot avoid is **persisting somewhere** - it must be a module mapped
+into some process. So v2.6.8 adds a third, **state-driven** axis: `StateReconciliationMonitor`
+(SystemIntegrity group, 5-min cadence). It keeps a **reboot-durable** baseline
+(`ModuleBaselineStore`, plain `System.Text.Json` under `%ProgramData%\Sentinel\baseline`, SYSTEM+
+Admins ACL - deliberately NOT the boot-bound `SecureCacheStore`, which would re-flag every module
+each reboot) of the loaded-module set of a fixed list of **long-lived, low-churn** processes
+(`explorer`, `winlogon`, `services`, `lsass`, `csrss`, `dwm`, `sihost`, `taskhostw`,
+`runtimebroker`). On each pass it diffs the live module set against the baseline and runs every new
+module through **attribution** - the diff is cheap; attribution is the whole product. A delta is
+suppressed if it has a trusted load position (`ModuleIdentity.Evaluate` - OS-servicing, keep-tree,
+signed Program Files, Roslyn analyzer shadow-copy, GPU ICD, app-directory), if a Windows servicing
+actor is/was recently active (`ServicingWindow`), or if its Authenticode signer CN was **already
+accepted on this host** (a per-machine first-seen-publisher ledger - the one signal a *stolen* cert
+cannot fully launder, because even a valid cert is "new to this host" the first time). Only a delta
+that survives all of these is surfaced.
+
+Attacker-relevant honesty (this is the honest ceiling, not a claim of coverage):
+
+- Everything surfaced is **Tier2 / `ResponseAction.LogOnly`, `Family = null`** - observe-only,
+  never auto-killed. Reconciliation introduces no new response action and no host mutation. `pid`
+  inspection honors the `CanInspect` gate (PPL / anti-cheat skipped, never clobbering
+  `MappedModuleCache`).
+- The signal is worded for **review, not attribution of intent**. It says "an unexplained module
+  appeared in a normally low-churn process; review it." It explicitly does **not** identify who
+  placed the module, and it does **not** assert that anyone is monitoring or targeting the user - a
+  userland tool sees a module, not an operator, and cannot confirm surveillance. Over-claiming here
+  would be worse than silence.
+- Reconciliation **raises the attacker's cost and shrinks the blind spot** - an unexplained module
+  injected into a low-churn system/shell host is surfaced regardless of what harm it delivers - but
+  it does **not** deterministically stop user-directed harm. A payload loaded into a **high-churn**
+  host (a browser, a game, an Electron app that legitimately loads many third-party modules) can
+  blend into that churn and is out of scope for surface #1. And a validly-signed module that never
+  behaves terminally is surfaced for **human review**, not killed - because auto-killing on
+  provenance alone is exactly the identity-based response the constraints forbid, and because a
+  destructive false positive is a real cost. If the surfaced module later *does* something terminal,
+  the durable "unexplained since X" observation is re-emitted on cadence so the correlation layer
+  can chain it - it never self-confirms a kill on its own.
+
+Also in v2.6.8: the local-network-tamper (VPN-shield) composite now counts **independent** tamper
+vectors, not just distinct rule-name labels - a single root observation (e.g. one gateway MAC
+change stamped with a shared `ObservationKey`) can no longer masquerade as two independent vectors
+and self-confirm a MitM chain; the network monitors stamp `ObservationKey` so co-derived signals
+collapse to one leg. And the Roslyn build-server analyzer shadow-copy path
+(`VBCSCompiler\AnalyzerAssemblyLoader`) is recognized in `ModuleIdentity` - gated on the loading
+host being a genuine Microsoft SDK binary - so ordinary .NET builds no longer trip foreign-path DLL
+quarantine (a real false positive that was quarantining Microsoft/xUnit source-generator DLLs).
 
 ### v2.6.3 - update/servicing-surface abuse observation
 

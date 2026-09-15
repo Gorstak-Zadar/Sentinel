@@ -319,7 +319,10 @@ namespace Sentinel.Core
                         ["Domain"] = TestDomain,
                         ["SystemIPs"] = string.Join(";", systemResults.Select(a => a.ToString())),
                         ["DirectIPs"] = string.Join(";", directResults.Select(a => a.ToString())),
-                        ["TargetIP"] = systemResults.FirstOrDefault()?.ToString() ?? ""
+                        ["TargetIP"] = systemResults.FirstOrDefault()?.ToString() ?? "",
+                        // Root observation = router-level resolver divergence for this probe
+                        // domain; independent of interface DNS config and ARP/route facts.
+                        [BehavioralCorrelationEngine.ObservationKeyMeta] = $"dns-router:{TestDomain}"
                     }
                 });
             }

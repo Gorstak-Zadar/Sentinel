@@ -803,6 +803,9 @@ namespace Sentinel.Core
                     ["Vector"] = "WPAD/PAC",
                     ["CVE"] = CveCoverageHeuristics.CveDhcpClient,
                     ["CveClass"] = "true",
+                    // Root observation = the PAC URL. All WPAD signals about the same PAC config
+                    // share this key, so they cannot stack into multiple independent vectors.
+                    [BehavioralCorrelationEngine.ObservationKeyMeta] = $"wpad:{key}",
                 }
             }).ConfigureAwait(false);
         }

@@ -207,7 +207,11 @@ namespace Sentinel.Core
                                 Metadata = new Dictionary<string, string>
                                 {
                                     { "TargetIP", gwIpForMacCheck },
-                                    { "MitmDefense", "true" }
+                                    { "MitmDefense", "true" },
+                                    // Evidence-independence: all signals derived from this one
+                                    // gateway MAC change share a root observation, so they cannot
+                                    // stack into multiple "independent" MitM vectors.
+                                    { BehavioralCorrelationEngine.ObservationKeyMeta, $"gw-mac:{gwIpForMacCheck}" }
                                 }
                             });
                             _baselineGatewayMac = currentMac;
@@ -252,7 +256,12 @@ namespace Sentinel.Core
                                 ["AffectedIPs"] = string.Join(";", ips),
                                 ["IncludesGateway"] = includesGateway.ToString(),
                                 ["TargetIP"] = includesGateway ? (_gatewayIp ?? "") : "",
-                                ["MitmDefense"] = includesGateway ? "true" : "false"
+                                ["MitmDefense"] = includesGateway ? "true" : "false",
+                                // Root observation = the shared MAC. If the gateway is one of the
+                                // poisoned IPs, key on the gateway so this collapses with the
+                                // gateway-MAC-change signal (same underlying ARP fact).
+                                [BehavioralCorrelationEngine.ObservationKeyMeta] =
+                                    includesGateway ? $"gw-mac:{_gatewayIp}" : $"arp-mac:{mac}"
                             }
                         });
                     }
@@ -273,7 +282,12 @@ namespace Sentinel.Core
                                 Reasoning = "A known network host's MAC address changed, which may indicate ARP spoofing targeting that specific host for traffic interception.",
                                 Confidence = 0.65, Tier = DetectionTier.Tier2Indicator,
                                 AuthorizedResponse = ResponseAction.LogOnly,
-                                ProcessName = "SYSTEM", ProcessId = 0
+                                ProcessName = "SYSTEM", ProcessId = 0,
+                                Metadata = new Dictionary<string, string>
+                                {
+                                    // Root observation = this specific host's ARP entry change.
+                                    [BehavioralCorrelationEngine.ObservationKeyMeta] = $"arp-host:{ip}"
+                                }
                             });
                         }
                         _arpBaseline[ip] = mac;
@@ -446,7 +460,10 @@ namespace Sentinel.Core
                                 {
                                     { "Domain", domain },
                                     { "TargetIP", suspiciousIps.FirstOrDefault() ?? "" },
-                                    { "AllNewIPs", string.Join(";", suspiciousIps) }
+                                    { "AllNewIPs", string.Join(";", suspiciousIps) },
+                                    // Root observation = this domain's resolution shift; an
+                                    // independent vector from any ARP/route/adapter fact.
+                                    { BehavioralCorrelationEngine.ObservationKeyMeta, $"dns-domain:{domain}" }
                                 };
 
                                 await _detectionEngine.EmitAsync(new DetectionEvent
@@ -604,7 +621,11 @@ namespace Sentinel.Core
                                 Metadata = new Dictionary<string, string>
                                 {
                                     ["SSID"] = _baselineSsid ?? "",
-                                    ["DisconnectCount"] = _disconnectHistory.Count.ToString()
+                                    ["DisconnectCount"] = _disconnectHistory.Count.ToString(),
+                                    // Deauth flood and evil-twin BSSID change are intentionally
+                                    // DISTINCT observations (the two-step evil-twin sequence), so
+                                    // they carry different keys and remain independent vectors.
+                                    [BehavioralCorrelationEngine.ObservationKeyMeta] = $"wifi-deauth:{_baselineSsid}"
                                 }
                             });
                             _disconnectHistory.Clear(); // Reset after alert
@@ -631,7 +652,11 @@ namespace Sentinel.Core
                             {
                                 ["SSID"] = current.ssid,
                                 ["OldBSSID"] = _baselineBssid,
-                                ["NewBSSID"] = current.bssid
+                                ["NewBSSID"] = current.bssid,
+                                // Distinct root observation from the deauth flood (the AP identity
+                                // change itself), so the two-step evil-twin sequence still counts
+                                // as two independent vectors.
+                                [BehavioralCorrelationEngine.ObservationKeyMeta] = $"wifi-bssid:{current.bssid}"
                             }
                         });
                         _baselineBssid = current.bssid;

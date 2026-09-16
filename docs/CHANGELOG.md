@@ -2,6 +2,31 @@
 
 
 
+## [2.7.0] - 2026-09-16
+
+### Fixed - forum.hr loaded in-browser despite the block (system DoH not disabled when unset)
+
+The 2.6.9 forum.hr block worked at the OS resolver (`Resolve-DnsName forum.hr` returned
+`0.0.0.0`), but the site still loaded in a running browser. Root cause: `BrowserDnsPolicyGuard`
+only wrote `EnableAutoDoh=0` when that registry value **already existed and was non-zero**. On a
+machine where the value was absent, Windows' default auto-DoH stayed active and sent encrypted DNS
+that bypassed both the hosts file and the NRPT rule.
+
+- `EnforceSystemDoh` now forces `EnableAutoDoh=0` when the value is missing **or** non-zero, so a
+  never-configured machine is covered. This makes the hosts file + NRPT authoritative for the OS
+  resolver and (with DoH off) for browsers.
+- Note: browser DNS policies (`DnsOverHttpsMode=off`, `BuiltInDnsClientEnabled=0`) are read at
+  browser startup, so an already-open browser must be fully restarted for the block to bite.
+
+### Hardened - forum.hr block now gates on the always-on hardening posture, with tests
+
+- `EnsureForumHrBlockAsync` (hosts file) and `EnsureForumHrDnsPolicy` (NRPT) route through
+  `ProductPosture.AllowsProactiveHostLockdown` via `HostsFileGuard.MayEnforceForumHrBlock`. Under
+  the v2.5.5+ always-on posture this is always allowed; the gate makes the single seam explicit.
+- Added `HostsFileGuardTests` coverage: apex + all nine subdomains sinkhole to `0.0.0.0`, the full
+  localhost header is present, the NRPT wildcard uses the leading-dot suffix `.forum.hr` in the
+  GP-managed policy hive (not `Dnscache\Parameters`), and a default-deny gate test.
+
 ## [2.6.9] - 2026-09-16
 
 ### Removed - `ForumHrWatchMonitor` (the v1.7.6 "watch, don't block" experiment)

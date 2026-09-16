@@ -1831,7 +1831,11 @@ namespace Sentinel.Core
                 if (key == null) return false;
 
                 var current = key.GetValue(EnableAutoDohValue);
-                if (current != null && (int)current != 0)
+                // Force EnableAutoDoh=0 whenever it is not already 0 - INCLUDING when the value
+                // is absent. If the value is missing, Windows' default auto-DoH can still send
+                // encrypted DNS that bypasses the hosts file and the NRPT rule, so a missing
+                // value must be treated as "not enforced" and written explicitly.
+                if (current == null || (int)current != 0)
                 {
                     key.SetValue(EnableAutoDohValue, 0, RegistryValueKind.DWord);
                     _logger.LogDebug("[BrowserDnsPolicyGuard] Disabled system-level DoH (EnableAutoDoh=0)");
@@ -2007,6 +2011,23 @@ namespace Sentinel.Core
         private const string ForumHrDnsRuleName = "{5E1F0A73-4C2B-4E9A-9F3D-0F0342110001}";
         private const string ForumHrDnsSuffix = ".forum.hr";
         private const string ForumHrDnsSinkhole = "0.0.0.0";
+
+        // Test-visible accessors (InternalsVisibleTo Sentinel.Tests). These let tests assert the
+        // enforced content without touching the live hosts file or registry.
+        internal static IReadOnlyList<string> ForumHrBlockLinesForTest => ForumHrBlockLines;
+        internal static string ForumHrDnsSuffixForTest => ForumHrDnsSuffix;
+        internal static string ForumHrDnsSinkholeForTest => ForumHrDnsSinkhole;
+        internal static string DnsPolicyConfigKeyForTest => DnsPolicyConfigKey;
+
+        /// <summary>
+        /// Whether the forum.hr proactive host mutations (hosts-file block + NRPT rule) are
+        /// permitted. Both <see cref="EnsureForumHrBlockAsync"/> and
+        /// <see cref="EnsureForumHrDnsPolicy"/> gate on this. It follows the always-on hardening
+        /// posture (<see cref="ProductPosture.AllowsProactiveHostLockdown"/>), so a null/default
+        /// config still allows the block. Exposed for the default-deny test.
+        /// </summary>
+        internal static bool MayEnforceForumHrBlock(SentinelConfig? config) =>
+            ProductPosture.AllowsProactiveHostLockdown(config);
 
         // MitM defense: FCM mtalk lines that must remain present when MitmDefense is active
         private readonly bool _enforceMitmLines;
@@ -2217,6 +2238,12 @@ namespace Sentinel.Core
         /// </summary>
         private async Task EnsureForumHrBlockAsync(string trigger, CancellationToken ct)
         {
+            // Proactive host mutation (writing the hosts file) - gated on the always-on
+            // hardening posture. AllowsProactiveHostLockdown returns true unconditionally
+            // (v2.5.5+), so the block is always enforced, but the gate makes the intent
+            // explicit and gives a single seam that a future posture change would honor.
+            if (!MayEnforceForumHrBlock(_config)) return;
+
             try
             {
                 var content = await ReadHostsFileSafe();
@@ -2298,6 +2325,10 @@ namespace Sentinel.Core
         /// </summary>
         private void EnsureForumHrDnsPolicy(string trigger)
         {
+            // Proactive host mutation (writing an NRPT registry rule) - gated on the always-on
+            // hardening posture, same as the hosts-file block above.
+            if (!MayEnforceForumHrBlock(_config)) return;
+
             try
             {
                 using var policyRoot = Registry.LocalMachine.CreateSubKey(DnsPolicyConfigKey, true);

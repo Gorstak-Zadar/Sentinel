@@ -248,6 +248,7 @@ See [design.md](design.md) for the full component inventory (all MonitorGroups +
 
 - **DriverLoadMonitor** (v1.5.0) - BYOVD detection + cert-tracing (v1.7.0)
 - **BrowserC2Guard** (v1.6.8) - Headless Chrome proxy, CDP hijacking, extension integrity
+- **NativeMessagingHostGuard + LocalControlChannelMonitor + DangerousBrowserFlagRule** (v2.7.1) - Site-to-local-app hijack/pairing: native-messaging bridge planting, loopback control-channel driving of browser-like apps, dangerous launch flags on any process
 - **EtwThreatIntelMonitor expanded** (v1.6.8) - Unbacked RWX region detection
 - **SyscallStubMonitor expanded** (v1.6.8) - Hell's Gate / indirect syscall detection
 - **PrintSpoolerMonitor expanded** (v1.6.8) - PrintNightmare-class exploitation
@@ -740,6 +741,7 @@ See CHANGELOG.md for full history. Key fixes:
 - **v1.7.6:** Removed opinionated forum.hr hosts block; added `ForumHrWatchMonitor` for non-browser C2/relay abuse of that site alone. **(reverted in v2.6.9)**
 - **v1.7.5:** ASR Block self-heal (`AsrPolicyGuard`), remote session force-logoff (`RemoteSessionGuard`), install-time credential/browser residual hardening. Documentation inventory parity with runtime registration.
 - **v1.7.4:** ThreatIntelFeedBlocker (Spamhaus/Feodo/ET), real-time `LnkShortcutMonitor`, Agent scareware/cursor/cookie ports.
+- **v2.7.1:** Site-to-local-app hijack/pairing protection: `NativeMessagingHostGuard` (native-messaging bridge planting), `LocalControlChannelMonitor` (loopback control-channel driving of any browser-like app), `DangerousBrowserFlagRule` (dangerous launch flags on any process). Covers browser-like apps outside the mainstream-browser name set.
 - **v1.7.0:** BYOVD cert-tracing: `DriverLoadMonitor` now extracts Authenticode cert from detected drivers, checks TrustedPublisher/Root stores, revokes planted non-public certs via `RemoveCertAndKillAdder`, scans System32\drivers for other drivers signed by same identity. Closes the fake-Chromecast-CA / planted-cert BYOVD attack chain.
 - **v1.6.9:** IDE false-positive kill prevention: V8 JIT code matching syscall-stub patterns no longer kills Electron IDEs; ChainTracer preserves IDE host ancestors; AdvancedResponseEngine IDE host protection demotes to LogOnly for non-President's-Law rules.
 - **v1.6.8:** BrowserC2Guard (headless Chrome proxy + CDP hijack + extension integrity), EtwThreatIntelMonitor RWX detection, SyscallStubMonitor Hell's Gate patterns, PrintSpoolerMonitor PrintNightmare exploitation, WslMonitor container-to-host lateral movement, Named Pipe + Beaconing and Token + Lateral composite detections.

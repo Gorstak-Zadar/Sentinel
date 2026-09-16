@@ -400,6 +400,7 @@ namespace Sentinel.Service
                     services.AddTransient<IDetectionRule, NpmSupplyChainRule>();
                     services.AddTransient<IDetectionRule, DllSideloadingDetectionRule>();
                     services.AddTransient<IDetectionRule, ChromeRemoteDebuggingRule>();
+                    services.AddTransient<IDetectionRule, DangerousBrowserFlagRule>();
                     services.AddSingleton<IDetectionRule, DynamicRulesEvaluator>();
                     // GorstaksProtection-ported rules (v2.4.0)
                     services.AddSingleton<IDetectionRule, SlidingWindowRansomwareRule>();
@@ -619,6 +620,8 @@ namespace Sentinel.Service
                             ("CanaryFileMonitor",               s => s.GetRequiredService<CanaryFileMonitor>()),
                             ("BrowserCredentialGuard",          s => s.GetRequiredService<BrowserCredentialGuard>()),
                             ("BrowserC2Guard",                  s => s.GetRequiredService<BrowserC2Guard>()),
+                            ("NativeMessagingHostGuard",        s => s.GetRequiredService<NativeMessagingHostGuard>()),
+                            ("LocalControlChannelMonitor",      s => s.GetRequiredService<LocalControlChannelMonitor>()),
                             ("MicrosoftAccountGuardMonitor",    s => s.GetRequiredService<MicrosoftAccountGuardMonitor>()),
                             ("NullSessionGuard",                s => s.GetRequiredService<NullSessionGuard>()),
                             ("BuiltinAdminGuard",               s => s.GetRequiredService<BuiltinAdminGuard>()),
@@ -644,6 +647,8 @@ namespace Sentinel.Service
                     services.AddSingleton<CanaryFileMonitor>();
                     services.AddSingleton<BrowserCredentialGuard>();
                     services.AddSingleton<BrowserC2Guard>();
+                    services.AddSingleton<NativeMessagingHostGuard>();
+                    services.AddSingleton<LocalControlChannelMonitor>();
                     services.AddSingleton<MicrosoftAccountGuardMonitor>();
                     services.AddSingleton<NullSessionGuard>();
                     services.AddSingleton<BuiltinAdminGuard>();

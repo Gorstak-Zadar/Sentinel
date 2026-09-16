@@ -139,6 +139,8 @@ Organized by MonitorGroup. Each group has staggered startup, independent failure
 | `CanaryFileMonitor` | Deploys decoy files in ransomware-target directories; any access triggers alert | 10s |
 | `BrowserCredentialGuard` | Monitors Chromium + Firefox credential files (Login Data, Cookies, key4.db, logins.json) | 30s |
 | `BrowserC2Guard` | Headless chrome-as-proxy detection, CDP session hijacking, extension manifest integrity scanning | 30s |
+| `NativeMessagingHostGuard` | **v2.7.1.** Baselines browser native-messaging host registrations (registry + on-disk manifests); new host with unsigned/user-writable target -> Tier1, else Tier2. Closes page->extension->native-host->local-app bridge | 60s |
+| `LocalControlChannelMonitor` | **v2.7.1.** Non-browser, non-ancestor local process connected to a loopback listener owned by a GUI/browser-like app -> control-channel pairing. Script-host/user-writable client -> Tier1, else Tier2 | 20s |
 | `MicrosoftAccountGuardMonitor` | TokenBroker cache, PRT extraction, Azure AD token theft tool detection | 30s |
 | `NullSessionGuard` | Enforces LimitBlankPasswordUse, RestrictAnonymous, EveryoneIncludesAnonymous; optional FCM TCP 5228 block when `BlockFcmPushChannel=true` | 60s |
 | `BuiltinAdminGuard` | Monitors built-in Administrator account (RID 500); disables if found active | 15s |

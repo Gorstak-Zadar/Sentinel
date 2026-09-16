@@ -2,6 +2,35 @@
 
 
 
+## [2.7.1] - 2026-09-16
+
+### Added - Site-to-local-app hijack / pairing protection (browser-like app control)
+
+Defends against a website hijacking or pairing with a local browser-like desktop app to
+drive it or relay through it - even when the app is not one of the mainstream browsers the
+existing `BrowserC2Guard`/`ChromeRemoteDebuggingRule` recognize. Three additions, all
+behavioral, userland-only, observe-until-chain, and gated on the always-on hardening posture:
+
+- **`NativeMessagingHostGuard`** (Service, CredentialProtection group, 60s scan) - baselines
+  registered browser native-messaging hosts (HKCU/HKLM registry + on-disk manifests, Chrome/
+  Edge/Chromium/Firefox), resolves each host's target executable, and flags newly registered
+  hosts whose target is unsigned or in a user-writable path. This is the canonical
+  page -> extension -> native-messaging-host -> local-app bridge. New unsigned/user-writable
+  target -> Tier1; new signed/in-path target -> Tier2. LogOnly until chain.
+- **`LocalControlChannelMonitor`** (Service, 20s scan) - generalizes the CDP-loopback detector:
+  any process owning a loopback listener that a *different*, non-browser, non-ancestor local
+  process connects to is a local remote-control relationship. Script-host / user-writable-path
+  client -> Tier1; otherwise Tier2. Browser tabs/subprocesses and parent-child helpers excluded.
+- **`DangerousBrowserFlagRule`** + `DangerousLaunchFlagHeuristics` - launch-time detection of
+  `--load-extension`, `--disable-web-security`, `--remote-debugging-*`, site-isolation disable,
+  and app-mode + persistent profile, for *any* process (not just known browsers). Strong control
+  flag from a non-browser parent -> Tier1 `KillProcessTree`; weak flags or browser parent ->
+  Tier2 LogOnly.
+
+Tests: `BrowserAppControlGuardTests` (21 cases) cover the flag classifier, the rule tier
+contract (Tier1 kill-shape, Tier2 LogOnly, Tier2-log-only invariant), and the ProductPosture
+default-deny gate for both monitors.
+
 ## [2.7.0] - 2026-09-16
 
 ### Fixed - forum.hr loaded in-browser despite the block (system DoH not disabled when unset)

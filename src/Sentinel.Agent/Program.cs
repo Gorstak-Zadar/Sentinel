@@ -338,6 +338,7 @@ namespace Sentinel.Agent
                     services.AddTransient<IDetectionRule, NpmSupplyChainRule>();
                     services.AddTransient<IDetectionRule, DllSideloadingDetectionRule>();
                     services.AddTransient<IDetectionRule, ChromeRemoteDebuggingRule>();
+                    services.AddTransient<IDetectionRule, DangerousBrowserFlagRule>();
                     services.AddSingleton<IDetectionRule, DynamicRulesEvaluator>();
                     // GorstaksProtection-ported rules (v2.4.0)
                     services.AddSingleton<IDetectionRule, SlidingWindowRansomwareRule>();

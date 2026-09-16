@@ -263,7 +263,7 @@ See [design.md](design.md) for the full component inventory (all MonitorGroups +
 - **PackageRuntimeMonitor** (v1.8.2) - Package-manager runtime + AI config poison
 - **AsrPolicyGuard** (v1.7.5) - Self-healing Defender ASR Block rules
 - **RemoteSessionGuard** (v1.7.5) - Force-logoff unauthorized RDP/remote sessions
-- **ForumHrWatchMonitor** (v1.7.6) - Dedicated forum.hr abuse watch (site no longer hosts-blocked)
+- **HostsFileGuard forum.hr block** (v2.6.9) - forum.hr + subdomains blackholed at hosts-file level plus a wildcard NRPT rule (`.forum.hr` -> 0.0.0.0) covering all subdomains (reinfection vector); `ForumHrWatchMonitor` removed
 - **Observe-first posture (v1.8.3)** - Weak path/port/shell heuristics LogOnly; IPSec attack-only by default; `RestrictivePortHardening` for full lockdown
 - **MitmDefense suite (v2.0.1)** - Opt-in post-incident: planted root cert remove, FCM Send-Tab-to-Self block, ghost process -> fake Chromecast kill, rogue Cast FW (narrow exception to ObserveUntilChain)
 - **GpuProcessMonitor** (v2.1.5) - GPU sandbox escape + crypto-mining detection
@@ -736,7 +736,8 @@ See CHANGELOG.md for full history. Key fixes:
 
 - **v2.2.0:** Dashboard bearer is actually required (Referer ignored; token not in GET /; WS authenticated). V217 monitors **registered**. Game-path reputation skip refuses user-profile trees. ChainTracer System32/SysWOW64 only. Watchdog publisher pin + install-path liveness. DriverLoadMonitor user-profile scan. Kiosk LGPO no longer disables audit/passwords/FIPS. Worker RATE_LIMITER after HMAC. Encrypted config HMAC envelope. President's Law no longer includes DnsAnomaly/NetworkAnomaly.
 - **v2.1.8:** Binary integrity before agent launch (RT-2026-H1/H3); AntiTamperGuard SHA-256 replacement detection; Worker nonce-after-HMAC (RT-2026-M1); Worker input validation (RT-2026-M4); chain-confirmed budget bypass (RT-2026-M2). Six monitors were **written** here and **wired in 2.2.0**. Dashboard "bearer auth" in 2.1.8 was a Referer shortcut (closed in 2.2.0).
-- **v1.7.6:** Removed opinionated forum.hr hosts block; added `ForumHrWatchMonitor` for non-browser C2/relay abuse of that site alone.
+- **v2.6.9:** Restored the forum.hr hosts-file block (reinfection vector); removed the useless `ForumHrWatchMonitor` and its DNS-feed wiring.
+- **v1.7.6:** Removed opinionated forum.hr hosts block; added `ForumHrWatchMonitor` for non-browser C2/relay abuse of that site alone. **(reverted in v2.6.9)**
 - **v1.7.5:** ASR Block self-heal (`AsrPolicyGuard`), remote session force-logoff (`RemoteSessionGuard`), install-time credential/browser residual hardening. Documentation inventory parity with runtime registration.
 - **v1.7.4:** ThreatIntelFeedBlocker (Spamhaus/Feodo/ET), real-time `LnkShortcutMonitor`, Agent scareware/cursor/cookie ports.
 - **v1.7.0:** BYOVD cert-tracing: `DriverLoadMonitor` now extracts Authenticode cert from detected drivers, checks TrustedPublisher/Root stores, revokes planted non-public certs via `RemoveCertAndKillAdder`, scans System32\drivers for other drivers signed by same identity. Closes the fake-Chromecast-CA / planted-cert BYOVD attack chain.

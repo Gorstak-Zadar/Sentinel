@@ -2,6 +2,52 @@
 
 
 
+## [2.6.9] - 2026-09-16
+
+### Removed - `ForumHrWatchMonitor` (the v1.7.6 "watch, don't block" experiment)
+
+The dedicated forum.hr surveillance monitor added in v1.7.6 proved useless against a real
+forum.hr drive-by reinfection - it watched non-browser DNS/TCP to the domain but never
+prevented the browser-delivered compromise. Removed entirely:
+
+- Deleted `src/Sentinel.Core/ForumHrWatchMonitor.cs`.
+- Removed its DI registration and NetworkIntegrity monitor-group entry in `Program.cs`.
+- Removed the `ForumHrWatchMonitor` field, constructor parameter, and `RecordDnsQuery` feed
+  from `DnsQueryMonitor`.
+- Deleted `tests/Sentinel.Tests/V176FeatureTests.cs` (tested only the removed monitor).
+
+### Changed - forum.hr blocked again at the hosts-file level (restores pre-v1.7.6 policy)
+
+`HostsFileGuard` now enforces a hosts baseline: the standard localhost/loopback header
+followed by the forum.hr blackhole. Enforced on startup and on every scan.
+
+- Baseline lines appended if missing; **all other user content is preserved** (no full-file
+  overwrite, no embedded ad-blocklist - the guard still never ships one).
+- Localhost header enforced: `127.0.0.1 localhost` / `localhost.localdomain` / `local`,
+  `255.255.255.255 broadcasthost`, IPv6 loopback/multicast set, and `0.0.0.0 0.0.0.0`.
+- forum.hr blackhole (`0.0.0.0`): apex + `www`, `m`, `cdn`, `static`, `api`, `img`, `mail`,
+  `ads`, `tracker` so no subdomain bypasses the block.
+- Self-heals: removal of any baseline line re-appends it and emits
+  `Hosts File: Baseline Restored (localhost + forum.hr)`.
+- Authoritative because `BrowserDnsPolicyGuard` disables DoH, so the hosts file governs all
+  resolution.
+
+### Added - Wildcard DNS-policy (NRPT) block for **all** forum.hr subdomains
+
+The hosts file can only match exact hostnames, so the enumerated subdomain list can never be
+exhaustive (e.g. `board.forum.hr`, `login.forum.hr` would slip through). `HostsFileGuard` now
+also installs a wildcard Name Resolution Policy Table rule that blocks the entire domain:
+
+- NRPT rule under the GP-managed policy hive
+  `HKLM\SOFTWARE\Policies\Microsoft\Windows NT\DNSClient\DnsPolicyConfig` (the authoritative
+  override the DNS client honors - same hive `BrowserDnsPolicyGuard` and `AdBlocker.ps1` use),
+  with a stable Sentinel-owned GUID.
+- `Name` = `.forum.hr` (leading-dot suffix) matches the apex **and every subdomain**.
+- `GenericDNSServers` = `0.0.0.0` sinkholes all resolutions; `Version`=2, `ConfigOptions`=0x8.
+- Applied on startup and re-asserted on every periodic scan; repaired if removed or altered,
+  emitting `DNS Policy: forum.hr Wildcard Block Restored`.
+- The hosts-file lines remain as a second layer. Requires the service to run elevated (it does).
+
 ## [2.6.8] - 2026-09-15
 
 ### Added - State-baseline reconciliation (drift detection), surface #1: loaded-module inventory

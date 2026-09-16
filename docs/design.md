@@ -165,7 +165,6 @@ Organized by MonitorGroup. Each group has staggered startup, independent failure
 | `OutboundConnectionWhitelist` | Monitors/enforces outbound connections against allowed IP subnets | periodic |
 | `RemoteAccessMonitor` | Scans for 35+ remote access tools; TeamViewer/AnyDesk/cloudflared LogOnly; **v2.5.3** ngrok/chisel/frpc/tailcat kill-grade | 60s |
 | `ThreatIntelFeedBlocker` | Spamhaus/Feodo/ET feeds in memory; **observe-only by default** (no proactive FW); reactive `NetworkIsolate` on live hit when `ActiveResponse`; optional `ThreatIntelProactiveFirewall` | 4h refresh / 30s conn |
-| `ForumHrWatchMonitor` | Dedicated forum.hr watch (site not blocked): non-browser DNS/TCP + persistent sessions -> kill; browsers allowed | 10s / 15m DNS refresh |
 | `UdpFlowMonitor` | **v2.4.8.** `GetExtendedUdpTable` OWNER_PID + Kernel-Network UDP ETW. LOLBin/Temp/classic-port UDP. LogOnly | 2s |
 | `IcmpAnomalyMonitor` | **v2.4.8.** `GetIcmpStatisticsEx` IPv4+IPv6 type counters: echo flood, inbound Redirect, unreachable storm. LogOnly | 5s |
 | `WfpNetEventMonitor` | **v2.4.8.** `FwpmNetEventSubscribe0` (no callout driver). GRE/ESP/AH/SCTP/L2TP + drop bursts. Unknown-proto fallback | event / 15s |
@@ -681,18 +680,22 @@ Full cert-revocation chain for BYOVD attacks. When a vulnerable/suspicious drive
 
 Config section: `AutoIncidentReporting` (see CHANGELOG 1.7.7 / 1.7.8).
 
-## v1.7.6 Additions
+## v1.7.6 Additions (superseded in v2.6.9)
 
-### Forum.hr policy: watch, don't block
+### Forum.hr policy: block at the hosts file
+
+The v1.7.6 "watch, don't block" approach (`ForumHrWatchMonitor`) proved useless against a
+real forum.hr drive-by reinfection and was **removed in v2.6.9**. The domain is once again
+blackholed outright at the hosts-file level (the original pre-v1.7.6 policy).
 
 | Item | Value |
 |------|--------|
-| Hosts block | **Removed** - `HostsFileGuard` no longer enforces any embedded blocklist (ad-blocking was opinionated); now monitor-only |
-| Monitor | `ForumHrWatchMonitor` (NetworkIntegrity) |
-| Allowed | Browser processes browsing forum.hr |
-| Enforced | Non-browser DNS/TCP to forum.hr IPs; persistent non-browser sessions >=5 min |
-| Response | Unsigned -> Tier1 KillProcessTree; signed -> Tier2 LogOnly |
-| DNS feed | `DnsQueryMonitor` -> `RecordDnsQuery` |
+| Hosts block | **Restored** - `HostsFileGuard` enforces localhost header + `0.0.0.0 forum.hr` + subdomains (`www`, `m`, `cdn`, `static`, `api`, `img`, `mail`, `ads`, `tracker`) |
+| Wildcard DNS block | NRPT rule `Name=.forum.hr` -> `GenericDNSServers=0.0.0.0` under policy hive `SOFTWARE\Policies\Microsoft\Windows NT\DNSClient\DnsPolicyConfig`; covers the apex **and every subdomain** (hosts file matches exact names only) |
+| Enforcement | Hosts lines appended on startup and every scan if missing (other content preserved); NRPT rule created/repaired on startup and every periodic scan |
+| Self-heal | `Hosts File: Baseline Restored (localhost + forum.hr)` and `DNS Policy: forum.hr Wildcard Block Restored` |
+| Authoritative | `BrowserDnsPolicyGuard` disables DoH so the OS resolver (hosts file + NRPT) governs all resolution |
+| Monitor removed | `ForumHrWatchMonitor` deleted (non-browser DNS/TCP watch, signed->Tier2 demotion) |
 
 ## v1.7.5 Additions
 

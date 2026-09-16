@@ -671,7 +671,6 @@ namespace Sentinel.Service
                             ("RemoteAccessMonitor",             s => s.GetRequiredService<RemoteAccessMonitor>()),
                             ("ThreatIntelFeedBlocker",          s => s.GetRequiredService<ThreatIntelFeedBlocker>()),
                             ("ThreatFoxFeedService",            s => s.GetRequiredService<ThreatFoxFeedService>()),
-                            ("ForumHrWatchMonitor",             s => s.GetRequiredService<ForumHrWatchMonitor>()),
                             ("UdpFlowMonitor",                  s => s.GetRequiredService<UdpFlowMonitor>()),
                             ("IcmpAnomalyMonitor",              s => s.GetRequiredService<IcmpAnomalyMonitor>()),
                             ("WfpNetEventMonitor",              s => s.GetRequiredService<WfpNetEventMonitor>()),
@@ -711,7 +710,6 @@ namespace Sentinel.Service
                     services.AddSingleton<ThreatIntelFeedBlocker>();
                     // GorstaksProtection-ported: ThreatFox hash/domain/IP feed (v2.4.0)
                     services.AddSingleton<ThreatFoxFeedService>();
-                    services.AddSingleton<ForumHrWatchMonitor>();
                     services.AddSingleton<UdpFlowMonitor>();
                     services.AddSingleton<IcmpAnomalyMonitor>();
                     services.AddSingleton<WfpNetEventMonitor>();

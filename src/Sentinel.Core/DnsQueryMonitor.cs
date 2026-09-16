@@ -30,7 +30,6 @@ namespace Sentinel.Core
         private readonly SentinelConfig _config;
         private readonly ILogger<DnsQueryMonitor> _logger;
         private readonly PersistentConnectionMonitor? _persistentConnMon;
-        private readonly ForumHrWatchMonitor? _forumHrWatch;
         private readonly ContextBus? _contextBus;
         private readonly MlThreatScorer? _mlScorer;
         private readonly TimeSpan _pollInterval;
@@ -84,7 +83,6 @@ namespace Sentinel.Core
             ILogger<DnsQueryMonitor> logger,
             PersistentConnectionMonitor? persistentConnMon = null,
             ContextBus? contextBus = null,
-            ForumHrWatchMonitor? forumHrWatch = null,
             MlThreatScorer? mlScorer = null,
             ThreatFoxFeedService? threatFoxFeed = null)
         {
@@ -93,7 +91,6 @@ namespace Sentinel.Core
             _logger = logger;
             _persistentConnMon = persistentConnMon;
             _contextBus = contextBus;
-            _forumHrWatch = forumHrWatch;
             _mlScorer = mlScorer;
             _threatFoxFeed = threatFoxFeed;
             _pollInterval = TimeSpan.FromSeconds(config.DnsPollIntervalSeconds > 0 ? config.DnsPollIntervalSeconds : 15);
@@ -173,7 +170,6 @@ namespace Sentinel.Core
             if (TrustedBaseDomains.Contains(baseDomain)) return;
 
             _persistentConnMon?.RecordDnsQuery(pid, domain);
-            _forumHrWatch?.RecordDnsQuery(pid, domain);
             CovertMeshSightings.NoteDomain(domain);
             CovertWebhookSightings.NoteDomain(domain, pid);
 

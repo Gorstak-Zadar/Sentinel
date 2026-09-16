@@ -147,8 +147,19 @@ namespace Sentinel.Core
 
                     string processName = proc.ProcessName;
 
-                    // v1.8.0: skip built-in OS / allowlisted names before any token open
-                    if (IsLegitimateSystemTokenHolder(processName)) continue;
+                    // Resolve the image path up front so name-based exemptions can be anchored
+                    // to a non-attacker-controllable location. A whitelisted NAME (svchost,
+                    // lsass, ...) must NOT self-exempt on its own - an attacker renames a potato
+                    // binary "svchost.exe" and drops it in Temp. The name is only trusted when it
+                    // is backed by a real system image path (System32/SysWOW64/Program Files, not
+                    // a user-writable drop), OR when the path is genuinely unresolvable AND the
+                    // name is a known protected/session-0 component (Memory Compression, Registry,
+                    // Secure System) that legitimately has no queryable image path.
+                    string earlyImagePath = SecurityValidation.GetProcessImagePath(pid) ?? "";
+
+                    // v1.8.0 / hardened: skip built-in OS holders before any token open - but only
+                    // when the name is anchored to a trusted path or is a pathless protected process.
+                    if (IsTrustedSystemTokenHolder(processName, earlyImagePath)) continue;
 
                     // Get the token user for this process
                     var tokenInfo = GetProcessTokenUser(pid);
@@ -230,7 +241,8 @@ namespace Sentinel.Core
                     }
 
                     // Detect: SeImpersonatePrivilege from user-writable paths (potato attacks)
-                    if (tokenInfo.Value.HasImpersonatePrivilege && !IsLegitimateImpersonator(processName))
+                    if (tokenInfo.Value.HasImpersonatePrivilege &&
+                        !IsTrustedImpersonator(processName, earlyImagePath))
                     {
                         string imagePath = SecurityValidation.GetProcessImagePath(pid) ?? "";
 
@@ -399,17 +411,26 @@ namespace Sentinel.Core
 
         private bool IsExpectedSystemProcess(string name, int pid)
         {
-            if (IsLegitimateSystemTokenHolder(name)) return true;
-
             string? path = SecurityValidation.GetProcessImagePath(pid);
+
+            // Name-based exemption is only honored when anchored to a trusted non-writable
+            // system path (or a pathless protected process). A binary named "svchost.exe" in
+            // Temp must NOT be treated as an expected system process.
+            if (IsTrustedSystemTokenHolder(name, path ?? "")) return true;
+
             if (string.IsNullOrEmpty(path))
             {
                 // v1.8.0: no path + OS-like name -> expected; bare unknown empty path is not "expected"
                 return IsLikelyProtectedOsProcess(name);
             }
 
+            // A resolvable path is "expected" only when it is a genuine system location and NOT
+            // a user-writable drop. Previously any path merely containing "\windows\" qualified,
+            // which a path like C:\Windows\Temp\evil.exe or C:\Users\x\windows\evil.exe satisfied.
+            if (IsSuspiciousPath(path!)) return false;
             string pathLower = path!.ToLowerInvariant();
-            return pathLower.Contains(@"\windows\") ||
+            return pathLower.Contains(@"\windows\system32\") ||
+                   pathLower.Contains(@"\windows\syswow64\") ||
                    pathLower.Contains(@"\program files\") ||
                    pathLower.Contains(@"\program files (x86)\");
         }
@@ -462,6 +483,52 @@ namespace Sentinel.Core
             var n = NormalizeProcessName(processName);
             return LegitimateImpersonators.Contains(n) ||
                    LegitimateImpersonators.Contains(processName);
+        }
+
+        /// <summary>
+        /// A trusted system image path: the real System32 / SysWOW64 copy, or an installed
+        /// component under Program Files - and NEVER a user-writable drop (Temp, Downloads,
+        /// AppData\Local\Temp, ProgramData\Temp, Desktop, Recycle Bin). This is the
+        /// non-attacker-controllable anchor that a whitelisted process NAME must be paired with
+        /// before the name is allowed to suppress a token-theft detection.
+        /// </summary>
+        internal static bool IsTrustedSystemImagePath(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            // Reject drop dirs first - a "\program files\...\..\temp\evil.exe" style path or a
+            // System32-named subfolder in a writable location must not qualify.
+            if (IsSuspiciousPath(path!)) return false;
+            return IsServicePath(path!); // System32 / SysWOW64 / Program Files (x86)
+        }
+
+        /// <summary>
+        /// Name-based token-holder exemption, ANCHORED to a non-attacker-controllable signal.
+        /// The whitelisted name is honored only when (a) the image lives in a trusted, non-writable
+        /// system location, or (b) the image path is genuinely unresolvable AND the name is a known
+        /// pathless protected/session-0 component. A renamed binary in a user-writable path is
+        /// never exempted.
+        /// </summary>
+        internal static bool IsTrustedSystemTokenHolder(string processName, string? imagePath)
+        {
+            if (!IsLegitimateSystemTokenHolder(processName)) return false;
+            if (!string.IsNullOrWhiteSpace(imagePath))
+                return IsTrustedSystemImagePath(imagePath);
+            // Empty path: only trust for genuinely pathless protected OS processes.
+            return IsLikelyProtectedOsProcess(processName);
+        }
+
+        /// <summary>
+        /// Name-based impersonator exemption, anchored the same way as
+        /// <see cref="IsTrustedSystemTokenHolder"/>. A whitelisted impersonator name (svchost,
+        /// lsass, sqlservr, ...) is only exempted from the SeImpersonate potato branch when it is
+        /// backed by a trusted non-writable system image path, or is a pathless protected process.
+        /// </summary>
+        internal static bool IsTrustedImpersonator(string processName, string? imagePath)
+        {
+            if (!IsLegitimateImpersonator(processName)) return false;
+            if (!string.IsNullOrWhiteSpace(imagePath))
+                return IsTrustedSystemImagePath(imagePath);
+            return IsLikelyProtectedOsProcess(processName);
         }
 
         /// <summary>

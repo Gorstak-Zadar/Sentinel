@@ -172,22 +172,25 @@ namespace Sentinel.Core
                 var pipeName = Path.GetFileName(pipePath);
                 if (string.IsNullOrEmpty(pipeName)) continue;
 
-                // Skip if already baselined or already alerted
-                if (_baselinePipes.Contains(pipeName)) continue;
-                if (_alertedPipes.Contains(pipeName)) continue;
+                // An explicit known-bad C2/lateral-movement pattern is evaluated FIRST, before any
+                // baseline / already-alerted / legitimate-name suppression. A pipe that matches a
+                // hard attack signature (Cobalt Strike, PsExec, Sliver, ...) must never be excused
+                // just because it happened to exist at boot (baseline) or because its name shares a
+                // prefix with a well-known pipe - both are attacker-controllable.
+                string? matchedPattern = MatchKnownBadPattern(pipeName);
 
-                // Skip well-known legitimate pipes
-                if (IsLegitimate(pipeName)) continue;
-
-                // Check against known-bad patterns
-                string? matchedPattern = null;
-                foreach (var pattern in KnownBadPatterns)
+                if (matchedPattern == null)
                 {
-                    if (pattern.IsMatch(pipeName))
-                    {
-                        matchedPattern = pattern.ToString();
-                        break;
-                    }
+                    // Skip if already baselined or already alerted
+                    if (_baselinePipes.Contains(pipeName)) continue;
+                    if (_alertedPipes.Contains(pipeName)) continue;
+
+                    // Skip well-known legitimate pipes
+                    if (IsLegitimate(pipeName)) continue;
+                }
+                else if (_alertedPipes.Contains(pipeName))
+                {
+                    continue; // already reported this exact bad pipe
                 }
 
                 if (matchedPattern != null)
@@ -272,16 +275,48 @@ namespace Sentinel.Core
             }
         }
 
+        /// <summary>
+        /// Returns the human-readable regex string of the first known-bad C2/lateral-movement
+        /// pattern the pipe name matches, or null if none. Evaluated before any legitimate/baseline
+        /// suppression so an explicit attack signature is never excused.
+        /// </summary>
+        private static string? MatchKnownBadPattern(string pipeName)
+        {
+            foreach (var pattern in KnownBadPatterns)
+            {
+                if (pattern.IsMatch(pipeName))
+                    return pattern.ToString();
+            }
+            return null;
+        }
+
         private static bool IsLegitimate(string pipeName)
         {
-            foreach (var prefix in LegitimatePatterns)
+            foreach (var pattern in LegitimatePatterns)
             {
-                if (pipeName.StartsWith(prefix))
+                // The pipe name is attacker-chosen. A bare well-known name (lsass, srvsvc,
+                // svcctl, ...) must match EXACTLY - otherwise a C2 pipe named "srvsvc_evil" or
+                // "lsass_c2" inherits the legitimate prefix and suppresses the known-bad-pattern
+                // alert. Only entries that are genuine namespace prefixes (they end with a
+                // separator such as '.', '_', '-', '\') are matched by StartsWith.
+                bool isPrefixPattern = pattern.Length > 0 &&
+                    (pattern[pattern.Length - 1] is '.' or '_' or '-' or '\\');
+                if (isPrefixPattern)
+                {
+                    if (pipeName.StartsWith(pattern, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+                else if (pipeName.Equals(pattern, StringComparison.OrdinalIgnoreCase))
+                {
                     return true;
+                }
             }
 
-            // Skip UUIDs / GUIDs in standard format (common for legitimate RPC endpoints)
-            if (pipeName.Length == 36 && pipeName[8] == '-' && pipeName[13] == '-')
+            // Skip UUIDs / GUIDs in standard format (common for legitimate RPC endpoints).
+            // Note: a pure 32+ hex-char name (no dashes) is NOT covered here - that is handled as
+            // a known-bad C2 pattern; only canonical dashed GUIDs are treated as legitimate.
+            if (pipeName.Length == 36 && pipeName[8] == '-' && pipeName[13] == '-' &&
+                pipeName[18] == '-' && pipeName[23] == '-')
                 return true;
 
             return false;
@@ -351,10 +386,24 @@ namespace Sentinel.Core
         {
             if (pid <= 4) return true;
             var lower = name.ToLowerInvariant();
-            return lower is "system" or "svchost" or "services" or "lsass" or "csrss"
+            bool nameMatches = lower is "system" or "svchost" or "services" or "lsass" or "csrss"
                 or "wininit" or "winlogon" or "smss" or "dwm" or "explorer"
                 or "spoolsv" or "searchindexer" or "wmiprvse" or "runtimebroker"
                 or "dllhost" or "taskhostw" or "sihost" or "fontdrvhost";
+            if (!nameMatches) return false;
+
+            // A system process NAME is attacker-controllable (rename an implant "svchost.exe"),
+            // and this check suppresses the high-entropy C2-pipe alert - so anchor it to the
+            // owner's real image path. The owner must resolve to a genuine System32 / SysWOW64
+            // image, never a user-writable drop. If the path can't be resolved, do NOT treat it
+            // as system (fail closed - a real System32 host resolves fine; a hidden implant that
+            // blocks path queries is exactly what we want to keep alerting on).
+            string? imagePath = SecurityValidation.GetProcessImagePath((int)pid);
+            if (string.IsNullOrEmpty(imagePath)) return false;
+            if (ModuleIdentity.IsUserWritableDrop(imagePath)) return false;
+            var pathLower = imagePath!.ToLowerInvariant();
+            return pathLower.Contains(@"\windows\system32\") ||
+                   pathLower.Contains(@"\windows\syswow64\");
         }
     }
 }

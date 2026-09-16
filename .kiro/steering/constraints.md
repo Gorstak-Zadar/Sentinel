@@ -21,6 +21,16 @@ must not be made.
   must not promote noise to Tier1.
 - **Behavioral signals only for kill authority** - detect what a process DOES, not what it IS
   (no filename/path/hash as a primary kill).
+- **Adversarial mindset: this project exists to defeat attackers, so never grant trust on a
+  signal an attacker controls.** Every "allow" path must assume the attacker can name a file
+  anything, drop it in any writable location, and pick any folder name. A filename or a folder
+  name alone must NEVER self-authorize a module - filename/prefix trust (GPU ICDs, servicing
+  names, vendor folders) must always be combined with a non-attacker-controllable anchor: a
+  trusted-root load location (OS keep-tree / Program Files) that is not user-writable, a valid
+  Authenticode signature, and/or a proven legitimate loading host. Any default-writable
+  directory - even inside the Windows tree (`Tasks`, `tracing`, spool color, PLA, `.nuget`
+  cache under the user profile) - is a drop, not a trusted tree. When adding a new allow rule,
+  first ask "how does an attacker abuse this?" and close that path before merging. Fail closed.
 - **No string-built JSON** (use `System.Text.Json`), **no static mutable state**,
   **no `Thread.Sleep` without cancellation**, **no string interpolation into shell commands**.
 - **DI required** for all services; **CancellationToken** threaded through every async method;

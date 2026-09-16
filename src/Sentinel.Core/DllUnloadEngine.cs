@@ -174,7 +174,8 @@ namespace Sentinel.Core
         {
             var result = new DllUnloadResult { ProcessId = writerPid, ProcessName = writerName ?? "" };
             if (string.IsNullOrEmpty(dllPath) || !File.Exists(dllPath)) return result;
-            if (!IsHijackPlantPath(dllPath)) return result;
+            if (!IsHijackPlantPath(dllPath) && !ComHijackEvaluator.ShouldQuarantinePayload(dllPath))
+                return result;
 
             try
             {
@@ -224,6 +225,14 @@ namespace Sentinel.Core
             return result;
         }
 
+        /// <summary>
+        /// COM InprocServer32/Handler payload that failed <see cref="ComHijackEvaluator"/>.
+        /// Quarantines the file (including a user-writable non-sideload DLL). Never
+        /// deletes the CLSID key.
+        /// </summary>
+        public Task<DllUnloadResult> OnComServerPlantAsync(string dllPath, int writerPid = 0, string? writerName = null)
+            => OnSideloadDllDroppedAsync(dllPath, writerPid, writerName);
+
         public static bool IsSideloadTargetFileName(string? pathOrName)
         {
             if (string.IsNullOrEmpty(pathOrName)) return false;
@@ -240,22 +249,33 @@ namespace Sentinel.Core
             => ModuleIdentity.IsModuleFileName(pathOrName);
 
         /// <summary>
-        /// True when <paramref name="dllPath"/> is a search-order hijack plant:
-        /// known target name, not the OS copy, not games, not DISM/NTLite scratch,
-        /// not Sentinel's own honeypot folder.
+        /// True when <paramref name="dllPath"/> is a disk plant that should be
+        /// quarantined on sight: a search-order hijack name outside the OS tree,
+        /// or a CBS/servicing-stack DLL name outside WinSxS/Windows\servicing
+        /// (including a fake cbsapi.dll in System32).
         /// </summary>
         public static bool IsHijackPlantPath(string? dllPath)
         {
-            if (string.IsNullOrEmpty(dllPath) || !IsSideloadTargetFileName(dllPath))
+            if (string.IsNullOrEmpty(dllPath))
                 return false;
             try
             {
+                if (IsSentinelHoneypotPath(dllPath!))
+                    return false;
+
+                // Servicing-name plants are hostile even in System32. The real CBS
+                // stack is the component store; keep-tree must not spare a fake
+                // cbsapi.dll sitting next to kernel32.
+                if (ModuleIdentity.IsServicingNameOutsideStore(dllPath))
+                    return true;
+
+                if (!IsSideloadTargetFileName(dllPath))
+                    return false;
+
                 var dir = Path.GetDirectoryName(dllPath);
                 if (string.IsNullOrEmpty(dir) || IsWindowsSystemDirectory(dir))
                     return false;
                 if (ModuleIdentity.IsOsServicingPath(dllPath))
-                    return false;
-                if (IsSentinelHoneypotPath(dllPath!))
                     return false;
                 if (ModuleIdentity.IsKeepTree(dllPath) && !ModuleIdentity.IsUserWritableDrop(dllPath))
                     return false;
@@ -266,6 +286,13 @@ namespace Sentinel.Core
                 return false;
             }
         }
+
+        /// <summary>
+        /// Filename that FileActivityMonitor must not skip: classic sideload
+        /// targets plus CBS/servicing impersonation names.
+        /// </summary>
+        public static bool IsImmediatePlantFileName(string? pathOrName) =>
+            IsSideloadTargetFileName(pathOrName) || ModuleIdentity.IsServicingImpersonationName(pathOrName);
 
         private static bool IsSentinelHoneypotPath(string path)
         {
@@ -479,14 +506,24 @@ namespace Sentinel.Core
         private async Task EmitHijackPlantQuarantinedAsync(
             string dllPath, string? fileName, string dir, int writerPid, string? writerName)
         {
+            bool servicingPlant = ModuleIdentity.IsServicingNameOutsideStore(dllPath);
             await _detectionEngine.EmitAsync(new DetectionEvent
             {
-                RuleName = "DLL Sideloading: Hijack-Name Plant Quarantined",
-                Evidence = $"Hostile sideload-target '{fileName}' written to '{dllPath}' " +
-                           $"(writer='{writerName}' PID {writerPid}). File quarantined; no process killed.",
-                Reasoning = "Search-order hijack: a local dbghelp/version/winmm copy is loaded " +
-                            "before System32, including a real Microsoft-signed copy. Quarantining " +
-                            "the file (not the host) is the prevention; FreeLibrary is cleanup if already mapped.",
+                RuleName = servicingPlant
+                    ? "Servicing Impersonation: CBS DLL Plant Quarantined"
+                    : "DLL Sideloading: Hijack-Name Plant Quarantined",
+                Evidence = servicingPlant
+                    ? $"Servicing-stack DLL name '{fileName}' at '{dllPath}' is not under WinSxS/Windows\\servicing " +
+                      $"(writer='{writerName}' PID {writerPid}). File quarantined; CLSID keys left intact."
+                    : $"Hostile sideload-target '{fileName}' written to '{dllPath}' " +
+                      $"(writer='{writerName}' PID {writerPid}). File quarantined; no process killed.",
+                Reasoning = servicingPlant
+                    ? "Component Based Servicing DLLs (cbsapi/cbscore/cbsmsg) live in the component store. " +
+                      "A copy in System32, Temp, AppData, or anywhere else is a plant used for COM hijack / " +
+                      "servicing impersonation. Quarantine the file; never delete the COM class."
+                    : "Search-order hijack: a local dbghelp/version/winmm copy is loaded " +
+                      "before System32, including a real Microsoft-signed copy. Quarantining " +
+                      "the file (not the host) is the prevention; FreeLibrary is cleanup if already mapped.",
                 Confidence = 0.90,
                 Tier = DetectionTier.Tier1Behavioral,
                 AuthorizedResponse = ResponseAction.LogOnly,
@@ -514,6 +551,12 @@ namespace Sentinel.Core
                 {
                     var path = Path.Combine(directory, target);
                     if (File.Exists(path) && IsHostileSideloadDll(path))
+                        found.Add(path);
+                }
+                foreach (var target in ModuleIdentity.ServicingStackDllNames)
+                {
+                    var path = Path.Combine(directory, target);
+                    if (File.Exists(path) && IsHijackPlantPath(path) && !found.Contains(path))
                         found.Add(path);
                 }
             }

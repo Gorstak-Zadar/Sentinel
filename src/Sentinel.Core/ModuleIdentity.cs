@@ -79,6 +79,12 @@ namespace Sentinel.Core
             if (IsOsServicingPath(mod))
                 return Allow("os-servicing");
 
+            // CBS/servicing-stack DLL names are only legitimate in the component store.
+            // keep-tree would otherwise allow C:\Windows\System32\cbsapi.dll, which is
+            // how a COM-hijack plant wearing a servicing name slipped identity.
+            if (IsServicingNameOutsideStore(mod))
+                return Deny("servicing-name-outside-store");
+
             var image = Normalize(processImagePath);
             if (image.Length > 0 && PathsEqual(mod, image))
                 return Allow("process-image");
@@ -95,13 +101,43 @@ namespace Sentinel.Core
             if (IsRoslynAnalyzerShadowCopy(mod) && IsRoslynBuildHost(image))
                 return Allow("roslyn-analyzer-shadowcopy");
 
-            if (IsGpuIcdName(mod))
+            // NuGet package cache. This lives under the user profile (%USERPROFILE%\.nuget\
+            // packages) - anyone who can write the user profile can plant a DLL here, so it is
+            // NOT a blanket keep-tree. It is only legitimate as a load source for a Microsoft
+            // Roslyn / .NET SDK build host (VBCSCompiler/dotnet/msbuild loading NuGet-cached
+            // source generators and analyzers). Gate on the loading host, same as the analyzer
+            // shadow-copy allowance, so an arbitrary process cannot self-authorize from it.
+            if (IsNuGetPackageCache(mod) && IsRoslynBuildHost(image))
+                return Allow("nuget-cache-buildhost");
+
+            // GPU ICD names (nvapi*, amdocl*, igc64*, ...) are only trusted when they load
+            // from a plausible driver location AND are not in a user-writable drop. The ICD
+            // name alone is attacker-controllable (rename payload to nvapi64.dll), so a bare
+            // filename match anywhere - including %TEMP% - previously self-authorized. Real
+            // ICDs live in the OS tree (System32 / DriverStore) or a vendor Program Files
+            // install; both are covered by keep-tree / Program Files below, so gate on that.
+            if (IsGpuIcdName(mod) &&
+                !IsUserWritableDrop(mod) &&
+                (IsKeepTree(mod) || IsProgramFilesTree(mod)))
                 return Allow("gpu-icd");
 
             if (IsKeepTree(mod))
             {
-                if (IsUserWritableDrop(mod) && DllUnloadEngine.IsSideloadTargetFileName(mod))
-                    return Deny("sideload-name-in-writable");
+                // A module that lands in a user-writable drop that happens to sit inside the
+                // keep-tree (Windows\Tasks, Windows\tracing, the spool color dir, ...) is NOT
+                // trusted just for being under the Windows root - those ACL holes are exactly
+                // where a low-priv attacker plants. Sideload-name plants are always denied.
+                // Any other module in such a drop is only spared if it is Microsoft-signed
+                // (real OS servicing writes signed files there); everything else falls through
+                // to the standard user-writable-drop deny below.
+                if (IsUserWritableDrop(mod))
+                {
+                    if (DllUnloadEngine.IsSideloadTargetFileName(mod))
+                        return Deny("sideload-name-in-writable");
+                    if (!MicrosoftSigned(mod, isMicrosoftSigned) && !IsAuthenticodeTrusted(mod))
+                        return Deny("keep-tree-writable-drop");
+                    return Allow("keep-tree-signed-in-writable");
+                }
                 return Allow("keep-tree");
             }
 
@@ -181,13 +217,28 @@ namespace Sentinel.Core
             if (ContainsDir(p, @"\ebwebview\")) return true;
             if (ContainsDir(p, @"\dotnet\")) return true;
             if (ContainsDir(p, @"\microsoft.net\")) return true;
-            // v2.5.5: NuGet package cache - Roslyn source generators and NuGet-cached DLLs
-            // loaded by VBCSCompiler/dotnet/msbuild must not be quarantined as foreign-path.
-            if (ContainsDir(p, @"\.nuget\packages\")) return true;
-            if (ContainsDir(p, @"\nvidia corporation\")) return true;
-            if (ContainsDir(p, @"\amd\")) return true;
-            if (ContainsDir(p, @"\ati technologies\")) return true;
-            if (ContainsDir(p, @"\intel\")) return true;
+            // Vendor GPU/driver install trees. These folder names (\amd\, \intel\,
+            // \nvidia corporation\, \ati technologies\) are short and attacker-controllable:
+            // a substring match anywhere previously trusted C:\ProgramData\amd\evil.dll or
+            // D:\games\amd\evil.dll. Real vendor components install under Program Files (their
+            // Windows-tree copies are already covered by the WindowsRoot() branch above), so
+            // only trust the vendor folder name when it also sits under Program Files.
+            if (IsProgramFilesTree(p) && IsVendorTree(p)) return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// True when the path contains a known GPU/driver vendor folder name. Callers must
+        /// also confirm a trusted root location (Program Files / OS tree) before trusting -
+        /// the folder name alone is attacker-controllable.
+        /// </summary>
+        private static bool IsVendorTree(string normalizedPath)
+        {
+            if (ContainsDir(normalizedPath, @"\nvidia corporation\")) return true;
+            if (ContainsDir(normalizedPath, @"\amd\")) return true;
+            if (ContainsDir(normalizedPath, @"\ati technologies\")) return true;
+            if (ContainsDir(normalizedPath, @"\intel\")) return true;
             return false;
         }
 
@@ -199,7 +250,28 @@ namespace Sentinel.Core
             if (p.EndsWith(@"\temp", StringComparison.Ordinal)) return true;
             if (ContainsDir(p, @"\downloads\")) return true;
             if (ContainsDir(p, @"\desktop\")) return true;
+            if (ContainsDir(p, @"\users\public\")) return true;
             if (ContainsDir(p, @"\appdata\local\temp\")) return true;
+
+            // Directories UNDER the Windows tree that a standard (non-admin) user can write to
+            // by default. IsKeepTree trusts the whole Windows root except \Temp; these are the
+            // other classic default-writable ACL holes a low-priv attacker can plant into, so
+            // treat them as drops and let the keep-tree branch reject a plant that lands here.
+            if (ContainsDir(p, @"\windows\tasks\")) return true;
+            if (ContainsDir(p, @"\windows\tracing\")) return true;
+            if (ContainsDir(p, @"\windows\registration\crmlog\")) return true;
+            if (ContainsDir(p, @"\windows\system32\spool\drivers\color\")) return true;
+            if (ContainsDir(p, @"\windows\system32\tasks\")) return true;
+            if (ContainsDir(p, @"\windows\syswow64\tasks\")) return true;
+            if (ContainsDir(p, @"\windows\system32\com\dmp\")) return true;
+            if (ContainsDir(p, @"\windows\system32\fxstmp\")) return true;
+            if (ContainsDir(p, @"\windows\syswow64\com\dmp\")) return true;
+            if (ContainsDir(p, @"\windows\syswow64\fxstmp\")) return true;
+            if (ContainsDir(p, @"\windows\pla\reports\")) return true;
+            if (ContainsDir(p, @"\windows\pla\rules\")) return true;
+            if (ContainsDir(p, @"\windows\pla\templates\")) return true;
+            if (ContainsDir(p, @"\windows\pla\traces\")) return true;
+            if (ContainsDir(p, @"\windows\debug\wia\")) return true;
             // AppData overlays except Edge/WebView user-data (keep-tree already matched those).
             if (ContainsDir(p, @"\appdata\local\") || ContainsDir(p, @"\appdata\roaming\"))
             {
@@ -227,6 +299,19 @@ namespace Sentinel.Core
         }
 
         /// <summary>
+        /// True when the module lives in the NuGet package cache (<c>...\.nuget\packages\...</c>).
+        /// This cache sits under the user profile and is user-writable, so a match here must be
+        /// combined with a Roslyn/SDK build-host check (<see cref="IsRoslynBuildHost"/>) before
+        /// trusting - an arbitrary process loading from the cache is not automatically legitimate.
+        /// </summary>
+        public static bool IsNuGetPackageCache(string? path)
+        {
+            var p = Normalize(path);
+            if (p.Length == 0) return false;
+            return ContainsDir(p, @"\.nuget\packages\");
+        }
+
+        /// <summary>
         /// True when the process image is a Microsoft Roslyn / .NET SDK build host that
         /// legitimately shadow-copies and loads analyzers (VBCSCompiler, csc, vbc, dotnet,
         /// MSBuild). Path-shaped identity of the HOST, used only to gate the analyzer
@@ -249,6 +334,36 @@ namespace Sentinel.Core
             return file is "vbcscompiler.exe" or "csc.exe" or "vbc.exe"
                         or "dotnet.exe" or "msbuild.exe";
         }
+
+        /// <summary>
+        /// Component Based Servicing stack DLL names. The real copies live under
+        /// WinSxS / Windows\servicing (CbsCore, CbsMsg; CbsApi on older servicing
+        /// stacks). A file with one of these names anywhere else - including
+        /// System32 - is impersonation, not the OS component.
+        /// </summary>
+        public static readonly System.Collections.Generic.HashSet<string> ServicingStackDllNames =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                "cbsapi.dll",
+                "cbscore.dll",
+                "cbsmsg.dll",
+            };
+
+        public static bool IsServicingImpersonationName(string? pathOrName)
+        {
+            if (string.IsNullOrWhiteSpace(pathOrName)) return false;
+            string file;
+            try { file = Path.GetFileName(pathOrName) ?? ""; }
+            catch { return false; }
+            return file.Length > 0 && ServicingStackDllNames.Contains(file);
+        }
+
+        /// <summary>
+        /// True when the path is a servicing-stack DLL name and is NOT under WinSxS /
+        /// Windows\servicing / CBS scratch. System32\cbsapi.dll is true.
+        /// </summary>
+        public static bool IsServicingNameOutsideStore(string? path) =>
+            IsServicingImpersonationName(path) && !IsOsServicingPath(path);
 
         public static bool IsOsServicingPath(string? path)
         {

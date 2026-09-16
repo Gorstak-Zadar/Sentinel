@@ -863,10 +863,21 @@ namespace Sentinel.Core
             if (string.IsNullOrEmpty(path)) return false;
             var lower = path!.ToLowerInvariant();
 
-            // Never treat staging dirs as "game" even if renamed steam/epic folders
-            if (lower.Contains(@"\temp\") ||
-                lower.Contains(@"\downloads\") ||
-                lower.Contains(@"\appdata\local\temp\"))
+            // Never treat staging dirs as "game" even if renamed steam/epic folders.
+            // Use the authoritative user-writable-drop set (ModuleIdentity.IsUserWritableDrop)
+            // so this rejects every known drop - Temp/Downloads/Desktop/Users\Public,
+            // AppData overlays, AND the writable subdirs under the Windows tree - not just the
+            // three checked inline before. A game-folder substring inside a writable drop
+            // (e.g. C:\Users\Public\steamapps\common\evil.exe) must NOT read as a game.
+            // \appdata\local\programs\ hosts legitimately-installed per-user apps (some Xbox /
+            // Epic / launcher installs land here) and is the one AppData location this check has
+            // always allowed; keep that carve-out. Every OTHER writable drop is rejected.
+            bool perUserProgramsInstall = lower.Contains(@"\appdata\local\programs\");
+            if (!perUserProgramsInstall &&
+                (ModuleIdentity.IsUserWritableDrop(path) ||
+                 lower.Contains(@"\temp\") ||
+                 lower.Contains(@"\downloads\") ||
+                 lower.Contains(@"\appdata\local\temp\")))
                 return false;
 
             bool fragment =
@@ -976,17 +987,27 @@ namespace Sentinel.Core
             if (IsGameOrAntiCheatPath(imagePath))
                 return true;
 
+            // Resolve the image path once so the name-set skip can be anchored.
+            imagePath ??= GetProcessImagePath(pid);
+
             try
             {
                 using var proc = System.Diagnostics.Process.GetProcessById(pid);
                 var name = proc.ProcessName;
                 if (!string.IsNullOrEmpty(name) && GameOrAntiCheatProcessNames.Contains(name))
-                    return true;
+                {
+                    // The name set exists for the startup race where the image path has not yet
+                    // resolved (Denuvo titles self-exit on VM_READ). A game NAME is attacker-
+                    // controllable, so if the path IS resolvable it must not be a user-writable
+                    // drop - "vgc.exe" or "steam.exe" sitting in Temp/Downloads/AppData is a
+                    // disguised implant, and skipping its memory inspection would only help the
+                    // attacker. Honor the name skip only when the path is genuinely unresolved.
+                    if (string.IsNullOrEmpty(imagePath) || !ModuleIdentity.IsUserWritableDrop(imagePath))
+                        return true;
+                }
             }
             catch { }
 
-            // Path may still resolve when name is generic (e.g. custom launcher)
-            imagePath ??= GetProcessImagePath(pid);
             return IsGameOrAntiCheatPath(imagePath);
         }
 

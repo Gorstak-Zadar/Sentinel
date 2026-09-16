@@ -2,6 +2,48 @@
 
 
 
+## [2.7.2] - 2026-09-16
+
+### Hardened - close attacker-controllable "trust by name/path alone" bypasses
+
+Systematic pass to remove every "allow / suppress / skip" path that granted trust on a signal
+an attacker controls (a filename, a filename prefix, or a folder-name substring) without also
+requiring a non-attacker-controllable anchor: a non-user-writable trusted-root load location, a
+valid Authenticode signature, and/or a proven legitimate loading host. Codified as a new
+highest-priority steering invariant (`.kiro/steering/constraints.md`) and a matching row in
+`docs/constraints.md`.
+
+- **`ModuleIdentity`** - GPU ICD names (`nvapi*`/`amdocl*`/`igc64*`...) are trusted only from a
+  keep-tree / Program Files path, never a user-writable drop (a renamed `nvapi64.dll` in `%TEMP%`
+  no longer self-authorizes). Vendor folder trust (`\amd\`, `\intel\`, `\nvidia corporation\`,
+  `\ati technologies\`) now requires the path to be under Program Files. The `.nuget\packages`
+  cache (per-user, writable) is trusted only when the loading host is a Roslyn/.NET SDK build
+  binary. Added the default-writable subdirectories under the Windows tree (`Tasks`, `tracing`,
+  `registration\CRMLog`, `System32\spool\drivers\color`, `System32`/`SysWOW64` `Tasks`/`COM\dmp`/
+  `FxsTmp`, `PLA\*`, `debug\WIA`) to the user-writable-drop set; a module in such a drop inside
+  keep-tree is denied unless Microsoft-signed / Authenticode-trusted.
+- **`TokenTheftMonitor`** - the SYSTEM-token and SeImpersonate/"potato" exemptions no longer
+  trust a whitelisted process name alone. The name is honored only when backed by a real
+  System32/SysWOW64/Program Files image (not a writable drop) or a genuinely pathless protected
+  OS process. `IsExpectedSystemProcess` tightened likewise.
+- **`LsassDumpCanaryMonitor`** - the trusted-accessor path check now canonicalizes the event-log
+  path (strips `\\?\`/`\??\`, full-path + directory-boundary match) so a prefix collision like
+  `C:\Windows\System32Malware\` no longer passes, and it fails closed on signature (no more
+  path-only trust when the signer service is unavailable).
+- **`SecurityValidation` (game / anti-cheat)** - the memory-inspection skip rejects the full
+  user-writable-drop set (keeping the per-user `AppData\Local\Programs` install carve-out), and a
+  game-named process is only skipped when its image is not in a writable drop.
+- **`ChainTracer`** - IDE-host and browser-host protection reject explicit staging drops and
+  self-authorize only on deep, vendor-structured canonical install subpaths, with an Authenticode
+  fallback elsewhere - a renamed `code.exe`/`chrome.exe` in a drop is no longer protected.
+- **`NamedPipeMonitor`** - known-bad C2/lateral-movement pipe patterns are now evaluated before
+  any baseline / legitimate-name suppression; legitimate bare pipe names match exactly (so
+  `srvsvc_evil` no longer inherits `srvsvc`'s trust); and the "system owner" suppression is
+  anchored to the owner's real System32/SysWOW64 image.
+
+Tests: full suite green (2421 passed / 0 failed), including new `ModuleIdentityTests` cases that
+lock in each closed gap.
+
 ## [2.7.1] - 2026-09-16
 
 ### Added - Site-to-local-app hijack / pairing protection (browser-like app control)

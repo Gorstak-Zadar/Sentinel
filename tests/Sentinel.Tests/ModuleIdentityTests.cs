@@ -154,14 +154,140 @@ namespace Sentinel.Tests
         }
 
         [Fact]
-        public void GpuIcd_ByFilename_IsAllowed()
+        public void GpuIcd_InDriverStore_IsAllowed()
         {
+            // A real GPU ICD loads from the OS driver tree - keep-tree covers it.
+            var v = ModuleIdentity.Evaluate(
+                Ceprkac,
+                @"C:\Windows\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_abc\nvwgf2umx.dll",
+                _ => false);
+            Assert.True(v.Allowed, v.Reason);
+            Assert.Equal("gpu-icd", v.Reason);
+        }
+
+        [Fact]
+        public void GpuIcd_InProgramFilesVendorTree_IsAllowed()
+        {
+            var v = ModuleIdentity.Evaluate(
+                Ceprkac,
+                @"C:\Program Files\NVIDIA Corporation\nvwgf2umx.dll",
+                _ => false);
+            Assert.True(v.Allowed, v.Reason);
+            Assert.Equal("gpu-icd", v.Reason);
+        }
+
+        [Fact]
+        public void GpuIcd_NameInForeignPath_IsDenied()
+        {
+            // GAP FIX: an ICD-prefixed filename dropped in an arbitrary folder must NOT
+            // self-authorize. Renaming a payload to nvwgf2umx.dll no longer bypasses identity.
             var v = ModuleIdentity.Evaluate(
                 Ceprkac,
                 @"D:\SomeIcd\nvwgf2umx.dll",
                 _ => false);
-            Assert.True(v.Allowed);
-            Assert.Equal("gpu-icd", v.Reason);
+            Assert.False(v.Allowed);
+            Assert.Equal("foreign-path", v.Reason);
+        }
+
+        [Fact]
+        public void GpuIcd_NameInTempDrop_IsDenied()
+        {
+            // GAP FIX: ICD name in %TEMP% is a drop, not a driver.
+            var v = ModuleIdentity.Evaluate(
+                Ceprkac,
+                @"C:\Users\Admin\AppData\Local\Temp\nvapi64.dll",
+                _ => false);
+            Assert.False(v.Allowed);
+            Assert.Equal("user-writable-drop", v.Reason);
+        }
+
+        [Fact]
+        public void VendorFolderName_OutsideProgramFiles_IsNotKeepTree()
+        {
+            // GAP FIX: \amd\ as an attacker-controllable folder name on a random drive or in
+            // ProgramData no longer grants keep-tree trust.
+            var v1 = ModuleIdentity.Evaluate(Ceprkac, @"D:\games\amd\evil.dll", _ => false);
+            Assert.False(v1.Allowed);
+            Assert.Equal("foreign-path", v1.Reason);
+
+            var v2 = ModuleIdentity.Evaluate(Ceprkac, @"C:\ProgramData\amd\evil.dll", _ => false);
+            Assert.False(v2.Allowed);
+            Assert.Equal("foreign-path", v2.Reason);
+        }
+
+        [Fact]
+        public void VendorFolderName_UnderProgramFiles_IsKeepTree()
+        {
+            // A genuine vendor install under Program Files is still trusted.
+            var v = ModuleIdentity.Evaluate(
+                Ceprkac,
+                @"C:\Program Files\AMD\CNext\atiadlxx.dll",
+                _ => false);
+            Assert.True(v.Allowed, v.Reason);
+        }
+
+        // ---- NuGet package cache (user-writable; gated on build host) ----
+
+        private const string NuGetDll =
+            @"C:\Users\Admin\.nuget\packages\microsoft.extensions.logging\8.0.0\lib\net8.0\gen.dll";
+
+        [Fact]
+        public void NuGetCache_LoadedByBuildHost_IsAllowed()
+        {
+            var v = ModuleIdentity.Evaluate(
+                @"C:\Program Files\dotnet\dotnet.exe", NuGetDll, _ => false);
+            Assert.True(v.Allowed, v.Reason);
+            Assert.Equal("nuget-cache-buildhost", v.Reason);
+        }
+
+        [Fact]
+        public void NuGetCache_LoadedByForeignHost_IsDenied()
+        {
+            // GAP FIX: the NuGet cache lives under the user profile. A non-build process
+            // loading from it must not be auto-trusted. It is no longer blanket keep-tree, so
+            // it falls through to the standard foreign-path deny.
+            var v = ModuleIdentity.Evaluate(Ceprkac, NuGetDll, _ => false);
+            Assert.False(v.Allowed);
+            Assert.Equal("foreign-path", v.Reason);
+        }
+
+        // ---- Writable subdirectories inside the Windows tree ----
+
+        [Theory]
+        [InlineData(@"C:\Windows\Tasks\payload.dll")]
+        [InlineData(@"C:\Windows\Tracing\payload.dll")]
+        [InlineData(@"C:\Windows\Registration\CRMLog\payload.dll")]
+        [InlineData(@"C:\Windows\System32\spool\drivers\color\payload.dll")]
+        [InlineData(@"C:\Windows\System32\Tasks\payload.dll")]
+        [InlineData(@"C:\Windows\PLA\Reports\payload.dll")]
+        public void WindowsWritableSubdir_UnsignedPlant_IsDenied(string module)
+        {
+            // GAP FIX: default-writable ACL holes under the Windows root are drops, not keep-tree.
+            var v = ModuleIdentity.Evaluate(Svchost, module, _ => false);
+            Assert.False(v.Allowed, "expected deny for " + module + " but got " + v.Reason);
+        }
+
+        [Fact]
+        public void WindowsWritableSubdir_MicrosoftSigned_IsSpared()
+        {
+            // Real OS servicing may write signed files into these dirs - keep those allowed.
+            var v = ModuleIdentity.Evaluate(
+                Svchost,
+                @"C:\Windows\Tasks\legit.dll",
+                _ => true);
+            Assert.True(v.Allowed, v.Reason);
+            Assert.Equal("keep-tree-signed-in-writable", v.Reason);
+        }
+
+        [Fact]
+        public void WindowsWritableSubdir_SideloadName_IsDenied_EvenIfSigned()
+        {
+            var v = ModuleIdentity.Evaluate(
+                Svchost,
+                @"C:\Windows\Tasks\version.dll",
+                _ => true);
+            Assert.False(v.Allowed);
+            Assert.Equal("sideload-name-in-writable", v.Reason);
         }
 
         [Fact]

@@ -280,13 +280,39 @@ namespace Sentinel.Core
         private bool IsTrustedPath(string? path)
         {
             if (string.IsNullOrEmpty(path)) return false;
-            // Must be in a known system folder AND be signed
-            bool inSystemFolder = SystemLsassAccessorPaths.Any(t => path!.StartsWith(t));
+
+            // Canonicalize before comparing. The raw string comes from event-log XML, so a
+            // case-sensitive StartsWith on it is bypassable: "C:\Windows\System32Malware\x.exe"
+            // starts with the "C:\Windows\System32\" prefix only by accident of separators, and
+            // 8.3 / \\?\ / mixed-case / trailing-dot variants dodge a naive prefix match. Resolve
+            // to a full path and compare on directory boundaries.
+            string full;
+            try
+            {
+                var raw = path!.Trim().Trim('"');
+                if (raw.StartsWith(@"\\?\", StringComparison.Ordinal)) raw = raw.Substring(4);
+                if (raw.StartsWith(@"\??\", StringComparison.Ordinal)) raw = raw.Substring(4);
+                full = Path.GetFullPath(raw);
+            }
+            catch { return false; } // unparseable path -> not trusted (fail closed)
+
+            string normalized = full.TrimEnd('\\').ToLowerInvariant() + @"\";
+            bool inSystemFolder = SystemLsassAccessorPaths.Any(t =>
+            {
+                var root = t.ToLowerInvariant();
+                // Directory-boundary match: the path must be the folder itself or sit UNDER it,
+                // so "system32malware\" cannot match the "system32\" root.
+                return normalized.StartsWith(root, StringComparison.Ordinal);
+            });
             if (!inSystemFolder) return false;
-            // Verify signature - unsigned binaries in system folders are suspicious
+
+            // A trusted system path is NOT enough on its own - an attacker who can drop into a
+            // system folder (or trick the event log path) must still fail the signature gate.
+            // Fail closed: unsigned, unverifiable, or no-signer-service all mean NOT trusted, so
+            // the 0.92-confidence LSASS-access kill is never suppressed on path alone.
             if (_signerTrust != null)
-                return _signerTrust.IsSignedFile(path!);
-            return true; // If no signer service available, fall back to path-only (degraded mode)
+                return _signerTrust.IsSignedFile(full);
+            return SecurityValidation.VerifyAuthenticodeSignature(full, _logger);
         }
 
         private static string? ExtractXmlField(string xml, string fieldName)

@@ -79,10 +79,20 @@ namespace Sentinel.Core
             "devenv", // Visual Studio
         };
 
-        private static readonly string[] LegitimateIdePaths =
+        // Non-writable install roots: a name match here self-authorizes (an attacker cannot
+        // write Program Files / WindowsApps without already being admin/TrustedInstaller).
+        private static readonly string[] NonWritableIdePaths =
         {
             @"\program files\",
             @"\program files (x86)\",
+            @"\windowsapps\",
+        };
+
+        // User-writable per-user install roots. IDEs legitimately install here, but so can an
+        // attacker drop a renamed "code.exe" - so a name match in these locations is only
+        // honored when the binary ALSO carries a valid Authenticode signature.
+        private static readonly string[] UserWritableIdePaths =
+        {
             @"\appdata\local\programs\",
             @"\appdata\local\kiro\",
             @"\appdata\local\cursor\",
@@ -480,15 +490,31 @@ namespace Sentinel.Core
 
             if (!nameMatches) return false;
 
-            // Installed browser at expected path (not Temp staging of "chrome.exe")
+            // Installed browser at an expected path (not Temp staging of "chrome.exe").
             if (!isGenericSetup && !string.IsNullOrEmpty(imagePath))
             {
                 var lower = imagePath!.ToLowerInvariant();
-                bool inStaging = lower.Contains(@"\temp\") ||
-                                 lower.Contains(@"\downloads\") ||
-                                 lower.Contains(@"\appdata\local\temp\");
-                if (!inStaging && LegitimateBrowserPaths.Any(p => lower.Contains(p)))
+
+                // True staging / drop dirs are never a trusted install location - a renamed
+                // chrome.exe there must fail. We check these EXPLICITLY (Temp/Downloads/Desktop/
+                // Public) rather than via ModuleIdentity.IsUserWritableDrop, because that helper
+                // treats the whole of \appdata\local\ as a drop - yet Chrome/Edge/Firefox
+                // legitimately install PER-USER under AppData (\appdata\local\google\chrome\, ...).
+                bool inStagingDrop =
+                    lower.Contains(@"\temp\") ||
+                    lower.Contains(@"\tmp\") ||
+                    lower.Contains(@"\downloads\") ||
+                    lower.Contains(@"\desktop\") ||
+                    lower.Contains(@"\users\public\") ||
+                    lower.Contains(@"\appdata\local\temp\");
+
+                // The LegitimateBrowserPaths entries are deep, vendor-structured canonical install
+                // subpaths; that specific structure IS the non-attacker-controllable anchor. A
+                // shallow AppData drop (\appdata\local\chrome.exe) does not match them.
+                if (!inStagingDrop && LegitimateBrowserPaths.Any(p => lower.Contains(p)))
+                {
                     return true;
+                }
             }
 
             // Desktop extras / Downloads installers, or setup.exe extracted under Temp:
@@ -520,32 +546,58 @@ namespace Sentinel.Core
         }
 
         /// <summary>
-        /// v1.6.9: Determines whether a process is a legitimate IDE/dev-tool host.
-        /// Requires BOTH: (1) process name matches known IDE stems, AND (2) binary
-        /// resides in a legitimate install path (Program Files, AppData\Local\Programs, etc.).
-        /// An attacker renaming malware "kiro.exe" in Temp/Downloads will NOT be protected.
+        /// v1.6.9 / hardened: Determines whether a process is a legitimate IDE/dev-tool host,
+        /// so we never walk up and kill the developer's IDE on a child-process detection.
+        /// Requires the process NAME to match a known IDE stem AND a non-attacker-controllable
+        /// anchor:
+        ///   - a NON-writable install root (Program Files / WindowsApps) - self-authorizes, OR
+        ///   - a user-writable per-user install root (AppData\Local\Programs, JetBrains, ...)
+        ///     ONLY when the binary carries a valid Authenticode signature, OR
+        ///   - any other location ONLY when validly Authenticode-signed.
+        /// A renamed "kiro.exe" / "code.exe" in Temp/Downloads (or unsigned in AppData) is NOT
+        /// protected. Name + writable-path-substring alone is never sufficient.
         /// </summary>
         internal static bool IsLegitimateIdeHost(string? imagePath, string processName)
         {
             if (string.IsNullOrEmpty(processName)) return false;
             var cleanName = Sentinel.Core.StringNet48.ReplaceIgnoreCase(processName, ".exe", "");
             if (!IdeHostProcessNames.Contains(cleanName)) return false;
+            if (string.IsNullOrEmpty(imagePath)) return false;
 
-            // Name matches - verify the path is legitimate
-            if (!string.IsNullOrEmpty(imagePath))
+            var lowerPath = imagePath!.ToLowerInvariant();
+
+            // True staging / drop dirs are never protected - a renamed "kiro.exe"/"code.exe"
+            // there must fail. Checked explicitly (not via ModuleIdentity.IsUserWritableDrop)
+            // because that helper treats all of \appdata\local\ as a drop, yet IDEs legitimately
+            // install PER-USER under \appdata\local\programs\.
+            bool inStagingDrop =
+                lowerPath.Contains(@"\temp\") ||
+                lowerPath.Contains(@"\tmp\") ||
+                lowerPath.Contains(@"\downloads\") ||
+                lowerPath.Contains(@"\desktop\") ||
+                lowerPath.Contains(@"\users\public\") ||
+                lowerPath.Contains(@"\appdata\local\temp\");
+            if (inStagingDrop)
+                return false;
+
+            // Non-writable install root (Program Files / WindowsApps) -> name match is enough.
+            if (NonWritableIdePaths.Any(p => lowerPath.Contains(p)))
+                return true;
+
+            // Per-user install roots are deep, vendor-structured canonical paths
+            // (\appdata\local\programs\, \appdata\local\kiro\, \jetbrains\, ...). IDEs legitimately
+            // install per-user there, so that specific install-subpath structure is the anchor and
+            // self-authorizes. Shallow drops don't match (and were already rejected above).
+            if (UserWritableIdePaths.Any(p => lowerPath.Contains(p)))
+                return true;
+
+            // Anywhere else (e.g. a secondary drive): only protected when validly Authenticode-signed.
+            try
             {
-                var lowerPath = imagePath!.ToLowerInvariant();
-                if (LegitimateIdePaths.Any(p => lowerPath.Contains(p)))
+                if (File.Exists(imagePath) && SecurityValidation.VerifyAuthenticodeSignature(imagePath))
                     return true;
-
-                // Fallback: if binary is validly signed, trust it regardless of path
-                try
-                {
-                    if (File.Exists(imagePath) && SecurityValidation.VerifyAuthenticodeSignature(imagePath))
-                        return true;
-                }
-                catch { }
             }
+            catch { /* treat as untrusted */ }
 
             return false;
         }

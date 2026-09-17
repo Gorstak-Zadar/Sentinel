@@ -142,6 +142,78 @@ namespace Sentinel.Core
                 return;
             }
 
+            // v2.7.3: LOCAL (non-network) chains. These close the "malicious DLL that harms
+            // locally and never phones home" gap. An "Unexpected Late Module Load" is only weak
+            // observe-fuel on its own; but when the SAME process ALSO performs a local-harm act
+            // (mass-encryption/wipe, credential or LSASS access, or security-control tampering),
+            // that is a completed chain WITHOUT any network leg - a signed DLL loaded late into a
+            // trusted host and then did damage. Escalate to graceful contain+vault-quarantine.
+            // A "local staged-payload seed" is either an unexpected late module load OR a dormant
+            // dropped payload (unsigned drop-path process that was not phoning home). Both are weak
+            // provenance seeds that only matter once the SAME process performs a local-harm act.
+            bool hasLocalPayloadSeed = currentSignals.Any(s =>
+                s.RuleName.IndexOf("Unexpected Late Module Load", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                s.RuleName.IndexOf("Dormant Payload", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                (s.Metadata != null && s.Metadata.TryGetValue("Provenance", out var prov) &&
+                 (string.Equals(prov, "unexpected-late-load", StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(prov, "dormant-dropped-payload", StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(prov, "com-hijack", StringComparison.OrdinalIgnoreCase))));
+
+            if (hasLocalPayloadSeed)
+            {
+                // Local staged payload + local encryption/wipe activity = ransomware executing
+                // from a late-injected module or a dormant dropped binary. No network required.
+                if (types.Contains(SignalType.Ransomware))
+                {
+                    await EmitCompositeAsync(pid, "Local Payload: Staged Module + Mass-Encryption", 0.95,
+                        "A locally-staged payload seed (unexpected late module load or dormant drop-path process) " +
+                        "correlates with local mass-encryption/wipe activity on the same process.",
+                        "A staged local payload appeared in this host and the process then began encrypting or " +
+                        "destroying files locally - a payload that never needs to phone home. Contained.");
+                    return;
+                }
+
+                // Local staged payload + credential/LSASS access = local credential theft
+                // (no exfil observed yet, but the access itself is the harm).
+                if (types.Contains(SignalType.LsassAccess) || types.Contains(SignalType.CredentialTheft))
+                {
+                    await EmitCompositeAsync(pid, "Local Payload: Staged Module + Credential Access", 0.93,
+                        "A locally-staged payload seed correlates with credential-store or LSASS access " +
+                        "on the same process.",
+                        "A staged local payload appeared in this host and the process then reached for credential " +
+                        "material locally - local credential theft without a network leg. Contained.");
+                    return;
+                }
+
+                // Local staged payload + security-control tampering (AMSI/ETW patch, defense disable).
+                if (types.Contains(SignalType.AmsiTampering) || types.Contains(SignalType.EtwTampering) ||
+                    types.Contains(SignalType.SecurityEvasion) || types.Contains(SignalType.AntiTamper))
+                {
+                    await EmitCompositeAsync(pid, "Local Payload: Staged Module + Defense Tampering", 0.92,
+                        "A locally-staged payload seed correlates with local security-control tampering " +
+                        "(AMSI/ETW patch or defense disable) on the same process.",
+                        "A staged local payload appeared in this host and the process then tampered with local " +
+                        "security controls - staged local evasion without a network leg. Contained.");
+                    return;
+                }
+
+                // Local staged payload + a SEPARATE kernel/memory injection signal on the same
+                // process = manual-map / hollow. The injection leg must be a real injection
+                // detector, not either of our weak provenance seeds.
+                if (types.Contains(SignalType.ProcessInjection) &&
+                    currentSignals.Any(s => s.SignalType == SignalType.ProcessInjection &&
+                        s.RuleName.IndexOf("Unexpected Late Module Load", StringComparison.OrdinalIgnoreCase) < 0 &&
+                        s.RuleName.IndexOf("Dormant Payload", StringComparison.OrdinalIgnoreCase) < 0))
+                {
+                    await EmitCompositeAsync(pid, "Local Payload: Staged Module + Injection", 0.94,
+                        "A locally-staged payload seed correlates with a separate kernel/memory injection " +
+                        "signal on the same process.",
+                        "A staged local payload appeared in this host alongside independent injection evidence - " +
+                        "a manually-mapped or hollowed local payload. Contained.");
+                    return;
+                }
+            }
+
             if (types.Contains(SignalType.ProcessInjection) && types.Contains(SignalType.NetworkC2))
             {
                 await EmitCompositeAsync(pid, "Injected C2 Beacon", 0.98,

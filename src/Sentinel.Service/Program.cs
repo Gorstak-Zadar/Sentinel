@@ -532,6 +532,8 @@ namespace Sentinel.Service
                             ("DllEntropyAnalyzer",           s => s.GetRequiredService<DllEntropyAnalyzer>()),
                             ("DllLoadFailureMonitor",        s => s.GetRequiredService<DllLoadFailureMonitor>()),
                             ("DiskWideDllScanner",           s => s.GetRequiredService<DiskWideDllScanner>()),
+                            ("DormantPayloadMonitor",        s => s.GetRequiredService<DormantPayloadMonitor>()),
+                            ("ComHijackMonitor",             s => s.GetRequiredService<ComHijackMonitor>()),
                             ("PersistentConnectionMonitor",  s => s.GetRequiredService<PersistentConnectionMonitor>()),
                             ("DataExfiltrationMonitor",      s => s.GetRequiredService<DataExfiltrationMonitor>()),
                             ("AdsDataStagingMonitor",        s => s.GetRequiredService<AdsDataStagingMonitor>()),
@@ -588,6 +590,8 @@ namespace Sentinel.Service
                     services.AddSingleton<DllEntropyAnalyzer>();
                     services.AddSingleton<DllLoadFailureMonitor>();
                     services.AddSingleton<DiskWideDllScanner>();
+                    services.AddSingleton<DormantPayloadMonitor>();
+                    services.AddSingleton<ComHijackMonitor>();
                     services.AddSingleton<DataExfiltrationMonitor>();
                     services.AddSingleton<AdsDataStagingMonitor>();
                     services.AddSingleton<ScriptExecutionMonitor>();

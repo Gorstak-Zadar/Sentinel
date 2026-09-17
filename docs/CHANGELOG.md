@@ -2,6 +2,122 @@
 
 
 
+## [2.7.3] - 2026-09-17
+
+### Detection - close the "malicious DLL that harms locally, never phones home" gap
+
+Observe-until-chain historically leaned on a network terminal (C2/beacon/exfil) to complete a
+chain. A hostile module loaded into a trusted host can do all its damage locally - ransomware
+encryption, credential/LSASS theft, defense tampering - without ever connecting out, so a
+network-gated chain would never quarantine it. Two additions close this, staying within the hard
+constraints (Tier2 never acts alone; behavioral kill authority; vault-quarantine, never delete):
+
+- **Per-process module-provenance baseline + "Unexpected Late Module Load" (Tier2).**
+  `DllUnloadEngine` now records each process's normal module set during a short startup window
+  (`PidModuleCache.StartupModules`, 20s). A module that (a) passes `ModuleIdentity` (the file is
+  individually signed/trusted) but (b) appears *after* the startup window, (c) was not in the
+  baseline set, and (d) is not in the host's own app directory, emits a weak Tier2 / LogOnly
+  signal "Module Provenance: Unexpected Late Module Load" (confidence 0.40, once per process).
+  This is the shape of COM-hijack / AppInit / late side-load into a signed host. It never acts
+  alone - it is not in any `IsAttackClassTerminal` list and carries `Provenance=unexpected-late-load`.
+  Provenance-*failed* loads keep their existing immediate Tier1 remediation, unchanged.
+- **Local (non-network) composites.** `BehavioralCorrelationEngine` gains four chains that
+  complete with NO network leg when an unexpected-late-load correlates on the same process with a
+  local-harm act: mass-encryption (`Ransomware`), credential/LSASS access
+  (`CredentialTheft`/`LsassAccess`), defense tampering (`AmsiTampering`/`EtwTampering`/
+  `SecurityEvasion`/`AntiTamper`), or an independent injection signal (`ProcessInjection`). Each
+  escalates via the standard composite path to graceful contain + `.senq` vault quarantine - no
+  file deletion, no user prompt, no panic.
+
+Net effect: a signed-but-anomalous DLL that loads late into a trusted process and then does local
+harm is now handled gracefully, without waiting for a network event. A dormant dropped file that
+does nothing still stays observe-only.
+
+- **`DormantPayloadMonitor` (process-centric "dropped but not phoning home").** A new monitor
+  surfaces a *running* process whose image sits in a user-writable drop (Temp/Downloads/AppData/
+  Public), is unsigned, has been alive >=45s, and currently holds no established/connecting TCP
+  connection (checked via `GetExtendedTcpTable`, IPv4+IPv6, userland). That is a staged payload
+  sitting idle waiting for its trigger - invisible to the network-centric chains. It emits a weak
+  Tier2 / LogOnly signal "Dormant Payload: Unsigned Drop-Path Process Without Network"
+  (confidence 0.45, `Provenance=dormant-dropped-payload`), skips installer/redist context, and
+  dedups per image path (30 min). Like the late-load seed, it never acts alone - the local
+  composites now trigger on *either* seed, so a dormant payload that later injects, encrypts,
+  accesses credentials, or tampers with defenses escalates to graceful contain + vault quarantine.
+  The four local composites were generalized and renamed "Local Payload: Staged Module + {Mass-
+  Encryption | Credential Access | Defense Tampering | Injection}".
+
+### Detection - COM hijack persistence now actively detected (wires ComHijackEvaluator)
+
+`ComHijackEvaluator` (a complete T1546.015 classifier) existed but nothing enumerated COM
+registrations to drive it - only its `ShouldQuarantinePayload` gate was used. Added
+**`ComHijackMonitor`**, a 5-minute background scan of COM CLSID server registrations under HKCU
+and HKLM (incl. Wow6432Node) - `InprocServer32` / `InprocHandler32` / `LocalServer32` / `TreatAs` -
+that runs each through `ComHijackEvaluator.Evaluate` and emits the verdict. It detects a CLSID
+server pointing at a user-writable drop, a Component Based Servicing DLL name outside the store
+(the `cbsapi.dll` plant class), a script-host LOLBin, an HKCU entry that shadows an HKLM class with
+a different path (HKCU wins at activation, no admin required), and TreatAs redirects.
+
+- Verdicts are **Tier2 / LogOnly** (a registry-state signal is "what it IS", not "what it DOES") and
+  carry `Provenance=com-hijack`, so they are a local staged-payload seed feeding the composite -
+  never a solo action.
+- The **CLSID key is never deleted** (deleting a shell class bricks logon/explorer). Only the
+  payload *file* is quarantined to the `.senq` vault, via the existing
+  `DllUnloadEngine.OnComServerPlantAsync`, and only when the payload is a drop-path /
+  servicing-impersonation file (never a signed OS LOLBin).
+- Added 14 `ComHijackEvaluator` unit tests (previously zero coverage on a quarantine-decision path).
+- Fixed a pre-existing `CS8602` nullable warning in `ComHijackEvaluator.ExtractServerPath` so the
+  solution builds clean under the CI `-warnaserror` gate.
+
+### Threat intel - Cloudflare Worker `/lookup/mb` handler (companion to the MalwareBazaar proxy)
+
+Added `worker/lookup-mb.js` (+ `worker/README.md`), the server-side handler the MalwareBazaar
+proxy path depends on. It holds the abuse.ch `Auth-Key` server-side, validates the same
+HMAC/replay/nonce contract as `/lookup/vt`, performs the `get_info` lookup, and returns the
+normalized `{ success, verdict: "malicious" | "not_found" }` the client parses (failing closed to
+`not_found` on any upstream error, so a failure is never treated as `Safe`). Deployed separately
+to Cloudflare - see `worker/README.md`.
+
+### Threat intel - keep all three hash-reputation sources active (keyless)
+
+abuse.ch now requires an `Auth-Key` for **all** MalwareBazaar API access, so the previous
+keyless direct call returned HTTP 401 and silently produced no signal. `HashReputationService`
+now employs all three sources again without committing an API key:
+
+- **CIRCL hashlookup** (keyless, SHA-256) - unchanged; can return `Safe` (trust > 60).
+- **Team Cymru MHR** (keyless, DNS, SHA-1/MD5) - new keyless source; a resolvable record →
+  `Unsafe`. Only queried when a SHA-1 is supplied (MHR does not accept SHA-256). Callers with
+  the file on disk (e.g. `EphemeralProcessMonitor`) now compute SHA-1 alongside SHA-256 and pass
+  it via the new optional `sha1:` parameter on `GetVerdictAsync` (backward compatible).
+- **MalwareBazaar** - lookups now prefer the Cloudflare Worker proxy (`POST /lookup/mb`, same
+  HMAC-signed / replay-protected / TLS-pinned pattern as the existing `/lookup/vt` VirusTotal
+  path); the abuse.ch `Auth-Key` stays server-side. A direct call is attempted only when a local
+  `MalwareBazaarApiKey` is explicitly configured; a keyless direct call is skipped to avoid a
+  guaranteed 401.
+
+All failure modes (401, error, NXDOMAIN, missing key/proxy) fail closed to `Unknown` and are
+never treated as `Safe`. See `docs/HASH_REPUTATION.md`. Requires the proxy Worker to implement
+`/lookup/mb`.
+
+### Logs - stop re-emitting static/repeated LogOnly findings (event-log bloat)
+
+Several LogOnly detectors re-emitted the same finding on every poll cycle or every network scan,
+producing thousands of identical events (e.g. BitLocker/Credential Guard posture ~589x each,
+"Attack Tool: Connection from Suspicious Path" ~5,224x from a single driver installer). Now:
+
+- **`HardwareSecurityGuard`** (IOMMU/VT-d, Secure Boot, BitLocker, Credential Guard) - emits only
+  on a transition **into** the bad state (or first observation); suppresses steady-state repeats
+  and re-alerts if the condition clears then regresses. Logs an info line on recovery.
+- **`WindowsUpdateIntegrityMonitor`** (WU service disabled, AU policy blocked) - same
+  state-change dedup latch.
+- **`NetworkMonitor`** - "Attack Tool: Connection from Suspicious Path" and "Reverse Shell:
+  Suspicious Outbound Connection" are throttled to once per 10 min per (rule, process, image
+  path) instead of once per connection (the scan runs every 200 ms).
+- **Cursor: Automated / Takeover Movement** - `AlertCooldown` raised from 1 min to 10 min.
+
+These are all LogOnly indicators; detection semantics and response behavior are unchanged - only
+the emit frequency of already-known/steady conditions is reduced.
+
+
 ## [2.7.2] - 2026-09-16
 
 ### Hardened - close attacker-controllable "trust by name/path alone" bypasses

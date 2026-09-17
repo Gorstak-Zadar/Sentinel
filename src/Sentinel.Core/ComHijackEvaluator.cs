@@ -72,7 +72,10 @@ namespace Sentinel.Core
         public static string ExtractServerPath(string? raw)
         {
             if (string.IsNullOrWhiteSpace(raw)) return "";
-            var s = raw.Trim();
+            // raw is non-null here (guarded above). net48 reference assemblies lack the
+            // [NotNullWhen(false)] annotation on IsNullOrWhiteSpace, so the flow analysis still
+            // sees string? - the null-forgiving operator reflects the guarantee (CS8602).
+            var s = raw!.Trim();
             try { s = Environment.ExpandEnvironmentVariables(s); }
             catch { /* keep raw */ }
             s = s.Trim().Trim('"');

@@ -31,6 +31,13 @@ namespace Sentinel.Core
         private readonly System.Threading.Timer _timer;
         private readonly ConcurrentDictionary<string, int> _connectionCounts = new();
 
+        // Emit-dedup for LogOnly behavioral network heuristics. ScanConnections runs every 200ms,
+        // so a single process making many connections (e.g. an installer or updater) would emit
+        // the same LogOnly detection thousands of times and bloat the event log. Track the last
+        // emit time per (rule + process identity) and suppress repeats within the re-alert window.
+        private readonly ConcurrentDictionary<string, DateTime> _lastEmit = new();
+        private static readonly TimeSpan EmitReAlertWindow = TimeSpan.FromMinutes(10);
+
         private static readonly TimeSpan ScanInterval = TimeSpan.FromMilliseconds(200);
 
         private static readonly HashSet<string> ShellProcesses = new(StringComparer.OrdinalIgnoreCase)
@@ -206,6 +213,35 @@ namespace Sentinel.Core
             return SecurityValidation.GetProcessImagePath(pid);
         }
 
+        /// <summary>
+        /// Rate-limits a repetitive LogOnly detection to once per <see cref="EmitReAlertWindow"/>
+        /// per (rule, process-identity) key. Returns true if the caller should emit; false to
+        /// suppress a duplicate. Prevents a single chatty process from flooding the event log.
+        /// </summary>
+        private bool ShouldEmitThrottled(string ruleKey, string processName, string? imagePath)
+        {
+            var key = $"{ruleKey}|{processName}|{imagePath ?? ""}";
+            var now = DateTime.UtcNow;
+            if (_lastEmit.TryGetValue(key, out var last) && (now - last) < EmitReAlertWindow)
+            {
+                return false;
+            }
+            _lastEmit[key] = now;
+
+            // Opportunistic cleanup so the dictionary cannot grow unbounded over a long uptime.
+            if (_lastEmit.Count > 4096)
+            {
+                foreach (var kv in _lastEmit)
+                {
+                    if (now - kv.Value > EmitReAlertWindow)
+                    {
+                        _lastEmit.TryRemove(kv.Key, out _);
+                    }
+                }
+            }
+            return true;
+        }
+
         private void ScanConnections(object? state)
         {
             try
@@ -255,7 +291,8 @@ namespace Sentinel.Core
                         // multi-signal composite or confirmed attack rule fires elsewhere.
 
                         // A. Shell process outbound to non-standard port (ssh, scp, git, etc.)
-                        if (ShellProcesses.Contains(processName) && !StandardPorts.Contains(remotePort))
+                        if (ShellProcesses.Contains(processName) && !StandardPorts.Contains(remotePort)
+                            && ShouldEmitThrottled("ReverseShell", processName, imagePath))
                         {
                             _ = _detectionEngine.EmitAsync(new DetectionEvent
                             {
@@ -283,7 +320,8 @@ namespace Sentinel.Core
                         // B. Outbound connection from temp/downloads path - observe only
                         if (IsSuspiciousPath(imagePath) &&
                             !IsKnownBrowser(processName, imagePath) &&
-                            !InstallerHeuristics.IsBenignPortableWorkContext(processName, imagePath))
+                            !InstallerHeuristics.IsBenignPortableWorkContext(processName, imagePath) &&
+                            ShouldEmitThrottled("SuspiciousPathConn", processName, imagePath))
                         {
                             _ = _detectionEngine.EmitAsync(new DetectionEvent
                             {

@@ -483,4 +483,194 @@ namespace Sentinel.Core
     }
 
 
+    // 
+    // DormantPayloadMonitor (v2.7.3) - process-centric "dropped but not phoning home" detector.
+    //
+    // Surfaces a RUNNING process whose image lives in a user-writable drop (Temp/Downloads/
+    // AppData/Public), is UNSIGNED, and currently holds NO outbound/established TCP connection.
+    // That is the shape of a staged payload that was dropped and is sitting idle waiting for its
+    // trigger - it never phones home, so the network-centric chains would never see it.
+    //
+    // CONSTRAINT COMPLIANCE: this is a "what it IS / where it sits" signal, not "what it DOES",
+    // so it is a weak Tier2 / LogOnly OBSERVE contributor only. It NEVER acts on its own. It
+    // feeds the correlation engine (Provenance=dormant-dropped-payload) so that if the dormant
+    // payload later does anything harmful (executes+injects, encrypts, accesses credentials,
+    // tampers with defenses), a composite completes and it is handled gracefully (contain +
+    // .senq vault quarantine, never a raw delete, no user panic). A truly inert file that never
+    // acts stays observe-only forever.
+    // 
+    public sealed class DormantPayloadMonitor : BackgroundService
+    {
+        private readonly DetectionEngine _detectionEngine;
+        private readonly SignerTrustService _signerTrust;
+        private readonly ILogger<DormantPayloadMonitor> _logger;
+
+        // Dedup by image path so a persistent dormant payload is surfaced at most once per window.
+        private readonly ConcurrentDictionary<string, DateTime> _flagged = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly TimeSpan ReAlertWindow = TimeSpan.FromMinutes(30);
+
+        // Only consider processes that have been alive at least this long, so a just-launched
+        // installer/updater that has not opened its socket yet is not mistaken for dormant.
+        private static readonly TimeSpan MinAgeBeforeDormant = TimeSpan.FromSeconds(45);
+
+        private static readonly TimeSpan ScanInterval = TimeSpan.FromSeconds(60);
+
+        public DormantPayloadMonitor(DetectionEngine de, SignerTrustService signerTrust, ILogger<DormantPayloadMonitor> l)
+        {
+            _detectionEngine = de;
+            _signerTrust = signerTrust;
+            _logger = l;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken ct)
+        {
+            _logger.LogInformation("[DormantPayloadMonitor] Started");
+
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    await Task.Delay(ScanInterval, ct);
+                    ScanOnce();
+
+                    // Prune stale dedup entries.
+                    var cutoff = DateTime.UtcNow - ReAlertWindow;
+                    foreach (var kv in _flagged)
+                        if (kv.Value < cutoff) _flagged.TryRemove(kv.Key, out _);
+                }
+                catch (OperationCanceledException) { break; }
+                catch (Exception ex) { _logger.LogDebug(ex, "[DormantPayloadMonitor] Error"); }
+            }
+        }
+
+        private void ScanOnce()
+        {
+            // PIDs with any established/outbound TCP connection right now.
+            var connectedPids = GetConnectedPids();
+
+            foreach (var proc in Process.GetProcesses())
+            {
+                try
+                {
+                    int pid = proc.Id;
+                    if (pid <= 4) continue;
+
+                    string? imagePath = SecurityValidation.GetProcessImagePath(pid);
+                    if (string.IsNullOrEmpty(imagePath)) continue;
+
+                    // Only processes running from a user-writable drop are candidates.
+                    if (!ModuleIdentity.IsUserWritableDrop(imagePath)) continue;
+
+                    // Signed binaries from a drop are the normal installer/updater case - not dormant payloads.
+                    if (_signerTrust.IsSignedFile(imagePath!)) continue;
+
+                    // Skip obvious benign installer/extractor context (Inno/NSIS/redist unpack in Temp).
+                    if (InstallerHeuristics.IsInstallerExtractor(proc.ProcessName, imagePath) ||
+                        InstallerHeuristics.LooksLikeInstallerName(proc.ProcessName, imagePath) ||
+                        InstallerHeuristics.IsDirectXOrRuntimeRedist(proc.ProcessName, imagePath))
+                        continue;
+
+                    // Must have been alive long enough that "no connection yet" is meaningful.
+                    DateTime startUtc;
+                    try { startUtc = proc.StartTime.ToUniversalTime(); }
+                    catch { continue; } // access denied / exited - skip
+                    if (DateTime.UtcNow - startUtc < MinAgeBeforeDormant) continue;
+
+                    // The defining condition: unsigned drop-path process with NO active connection.
+                    if (connectedPids.Contains(pid)) continue;
+
+                    // Dedup per image path.
+                    if (_flagged.TryGetValue(imagePath!, out var last) &&
+                        (DateTime.UtcNow - last) < ReAlertWindow)
+                        continue;
+                    _flagged[imagePath!] = DateTime.UtcNow;
+
+                    _ = _detectionEngine.EmitAsync(new DetectionEvent
+                    {
+                        RuleName = "Dormant Payload: Unsigned Drop-Path Process Without Network",
+                        Evidence = $"Process '{proc.ProcessName}' (PID {pid}) runs from user-writable drop '{imagePath}', " +
+                                   $"is unsigned, and holds no outbound/established connection - a staged payload sitting idle.",
+                        Reasoning = "An unsigned binary running from a Temp/Downloads/AppData drop with no network activity " +
+                                    "matches a dropped-but-not-yet-active payload (staged implant awaiting its trigger). " +
+                                    "On its own this is only weak observe-fuel - plenty of benign portable tools also run " +
+                                    "unsigned from these paths - so it never acts alone. It contributes to the behavioral " +
+                                    "chain and escalates to graceful containment only if this process later performs a " +
+                                    "harmful act (injection, mass-encryption, credential/LSASS access, or defense tampering).",
+                        Confidence = 0.45,
+                        Tier = DetectionTier.Tier2Indicator,
+                        AuthorizedResponse = ResponseAction.LogOnly,
+                        ProcessName = proc.ProcessName,
+                        ProcessId = pid,
+                        SignalType = SignalType.SuspiciousProcess,
+                        Metadata = new Dictionary<string, string>
+                        {
+                            ["ImagePath"] = imagePath!,
+                            ["Provenance"] = "dormant-dropped-payload",
+                            ["NoActiveConnection"] = "true"
+                        }
+                    });
+                }
+                catch { /* per-process best effort */ }
+                finally { try { proc.Dispose(); } catch { } }
+            }
+        }
+
+        /// <summary>
+        /// Returns the set of PIDs that currently own an established or connecting outbound TCP
+        /// connection (IPv4 + IPv6), via GetExtendedTcpTable (userland iphlpapi, no elevation).
+        /// A PID absent from this set has no active outbound channel.
+        /// </summary>
+        private static HashSet<int> GetConnectedPids()
+        {
+            var pids = new HashSet<int>();
+            CollectConnectedPids(pids, AF_INET);
+            CollectConnectedPids(pids, AF_INET6);
+            return pids;
+        }
+
+        private static void CollectConnectedPids(HashSet<int> pids, int family)
+        {
+            int bufferSize = 0;
+            GetExtendedTcpTable(IntPtr.Zero, ref bufferSize, false, family, TCP_TABLE_OWNER_PID_ALL, 0);
+            if (bufferSize <= 0) return;
+
+            IntPtr buffer = Marshal.AllocHGlobal(bufferSize);
+            try
+            {
+                uint ret = GetExtendedTcpTable(buffer, ref bufferSize, false, family, TCP_TABLE_OWNER_PID_ALL, 0);
+                if (ret != 0) return;
+
+                int numEntries = Marshal.ReadInt32(buffer);
+                // IPv4 MIB_TCPROW_OWNER_PID = 24 bytes; IPv6 MIB_TCP6ROW_OWNER_PID = 56 bytes.
+                int entrySize = family == AF_INET ? 24 : 56;
+                int stateOffset = family == AF_INET ? 0 : 48;   // dwState offset within the row
+                int pidOffset = family == AF_INET ? 20 : 52;    // dwOwningPid offset within the row
+                int offset = 4;
+
+                for (int i = 0; i < numEntries && i < 20000; i++)
+                {
+                    IntPtr entryPtr = buffer + offset + (i * entrySize);
+                    int state = Marshal.ReadInt32(entryPtr, stateOffset);
+                    // Count ESTABLISHED and SYN_SENT (actively connecting) as "has a connection".
+                    if (state != MIB_TCP_STATE_ESTAB && state != MIB_TCP_STATE_SYN_SENT) continue;
+                    int pid = Marshal.ReadInt32(entryPtr, pidOffset);
+                    if (pid > 4) pids.Add(pid);
+                }
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+
+        private const int AF_INET = 2;
+        private const int AF_INET6 = 23;
+        private const int TCP_TABLE_OWNER_PID_ALL = 5;
+        private const int MIB_TCP_STATE_SYN_SENT = 3;
+        private const int MIB_TCP_STATE_ESTAB = 5;
+
+        [DllImport("iphlpapi.dll", SetLastError = true)]
+        private static extern uint GetExtendedTcpTable(
+            IntPtr pTcpTable, ref int pdwSize, bool bOrder, int ulAf, int tableClass, uint reserved);
+    }
 }

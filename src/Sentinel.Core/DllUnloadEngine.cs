@@ -129,17 +129,125 @@ namespace Sentinel.Core
 
                 var cache = _pidModules.GetOrAdd(processId, _ => new PidModuleCache());
                 cache.LastSeenUtc = DateTime.UtcNow;
+
+                bool inStartup = cache.InStartupWindow;
                 bool firstSight;
                 lock (cache.Paths)
+                {
                     firstSight = cache.Paths.Add(modulePath!);
+                    // During the startup window, record the module as part of the process's
+                    // expected/normal set. These are never treated as late-load anomalies.
+                    if (inStartup)
+                        cache.StartupModules.Add(modulePath!);
+                }
                 if (!firstSight)
                     return Task.CompletedTask;
 
                 var verdict = ModuleIdentity.Evaluate(imagePath, modulePath, IsMicrosoftFamilySigned);
                 if (verdict.Allowed)
-                    return Task.CompletedTask;
+                {
+                    // The module FILE itself is legitimate (signed / trusted tree). But if it
+                    // appeared AFTER the process's startup window and was not part of the
+                    // baseline module set, its PROVENANCE-IN-THIS-HOST is anomalous: a signed,
+                    // otherwise-trusted DLL materializing late in a process that never loaded it
+                    // at launch is the classic shape of COM-hijack / AppInit / late side-load
+                    // into a signed host. This is "what happened" (an unexpected late load), not
+                    // "what it is", so it is a weak Tier2 observe-fuel contributor - never a solo
+                    // action. It only escalates via a composite when it chains with a local-harm
+                    // behavioral act (see BehavioralCorrelationEngine local composites).
+                    return MaybeEmitUnexpectedLateLoadAsync(processId, processName, imagePath, modulePath!, cache, inStartup);
+                }
 
                 return ScanProcessAsync(processId, processName ?? "", allowRemediateOnProvenLoad: true, forceRemediate: true);
+            }
+            catch
+            {
+                return Task.CompletedTask;
+            }
+        }
+
+        /// <summary>
+        /// v2.7.3: Emits a weak Tier2 "Unexpected Late Module Load" observe-fuel signal when a
+        /// module that PASSED <see cref="ModuleIdentity"/> (the file is signed/trusted) loads
+        /// AFTER the process startup window and was not part of the process's baseline module
+        /// set. Intentionally conservative to avoid flagging normal deferred/lazy loading:
+        ///   - Never fires during the startup window.
+        ///   - Never fires for a module in the process's own application directory (plugins,
+        ///     codecs, and app-bundled DLLs load late legitimately).
+        ///   - Fires at most once per process (LateLoadFlagged latch) so it cannot spam.
+        /// This is LogOnly / Tier2 and NEVER acts on its own; escalation happens only via a
+        /// composite when it chains with a local-harm behavioral act. Honors the constraint
+        /// "Tier2 can never trigger a response" and "behavioral signals only for kill authority".
+        /// </summary>
+        private Task MaybeEmitUnexpectedLateLoadAsync(
+            int processId, string? processName, string? imagePath, string modulePath,
+            PidModuleCache cache, bool inStartup)
+        {
+            try
+            {
+                // Only late loads (past the startup window) are anomalous.
+                if (inStartup) return Task.CompletedTask;
+
+                // One weak signal per process - do not flood the correlation buffer.
+                if (cache.LateLoadFlagged) return Task.CompletedTask;
+
+                // A module already recorded in the baseline set is a normal re-load, not new.
+                lock (cache.Paths)
+                {
+                    if (cache.StartupModules.Contains(modulePath))
+                        return Task.CompletedTask;
+                }
+
+                // App-directory modules (the host's own bundled DLLs / plugins) load late as a
+                // matter of course. Path is not attacker-controllable here because it must sit
+                // under the already-trusted host image directory; skip to avoid false positives.
+                var procDir = string.IsNullOrEmpty(imagePath) ? "" : (Path.GetDirectoryName(imagePath) ?? "");
+                if (procDir.Length > 0)
+                {
+                    var modDir = Path.GetDirectoryName(modulePath) ?? "";
+                    if (!string.IsNullOrEmpty(modDir) &&
+                        modDir.StartsWith(procDir, StringComparison.OrdinalIgnoreCase))
+                        return Task.CompletedTask;
+                }
+
+                cache.LateLoadFlagged = true;
+
+                var name = string.IsNullOrEmpty(processName)
+                    ? (Path.GetFileNameWithoutExtension(imagePath) ?? "")
+                    : processName!;
+
+                return _detectionEngine.EmitAsync(new DetectionEvent
+                {
+                    RuleName = "Module Provenance: Unexpected Late Module Load",
+                    Evidence = $"Process '{name}' (PID {processId}) loaded module '{modulePath}' after its startup " +
+                               $"window and outside its baseline module set. The module file is individually trusted, " +
+                               $"but its appearance in this host is unexpected (possible COM-hijack / AppInit / late side-load).",
+                    Reasoning = "A signed/trusted DLL materialized late in a process that did not load it at launch. " +
+                                "On its own this is only weak observe-fuel (legitimate lazy-loading also looks like this), " +
+                                "so it never acts alone. It contributes weight to the behavioral chain and escalates only " +
+                                "when correlated with a local-harm act (mass encryption, credential/LSASS access, security " +
+                                "tampering) or an injection signal on the same process.",
+                    Confidence = 0.40,
+                    Tier = DetectionTier.Tier2Indicator,
+                    AuthorizedResponse = ResponseAction.LogOnly,
+                    ProcessName = name,
+                    ProcessId = processId,
+                    SignalType = SignalType.ProcessInjection,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        ["ImagePath"] = imagePath ?? "",
+                        ["ModulePath"] = modulePath,
+                        // Provenance tag is how the correlation engine's local composites find
+                        // this signal. Deliberately NOT tagged WeakObserveSeed=true: that flag
+                        // routes through IsPureUxObserveNoise -> IsNonCorrelatingObserveNoise,
+                        // which RegisterSignalAsync uses to DROP a signal before buffering - it
+                        // would prevent this signal from ever correlating. It doesn't need that
+                        // flag for solo-safety anyway: it is Tier2 + LogOnly and its rule name is
+                        // in no IsAttackClassTerminal list, so it can never authorize a response
+                        // alone; it only ever contributes to a composite.
+                        ["Provenance"] = "unexpected-late-load"
+                    }
+                });
             }
             catch
             {
@@ -708,6 +816,31 @@ namespace Sentinel.Core
             public readonly HashSet<string> Paths = new(StringComparer.OrdinalIgnoreCase);
             public DateTime LastSeenUtc;
             public bool DiskPlantsChecked;
+
+            // v2.7.3: Per-process module-provenance baseline for the "unexpected late load"
+            // detector. A process establishes its normal module set during a short startup
+            // window; a module that appears AFTER that window and is not part of the expected
+            // set is treated as a late load. This closes the "malicious DLL that harms locally
+            // without ever phoning home" gap: a late, anomalous load becomes a Tier2 weighted
+            // contributor that only escalates when it chains with a local-harm behavioral act.
+            //
+            // FirstSeenUtc is when this PID was first observed loading a module (proxy for
+            // process start on the ETW path). The startup window is FirstSeenUtc + StartupWindow.
+            public DateTime FirstSeenUtc = DateTime.UtcNow;
+
+            // Modules observed during the startup window - the "expected" set for this process.
+            // A late load whose path is in this set is a normal re-load, not an anomaly.
+            public readonly HashSet<string> StartupModules = new(StringComparer.OrdinalIgnoreCase);
+
+            // Dedup: PIDs already flagged for a late-load anomaly, so a single process cannot
+            // spam the correlation buffer with the same weak signal.
+            public bool LateLoadFlagged;
+
+            // The startup window after which a first-sight module counts as a "late" load.
+            // Kept short but generous enough to cover normal lazy/deferred loading at launch.
+            public static readonly TimeSpan StartupWindow = TimeSpan.FromSeconds(20);
+
+            public bool InStartupWindow => (DateTime.UtcNow - FirstSeenUtc) < StartupWindow;
         }
 
         private static bool IsWindowsSystemDirectory(string directory)

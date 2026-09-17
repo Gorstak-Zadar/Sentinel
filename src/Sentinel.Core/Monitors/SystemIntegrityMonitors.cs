@@ -1069,6 +1069,11 @@ namespace Sentinel.Core
         private DateTime _lastKevAlert = DateTime.MinValue;
         private DateTime _lastMissedPtAlert = DateTime.MinValue;
 
+        // State-change dedup for static posture facts (WU disabled, AU policy blocked). These
+        // change rarely; re-emitting them on every 10-min cycle bloats the event log. Only emit
+        // on a transition into the bad state; reset when the condition clears so it re-alerts later.
+        private readonly Dictionary<string, bool> _lastBadState = new();
+
         public WindowsUpdateIntegrityMonitor(
             DetectionEngine de,
             ILogger<WindowsUpdateIntegrityMonitor> l,
@@ -1077,6 +1082,21 @@ namespace Sentinel.Core
             _detectionEngine = de;
             _logger = l;
             _toast = toast;
+        }
+
+        /// <summary>
+        /// True only on a new transition into the bad state for <paramref name="checkKey"/>
+        /// (caller should emit). Repeated bad observations are suppressed; a good observation
+        /// clears the latch so a future regression re-alerts.
+        /// </summary>
+        private bool ShouldEmit(string checkKey, bool isBad)
+        {
+            _lastBadState.TryGetValue(checkKey, out bool wasBad);
+            _lastBadState[checkKey] = isBad;
+            if (isBad && !wasBad) return true;
+            if (!isBad && wasBad)
+                _logger.LogInformation("[WindowsUpdateIntegrityMonitor] {Check} recovered (now healthy)", checkKey);
+            return false;
         }
 
         protected override async Task ExecuteAsync(CancellationToken ct)
@@ -1109,7 +1129,8 @@ namespace Sentinel.Core
             {
                 using var key = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\wuauserv");
                 var startVal = key?.GetValue("Start");
-                if (startVal is int start && start == 4) // Disabled
+                bool wuDisabled = startVal is int start && start == 4; // Disabled
+                if (ShouldEmit("WUServiceDisabled", wuDisabled))
                 {
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
@@ -1141,7 +1162,7 @@ namespace Sentinel.Core
                 var noAuto = au.GetValue("NoAutoUpdate");
                 var auOpts = au.GetValue("AUOptions");
                 bool blocked = (noAuto is int n && n == 1) || (auOpts is int o && o == 1);
-                if (!blocked) return;
+                if (!ShouldEmit("AUPolicyBlocked", blocked)) return;
 
                 await _detectionEngine.EmitAsync(new DetectionEvent
                 {

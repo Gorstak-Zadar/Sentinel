@@ -321,7 +321,11 @@ namespace Sentinel.Core
                 {
                     var sha256 = ComputeSha256(exePath);
                     if (sha256 != null)
-                        _ = _reputationService.GetVerdictAsync(sha256);
+                    {
+                        // Also compute SHA-1 to enable the keyless Cymru MHR DNS lookup.
+                        var sha1 = ComputeSha1(exePath);
+                        _ = _reputationService.GetVerdictAsync(sha256, sha1: sha1);
+                    }
                 }
                 catch { }
             }
@@ -508,6 +512,20 @@ namespace Sentinel.Core
             {
                 using var stream = File.OpenRead(filePath);
                 var hash = System.Security.Cryptography.Sha256Net48.HashData(stream);
+                return ConvertHex.ToHexString(hash).ToLowerInvariant();
+            }
+            catch { return null; }
+        }
+
+        // SHA-1 is required only for the keyless Team Cymru MHR DNS lookup (MHR accepts MD5/SHA-1,
+        // not SHA-256). Not used as a security-critical integrity hash.
+        private static string? ComputeSha1(string filePath)
+        {
+            try
+            {
+                using var stream = File.OpenRead(filePath);
+                using var sha1 = System.Security.Cryptography.SHA1.Create();
+                var hash = sha1.ComputeHash(stream);
                 return ConvertHex.ToHexString(hash).ToLowerInvariant();
             }
             catch { return null; }

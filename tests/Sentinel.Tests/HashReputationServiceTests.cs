@@ -97,5 +97,57 @@ namespace Sentinel.Tests
                 try { Directory.Delete(tempDir, true); } catch { }
             }
         }
+
+        // Cymru MHR is keyless (DNS-based). A malformed/short SHA-1 must be rejected by the
+        // length guard BEFORE any DNS lookup, and must never be treated as Safe/Unsafe.
+        // These inputs are all length-invalid so the test performs no network I/O.
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("tooshort")]
+        [InlineData("abcdef")] // still < 40 chars -> guarded out, no DNS
+        public void QueryCymruMhr_ReturnsUnknown_ForInvalidSha1(string? sha1)
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "rep_test_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                var cache = new SecureCacheStore(tempDir);
+                var service = new HashReputationService(cache, new ThreatReportingConfig(), NullLogger<HashReputationService>.Instance);
+
+                // Length-invalid inputs return Unknown immediately without a DNS lookup.
+                var verdict = service.QueryCymruMhr(sha1!);
+
+                Assert.Equal(HashVerdict.Unknown, verdict);
+            }
+            finally
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+        }
+
+        // Passing an optional SHA-1 through GetVerdictAsync must remain backward compatible
+        // and still degrade to Unknown when no source has a verdict.
+        [Fact]
+        public async Task GetVerdictAsync_WithSha1_DegradesToUnknown_WhenNoSourceHasVerdict()
+        {
+            var tempDir = Path.Combine(Path.GetTempPath(), "rep_test_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                var cache = new SecureCacheStore(tempDir);
+                var service = new HashReputationService(cache, new ThreatReportingConfig(), NullLogger<HashReputationService>.Instance);
+
+                var sha256 = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+                var sha1 = "3b054bdaf8bdf85b0086df9488bf450d58edbc6c";
+                var verdict = await service.GetVerdictAsync(sha256, sha1: sha1);
+
+                Assert.Equal(HashVerdict.Unknown, verdict);
+            }
+            finally
+            {
+                try { Directory.Delete(tempDir, true); } catch { }
+            }
+        }
     }
 }

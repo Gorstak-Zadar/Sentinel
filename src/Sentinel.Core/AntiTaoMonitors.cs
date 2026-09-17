@@ -26,9 +26,40 @@ namespace Sentinel.Core
         private readonly SentinelConfig _config;
         private readonly ILogger<HardwareSecurityGuard> _logger;
 
+        // State-change dedup: these are static posture facts (BitLocker, Secure Boot, etc.) that
+        // change rarely. Re-emitting them every 60s bloats the event log with thousands of
+        // identical detections. Track the last-observed "bad" state per check and only emit a
+        // detection on a transition into the bad state (or the first observation of it). When a
+        // condition clears, the flag resets so a later regression re-alerts.
+        // true  = currently in the bad/alerting state (already emitted)
+        // false/absent = currently good (or not yet observed)
+        private readonly System.Collections.Generic.Dictionary<string, bool> _lastBadState = new();
+
         public HardwareSecurityGuard(DetectionEngine de, SentinelConfig config, ILogger<HardwareSecurityGuard> l)
         {
             _detectionEngine = de; _config = config; _logger = l;
+        }
+
+        /// <summary>
+        /// Returns true only when <paramref name="isBad"/> represents a NEW transition into the
+        /// bad state for <paramref name="checkKey"/> (i.e. the caller should emit a detection).
+        /// Repeated bad observations return false (suppressed). A good observation clears the
+        /// latch so a future regression re-alerts.
+        /// </summary>
+        private bool ShouldEmit(string checkKey, bool isBad)
+        {
+            _lastBadState.TryGetValue(checkKey, out bool wasBad);
+            _lastBadState[checkKey] = isBad;
+
+            if (isBad && !wasBad)
+            {
+                return true; // good -> bad (or first-ever bad): alert once
+            }
+            if (!isBad && wasBad)
+            {
+                _logger.LogInformation("[HardwareSecurityGuard] {Check} recovered (now healthy)", checkKey);
+            }
+            return false; // still-bad (suppressed) or still-good (nothing to do)
         }
 
         protected override async Task ExecuteAsync(CancellationToken ct)
@@ -83,7 +114,7 @@ namespace Sentinel.Core
                 }
                 catch { }
 
-                if (!vbsEnabled && !hypervisorAuto)
+                if (ShouldEmit("IOMMU/VT-d", !vbsEnabled && !hypervisorAuto))
                 {
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
@@ -108,7 +139,8 @@ namespace Sentinel.Core
                 using var key = Registry.LocalMachine.OpenSubKey(
                     @"SYSTEM\CurrentControlSet\Control\SecureBoot\State");
                 var val = key?.GetValue("UEFISecureBootEnabled");
-                if (val is int enabled && enabled == 0)
+                bool secureBootDisabled = val is int enabled && enabled == 0;
+                if (ShouldEmit("SecureBoot", secureBootDisabled))
                 {
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
@@ -168,7 +200,7 @@ namespace Sentinel.Core
                     catch { }
                 }
 
-                if (!bitlockerActive)
+                if (ShouldEmit("BitLocker", !bitlockerActive))
                 {
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {
@@ -210,7 +242,7 @@ namespace Sentinel.Core
                     catch { }
                 }
 
-                if (!credGuardActive)
+                if (ShouldEmit("CredentialGuard", !credGuardActive))
                 {
                     await _detectionEngine.EmitAsync(new DetectionEvent
                     {

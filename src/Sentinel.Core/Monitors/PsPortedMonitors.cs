@@ -505,7 +505,9 @@ namespace Sentinel.Core
         private DateTime _lastAlert = DateTime.MinValue;
 
         private static readonly TimeSpan SampleInterval = TimeSpan.FromSeconds(3);
-        private static readonly TimeSpan AlertCooldown = TimeSpan.FromMinutes(1);
+        // v2.7.3: 1 min was too chatty for a LogOnly indicator (hundreds of repeats during
+        // sustained automation/RDP use). 10 min keeps the signal without flooding the log.
+        private static readonly TimeSpan AlertCooldown = TimeSpan.FromMinutes(10);
 
         // Tuned from original PS script: var &lt; 0.005 with mean velocity &gt; 0.01
         private const double VarianceThreshold = 0.005;

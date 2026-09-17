@@ -2,6 +2,35 @@
 
 
 
+## [2.7.4] - 2026-09-17
+
+### Fix - NeuroBehaviorVisualMonitor: stop per-second WMI brightness polling from stalling the UI
+
+`NeuroBehaviorVisualMonitor` sampled display brightness on every 1-second tick by issuing a
+`root\wmi` `WmiMonitorBrightness` query. On desktops and external monitors that class is "Not
+supported", yet the monitor kept re-issuing the query once per second forever - each call spins
+up a `ManagementObjectSearcher`, hits the shared WMI service, and can take 100ms+ (measured ~146ms
+on a desktop, chassis type 3). Under WMI contention that synchronous call blocks the monitor tick
+and surfaces as system-wide UI hitching in whatever app is in the foreground (observed as
+intermittent freezes in the Ceprkac browser during normal use). The monitor only ever emitted a
+Tier2 / LogOnly signal, so nothing was acting on the foreground process - the cost was the polling
+itself, not any response.
+
+- **`GetScreenBrightness()` now disables itself permanently after the first "not supported" or
+  empty result** (`_brightnessSupported=false`), so machines with no controllable brightness stop
+  querying WMI entirely.
+- **When brightness *is* supported, sampling is throttled to once every 30s** instead of every
+  second. Brightness does not change second-to-second; an attack-style oscillation still trips the
+  anomaly score. No behavior change to the detection logic itself.
+- **Added lightweight loop-timing instrumentation.** Each tick's work is wrapped in a stopwatch;
+  a tick exceeding 250ms now emits a `LogWarning` (with `brightnessSupported` state) so any future
+  blocking call in this loop leaves hard evidence in the logs rather than an unexplained stall.
+
+Net effect: the constant per-second WMI load that could stall foreground apps is eliminated, and
+slow ticks are now observable. Userland-only, structured logging (no string-built JSON),
+cancellation flow unchanged. Verified: solution builds 0W/0E, all 2440 tests pass.
+
+
 ## [2.7.3] - 2026-09-17
 
 ### Detection - close the "malicious DLL that harms locally, never phones home" gap

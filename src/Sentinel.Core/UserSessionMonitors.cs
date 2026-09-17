@@ -376,6 +376,15 @@ namespace Sentinel.Core
         private DateTime _lastWindowChangeTime = DateTime.UtcNow;
         private int _overlayCheckCounter;
 
+        // Brightness sampling is expensive: querying root\wmi WmiMonitorBrightness spins up a
+        // ManagementObjectSearcher and hits the shared WMI service (~100ms+, can stall under
+        // contention). On desktops/monitors without brightness control the class is "Not supported",
+        // so once we learn that we stop querying entirely. Even where supported we sample at most
+        // every 30s (brightness does not change second-to-second; an attack oscillation still trips it).
+        private bool _brightnessSupported = true;
+        private DateTime _lastBrightnessSample = DateTime.MinValue;
+        private static readonly TimeSpan BrightnessSampleInterval = TimeSpan.FromSeconds(30);
+
         public NeuroBehaviorVisualMonitor(DetectionEngine de, ILogger<NeuroBehaviorVisualMonitor> l)
         {
             _detectionEngine = de; _logger = l;
@@ -392,6 +401,13 @@ namespace Sentinel.Core
                 try
                 {
                     await Task.Delay(1000, ct);
+
+                    // Instrumentation: time the actual work of each tick. This loop performs several
+                    // synchronous Win32/WMI calls; if any of them stalls (historically the root\wmi
+                    // brightness query), the whole tick blocks and can surface as system-wide UI
+                    // hitching. A slow tick logged here is hard evidence tying a freeze to this monitor.
+                    var _tickSw = System.Diagnostics.Stopwatch.StartNew();
+
                     var fgWnd = GetForegroundWindow();
                     if (fgWnd == IntPtr.Zero) continue;
 
@@ -508,6 +524,17 @@ namespace Sentinel.Core
                     {
                         _anomalyScore = Math.Max(0, _anomalyScore - 1);
                     }
+
+                    // A single tick should be a few milliseconds. Anything over 250ms means a
+                    // synchronous call in this loop blocked (WMI contention, a hung provider, etc.)
+                    // and stole time from the user's foreground app. Log it as evidence.
+                    _tickSw.Stop();
+                    if (_tickSw.ElapsedMilliseconds > 250)
+                    {
+                        _logger.LogWarning(
+                            "[NeuroBehaviorVisualMonitor] Slow tick: {ElapsedMs}ms (brightnessSupported={BrightnessSupported}). A blocking call in this loop may be causing system-wide UI stalls.",
+                            _tickSw.ElapsedMilliseconds, _brightnessSupported);
+                    }
                 }
                 catch (OperationCanceledException) { break; }
                 catch (Exception ex) { _logger.LogDebug(ex, "[NeuroBehaviorVisualMonitor] Error"); }
@@ -516,6 +543,22 @@ namespace Sentinel.Core
 
         private int GetScreenBrightness()
         {
+            // Fast-path out on machines that don't support brightness (desktops/external monitors).
+            // Without this, a ~100ms+ WMI query fires every polling tick and can cause system-wide
+            // UI stalls when the WMI service is under load.
+            if (!_brightnessSupported)
+            {
+                return -1;
+            }
+
+            // Throttle: brightness only needs periodic sampling, not once per second.
+            var now = DateTime.UtcNow;
+            if (now - _lastBrightnessSample < BrightnessSampleInterval)
+            {
+                return _lastBrightness;
+            }
+            _lastBrightnessSample = now;
+
             try
             {
                 using var searcher = new System.Management.ManagementObjectSearcher(
@@ -530,10 +573,15 @@ namespace Sentinel.Core
                         return Convert.ToInt32(val);
                     }
                 }
+
+                // Query succeeded but returned no instances -> this machine has no controllable
+                // brightness. Disable further sampling permanently.
+                _brightnessSupported = false;
             }
             catch
             {
-                // Degrade gracefully (non-laptops don't have WmiMonitorBrightness)
+                // "Not supported" / provider missing (non-laptops). Never query again.
+                _brightnessSupported = false;
             }
             return -1;
         }

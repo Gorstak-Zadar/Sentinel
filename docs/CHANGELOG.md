@@ -68,14 +68,15 @@ a different path (HKCU wins at activation, no admin required), and TreatAs redir
 - Fixed a pre-existing `CS8602` nullable warning in `ComHijackEvaluator.ExtractServerPath` so the
   solution builds clean under the CI `-warnaserror` gate.
 
-### Threat intel - Cloudflare Worker `/lookup/mb` handler (companion to the MalwareBazaar proxy)
+### Threat intel - Cloudflare Worker `/lookup/mb` endpoint (companion to the MalwareBazaar proxy)
 
-Added `worker/lookup-mb.js` (+ `worker/README.md`), the server-side handler the MalwareBazaar
-proxy path depends on. It holds the abuse.ch `Auth-Key` server-side, validates the same
-HMAC/replay/nonce contract as `/lookup/vt`, performs the `get_info` lookup, and returns the
-normalized `{ success, verdict: "malicious" | "not_found" }` the client parses (failing closed to
-`not_found` on any upstream error, so a failure is never treated as `Safe`). Deployed separately
-to Cloudflare - see `worker/README.md`.
+Added a `/lookup/mb` route to the existing threat-proxy Worker (`worker/src/index.js`) - the
+server-side handler the MalwareBazaar proxy path depends on. It reuses the Worker's existing
+`MALWAREBAZAAR_KEY` secret and HMAC/replay/nonce auth (same contract as `/report/*` and
+`/lookup/vt`), performs the abuse.ch `get_info` lookup, and returns the normalized
+`{ success, verdict: "malicious" | "not_found" }` the client parses (failing closed to
+`not_found` on any upstream error, so a failure is never treated as `Safe`). Deploy with
+`wrangler deploy` - see `worker/README.md`.
 
 ### Threat intel - keep all three hash-reputation sources active (keyless)
 

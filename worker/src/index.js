@@ -239,6 +239,9 @@ export default {
         case '/lookup/vt':
           result = await lookupVirusTotal(body, env);
           break;
+        case '/lookup/mb':
+          result = await lookupMalwareBazaar(body, env);
+          break;
         default:
           return new Response(JSON.stringify({ error: 'Unknown endpoint' }), {
             status: 404,
@@ -319,6 +322,9 @@ function validateReportInput(pathname, body) {
     }
     case '/lookup/vt':
       // Already validated in lookupVirusTotal - no extra check needed
+      return null;
+    case '/lookup/mb':
+      // Already validated in lookupMalwareBazaar - no extra check needed
       return null;
     default:
       return null;
@@ -473,6 +479,55 @@ async function lookupVirusTotal(body, env) {
     };
   } catch (err) {
     return { success: false, error: 'VT lookup failed' };
+  }
+}
+
+/**
+ * v2.7.3: Proxied MalwareBazaar hash lookup. abuse.ch now requires an Auth-Key for ALL API
+ * access, so the Sentinel agent cannot query keyless (it 401s). The Worker holds the key
+ * (MALWAREBAZAAR_KEY, the same secret /report/hash uses) and returns a normalized verdict the
+ * client parses: { success:true, verdict:"malicious"|"not_found" }. Fails closed to not_found on
+ * any upstream/transport error so a failure is never treated as Safe (client maps -> Unknown).
+ */
+async function lookupMalwareBazaar(body, env) {
+  if (!env.MALWAREBAZAAR_KEY) {
+    return { success: false, error: 'MalwareBazaar key not configured' };
+  }
+
+  const hash = body.value;
+  // MalwareBazaar accepts MD5/SHA-1/SHA-256; the Sentinel client sends SHA-256.
+  if (!hash || hash.length !== 64 || !/^[a-fA-F0-9]+$/.test(hash)) {
+    return { success: false, error: 'Invalid SHA-256 hash' };
+  }
+
+  try {
+    const formData = new URLSearchParams();
+    formData.append('query', 'get_info');
+    formData.append('hash', hash);
+
+    const response = await fetch('https://mb-api.abuse.ch/api/v1/', {
+      method: 'POST',
+      headers: { 'Auth-Key': env.MALWAREBAZAAR_KEY },
+      body: formData
+    });
+
+    if (!response.ok) {
+      // Includes 401 if the key is bad. Fail closed -> not_found (client maps to Unknown).
+      return { success: true, verdict: 'not_found', upstream: response.status };
+    }
+
+    const text = await response.text();
+    let status = null;
+    try {
+      const parsed = JSON.parse(text);
+      status = parsed && parsed.query_status;
+    } catch (_) { /* non-JSON upstream */ }
+
+    // A present sample record = known-malicious. Anything else (hash_not_found, ...) = no signal.
+    const verdict = status === 'ok' ? 'malicious' : 'not_found';
+    return { success: true, verdict };
+  } catch (err) {
+    return { success: true, verdict: 'not_found', error: 'upstream_unreachable' };
   }
 }
 

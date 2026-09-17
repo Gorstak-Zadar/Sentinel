@@ -58,4 +58,5 @@ If `ProxySharedSecret` is null/short, agents **skip** reporting and VT proxy loo
 - `POST /report/url` - URLhaus
 - `POST /report/ip` - AbuseIPDB
 - `POST /lookup/vt` - VirusTotal hash lookup
+- `POST /lookup/mb` - MalwareBazaar hash lookup (**v2.7.3**). abuse.ch now requires an `Auth-Key` for all API access, so agents cannot query keyless; the Worker uses `MALWAREBAZAAR_KEY` and returns `{ success, verdict: "malicious" | "not_found" }` (fails closed to `not_found`, never `Safe`).
 - `GET /health` - unauthenticated health (no secrets)

@@ -42,10 +42,12 @@ active without committing a key:
 
 ### Worker requirement
 
-The proxy must implement `POST /lookup/mb` accepting `{ "type": "hash",
-"value": "<sha256>" }` and returning either the normalized
-`{ "success": true, "verdict": "malicious" | "not_found" }` or the raw
-abuse.ch `query_status` body. The client tolerates both shapes.
+The proxy implements `POST /lookup/mb` (in `worker/src/index.js`) accepting
+`{ "type": "hash", "value": "<sha256>" }` and returning the normalized
+`{ "success": true, "verdict": "malicious" | "not_found" }`. The client also
+tolerates a raw abuse.ch `query_status` body. The endpoint must be deployed
+(`wrangler deploy`) and the Worker's `MALWAREBAZAAR_KEY` secret set for the
+MalwareBazaar source to return signal; until then it fails closed to `Unknown`.
 
 ## Supplying SHA-1 for MHR
 

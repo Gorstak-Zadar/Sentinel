@@ -414,4 +414,104 @@ namespace Sentinel.Tests
             Assert.True(_metrics.GetResponsesCount() > 0);
         }
     }
+
+    /// <summary>
+    /// Verifies the MANDATORY pre-action audit trail (docs/constraints.md: the tamper-resistant
+    /// audit log must be written BEFORE any kill/block/quarantine/isolate/cert-removal action).
+    /// Regression guard for the defect where destructive responses fired but audit-*.jsonl stayed
+    /// 0 bytes because no code path invoked LogAuditBeforeActionAsync.
+    /// </summary>
+    public class AdvancedResponseEngineAuditTrailTests : IDisposable
+    {
+        private readonly string _tempDir;
+
+        public AdvancedResponseEngineAuditTrailTests()
+        {
+            _tempDir = Path.Combine(Path.GetTempPath(), "sentinel_are_audit_" + Guid.NewGuid().ToString("N")[..8]);
+            Directory.CreateDirectory(_tempDir);
+        }
+
+        public void Dispose()
+        {
+            try { Directory.Delete(_tempDir, true); } catch { }
+        }
+
+        // The audit file is "audit-{UtcNow:yyyy-MM-dd}.jsonl" beside the events log.
+        private string ReadAuditTrail()
+        {
+            var files = Directory.GetFiles(_tempDir, "audit-*.jsonl");
+            if (files.Length == 0) return string.Empty;
+            var sb = new System.Text.StringBuilder();
+            foreach (var f in files)
+            {
+                using var fs = new FileStream(f, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                using var reader = new StreamReader(fs);
+                sb.Append(reader.ReadToEnd());
+            }
+            return sb.ToString();
+        }
+
+        [Fact]
+        public async Task HandleAsync_DestructiveTier1Action_WritesPreActionAuditEntry()
+        {
+            var config = new SentinelConfig { ActiveResponse = true, ObserveUntilChain = false };
+            var metrics = new SentinelMetrics();
+            var logger = new JsonlEventLogger(Path.Combine(_tempDir, "events.jsonl"));
+            var engine = new AdvancedResponseEngine(config, metrics, logger, new QuarantineManager(_tempDir));
+
+            // Tier1, kill-authorized, non-existent PID so the actual kill is a safe no-op.
+            var detection = new DetectionEvent
+            {
+                RuleName = "LsassAccessRule",
+                Confidence = 0.95,
+                Tier = DetectionTier.Tier1Behavioral,
+                AuthorizedResponse = ResponseAction.KillProcessTree,
+                ProcessName = "nonexistent.exe",
+                ProcessId = 99999
+            };
+
+            await engine.HandleAsync(detection);
+            await logger.DisposeAsync();
+
+            var audit = ReadAuditTrail();
+            Assert.False(string.IsNullOrEmpty(audit),
+                "A destructive Tier1 response must write a PRE_ACTION audit entry before acting.");
+            Assert.Contains("\"AuditType\":\"PRE_ACTION\"", audit);
+            Assert.Contains("LsassAccessRule", audit);
+        }
+
+        [Fact]
+        public async Task HandleAsync_Tier2WithActiveResponse_WritesNoAuditEntry_LogOnlyContract()
+        {
+            // Tier2 log-only contract: even with ActiveResponse armed, a Tier2 indicator must
+            // never take a destructive action - and therefore must never write a PRE_ACTION
+            // audit entry (nothing mutates the host, so there is nothing to pre-audit).
+            var config = new SentinelConfig { ActiveResponse = true, ObserveUntilChain = false };
+            var metrics = new SentinelMetrics();
+            var logger = new JsonlEventLogger(Path.Combine(_tempDir, "events.jsonl"));
+            var engine = new AdvancedResponseEngine(config, metrics, logger, new QuarantineManager(_tempDir));
+
+            var detection = new DetectionEvent
+            {
+                RuleName = "TLS: Suspicious Root Certificate Detected",
+                Confidence = 0.90,
+                Tier = DetectionTier.Tier2Indicator,
+                AuthorizedResponse = ResponseAction.RemoveCertAndKillAdder,
+                ProcessName = "powershell.exe",
+                ProcessId = 1234,
+                Metadata = new Dictionary<string, string>
+                {
+                    { "CertThumbprint", "1234567890ABCDEF1234567890ABCDEF12345678" },
+                    { "AdderProcessId", "1234" }
+                }
+            };
+
+            await engine.HandleAsync(detection);
+            await logger.DisposeAsync();
+
+            var audit = ReadAuditTrail();
+            Assert.True(string.IsNullOrEmpty(audit),
+                "Tier2 indicator must be LogOnly and must NOT produce a pre-action audit entry.");
+        }
+    }
 }

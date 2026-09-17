@@ -582,6 +582,36 @@ namespace Sentinel.Core
                 shouldIsolateNetwork = true;
             }
 
+            // MANDATORY pre-action audit (constraints: the tamper-resistant audit trail MUST be
+            // written BEFORE any kill/block/quarantine/isolate/cert-removal fires). All should*
+            // flags are finalized above; a destructive branch runs immediately below. Writing here
+            // once - rather than in each branch - guarantees no destructive path can execute
+            // without a preceding PRE_ACTION record. LogOnly outcomes are intentionally NOT
+            // audited here (they cause no host mutation); they remain in events.jsonl only.
+            bool willActDestructively =
+                shouldKill || shouldQuarantineAndKill || shouldIsolateNetwork ||
+                shouldRemoveCertAndKillAdder || shouldRemoveCert || shouldRemoveRegistryEntry ||
+                shouldRaiseVpnShield;
+
+            if (willActDestructively)
+            {
+                // Copy into locals so the null-coalescing here does not alter the compiler's
+                // null-state flow for detection.RuleName / detection.ProcessName in the
+                // destructive branches below (which read them directly, as they always have).
+                var auditRuleName = detection.RuleName is { } rn ? rn : "unknown";
+                var auditRuleId = detection.RuleId is { } rid ? rid : auditRuleName;
+                var auditProcessName = detection.ProcessName is { } pn ? pn : "unknown";
+                await _eventLogger.LogAuditBeforeActionAsync(
+                    detectionId: detection.Timestamp.ToString("O") + ":" + detection.ProcessId,
+                    ruleId: auditRuleId,
+                    ruleName: auditRuleName,
+                    proposedAction: effectiveResponse,
+                    confidence: detection.Confidence,
+                    processName: auditProcessName,
+                    processId: detection.ProcessId,
+                    justification: reason);
+            }
+
             if (shouldRemoveCertAndKillAdder)
             {
                 var certThumb = detection.Metadata!.GetValueOrDefault("CertThumbprint", "Unknown");

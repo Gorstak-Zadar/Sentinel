@@ -2,6 +2,37 @@
 
 
 
+## [2.7.5] - 2026-09-17
+
+### Fix - wire the mandatory pre-action audit trail into the response engine
+
+The tamper-resistant audit log (`audit-YYYY-MM-DD.jsonl`, SYSTEM+Admins ACL) is required by the
+hard constraints to be written BEFORE any kill/block/quarantine/isolate/cert-removal action. The
+audit-write methods (`JsonlEventLogger.LogAuditBeforeActionAsync` / `LogAuditActionOutcomeAsync`)
+existed and were fully implemented, but **had no callers** - so destructive responses executed and
+were recorded only in `events.jsonl`, while the audit file stayed 0 bytes. This was observed in
+production: nine `KILL_ONLY` responses fired in a session yet `audit-2026-09-17.jsonl` was empty.
+
+- **`AdvancedResponseEngine.HandleAsync` now emits a `PRE_ACTION` audit entry before dispatching
+  any destructive branch.** The write is placed once, at the single point where all `should*`
+  action flags are finalized and immediately before the first destructive branch, guarded by a
+  `willActDestructively` check (kill / quarantine-and-kill / network-isolate / cert-removal /
+  registry-removal / VPN-shield). This guarantees no destructive path can run without a preceding
+  audit record, without duplicating the call across branches.
+- **LogOnly outcomes are intentionally not audited** to the pre-action trail - they mutate nothing
+  on the host, so they remain in `events.jsonl` only. This preserves the Tier2 log-only contract:
+  a Tier2 indicator never reaches the destructive branches and therefore never writes an audit
+  entry, even with ActiveResponse armed.
+- **Tests:** added `AdvancedResponseEngineAuditTrailTests` -
+  `HandleAsync_DestructiveTier1Action_WritesPreActionAuditEntry` (a kill-grade Tier1 response
+  produces a `PRE_ACTION` record) and `HandleAsync_Tier2WithActiveResponse_WritesNoAuditEntry_LogOnlyContract`
+  (a Tier2 indicator with ActiveResponse=true writes no audit entry). Regression guard for the
+  empty-audit-log defect.
+
+Also carries the v2.7.4 NeuroBehaviorVisualMonitor brightness-polling fix + timing instrumentation
+(see below). Verified: solution builds 0W/0E, all 2442 tests pass.
+
+
 ## [2.7.4] - 2026-09-17
 
 ### Fix - NeuroBehaviorVisualMonitor: stop per-second WMI brightness polling from stalling the UI

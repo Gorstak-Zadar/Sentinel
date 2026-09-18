@@ -1,0 +1,310 @@
+﻿==> Current version: 2.7.5
+==> Next version:    2.7.6
+==> Writing version.txt
+==> Building installer via build.ps1
+==============================================
+   Sentinel - Building Minimum Installer      
+   (net48-windows, framework-dependent)       
+==============================================
+Version: 2.7.6
+Stamped project versions to 2.7.6
+Cleaning publish outputs...
+Removing old installer SentinelSetup-2.7.5.exe
+Publishing Sentinel Service (net48-windows, framework-dependent)...
+  Determining projects to restore...
+  Restored D:\Gorstak\Sentinel\src\Sentinel.Service\Sentinel.Service.csproj (in 524 ms).
+  Restored D:\Gorstak\Sentinel\src\Sentinel.Core\Sentinel.Core.csproj (in 524 ms).
+  Sentinel.Core -> D:\Gorstak\Sentinel\src\Sentinel.Core\bin\Release\net48-windows\Sentinel.Core.dll
+  Sentinel.Service -> D:\Gorstak\Sentinel\src\Sentinel.Service\bin\Release\net48-windows\Sentinel.Service.exe
+  Sentinel.Service -> D:\Gorstak\Sentinel\publish\service\
+Publishing Sentinel Agent (net48-windows, framework-dependent)...
+  Determining projects to restore...
+  Restored D:\Gorstak\Sentinel\src\Sentinel.Agent\Sentinel.Agent.csproj (in 177 ms).
+  1 of 2 projects are up-to-date for restore.
+  Sentinel.Core -> D:\Gorstak\Sentinel\src\Sentinel.Core\bin\Release\net48-windows\Sentinel.Core.dll
+  Sentinel.Agent -> D:\Gorstak\Sentinel\src\Sentinel.Agent\bin\Release\net48-windows\Sentinel.Agent.exe
+  Sentinel.Agent -> D:\Gorstak\Sentinel\publish\agent\
+Deploying Sentinel.ico and version.txt...
+Copied ML model pe_model.zip -> service\MlModels
+Copied ML model url_model.zip -> service\MlModels
+Copied ML model pe_model.zip -> agent\MlModels
+Copied ML model url_model.zip -> agent\MlModels
+Copied LGPO.exe -> service\
+Copied GSecurity.inf -> service\
+Copied LGPO.exe -> agent\
+Copied GSecurity.inf -> agent\
+Pruned unused HardeningResources\ from service\
+Pruned *.pdb from service\
+Pruned unused HardeningResources\ from agent\
+Pruned *.pdb from agent\
+Locating Inno Setup compiler...
+Found Inno Setup at: C:\Program Files\Inno Setup 7\ISCC.exe
+Compiling installer with Inno Setup...
+Inno Setup 7 Command-Line Compiler
+Copyright (C) 1997-2026 Jordan Russell. All rights reserved.
+Portions Copyright (C) 2000-2026 Martijn Laan. All rights reserved.
+Portions Copyright (C) 2001-2004 Alex Yackimoff. All rights reserved.
+https://www.innosetup.com
+
+Compiler engine version: Inno Setup 7.0.2
+Non-commercial use only
+
+Preprocessing
+   Reading file: C:\Program Files\Inno Setup 7\ISPPBuiltins.iss
+Parsing [Setup] section, line 2
+Parsing [Setup] section, line 3
+Parsing [Setup] section, line 4
+Parsing [Setup] section, line 5
+Parsing [Setup] section, line 6
+Parsing [Setup] section, line 7
+Parsing [Setup] section, line 8
+Parsing [Setup] section, line 9
+Parsing [Setup] section, line 10
+Parsing [Setup] section, line 11
+Parsing [Setup] section, line 12
+Parsing [Setup] section, line 13
+Parsing [Setup] section, line 14
+Parsing [Setup] section, line 15
+Parsing [Setup] section, line 16
+Parsing [Setup] section, line 17
+Parsing [Setup] section, line 18
+Parsing [Setup] section, line 19
+Parsing [Setup] section, line 20
+Parsing [Setup] section, line 21
+Parsing [Setup] section, line 22
+Parsing [Setup] section, line 23
+Parsing [Setup] section, line 24
+Parsing [Setup] section, line 25
+Parsing [Setup] section, line 26
+Parsing [Setup] section, line 27
+Parsing [Setup] section, line 28
+Reading file (LicenseFile)
+Reading file (WizardImageFile)
+Reading file (WizardSmallImageFile)
+Preparing Setup program executable
+   Verification successful
+   Updating icons (Setup.e32)
+   Updating version info (Setup.e32)
+Determining language code pages
+   Reading file: C:\Program Files\Inno Setup 7\Default.isl
+   Messages in script file
+Reading default messages from Default.isl
+Parsing [LangOptions], [Messages], and [CustomMessages] sections
+   Reading file: C:\Program Files\Inno Setup 7\Default.isl
+   Messages in script file
+Reading [Code] section
+Parsing [Icons] section, line 37
+Parsing [UninstallDelete] section, line 44
+Parsing [UninstallDelete] section, line 45
+Parsing [Run] section, line 40
+Parsing [Run] section, line 41
+Parsing [Files] section, line 31
+Parsing [Files] section, line 32
+Parsing [Files] section, line 33
+Parsing [Files] section, line 34
+Compiling [Code] section
+Creating setup files
+   Verification successful
+   Updating icons (Setup.exe)
+   Compressing: \\?\D:\Gorstak\Sentinel\installer\assets\Sentinel.ico
+   Compressing: \\?\D:\Gorstak\Sentinel\installer\assets\disclaimer.txt
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\CpuMathNative.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\FastTreeNative.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\GSecurity.inf
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\IndexRange.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\LdaNative.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\LGPO.exe
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Bcl.AsyncInterfaces.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Bcl.Numerics.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Configuration.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Configuration.Binder.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Configuration.CommandLine.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Configuration.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Configuration.EnvironmentVariables.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Configuration.FileExtensions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Configuration.Json.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Configuration.UserSecrets.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.DependencyInjection.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Diagnostics.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Diagnostics.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.FileProviders.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.FileProviders.Physical.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.FileSystemGlobbing.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Hosting.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Hosting.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Hosting.WindowsServices.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Logging.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Logging.Configuration.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Logging.Console.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Logging.Debug.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Logging.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Logging.EventLog.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Logging.EventSource.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Options.ConfigurationExtensions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Options.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Extensions.Primitives.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.ML.Core.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.ML.CpuMath.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.ML.Data.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.ML.DataView.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.ML.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.ML.FastTree.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.ML.KMeansClustering.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.ML.PCA.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.ML.StandardTrainers.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.ML.Transforms.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Microsoft.Win32.Registry.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\NAudio.Asio.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\NAudio.Core.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\NAudio.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\NAudio.Midi.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\NAudio.Wasapi.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\NAudio.WinForms.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\NAudio.WinMM.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Newtonsoft.Json.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Sentinel.Core.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Sentinel.ico
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Sentinel.Service.exe
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\Sentinel.Service.exe.config
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Buffers.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.CodeDom.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Collections.Immutable.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Diagnostics.DiagnosticSource.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Diagnostics.EventLog.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.IO.FileSystem.AccessControl.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Memory.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Net.Http.Json.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Numerics.Tensors.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Numerics.Vectors.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Runtime.CompilerServices.Unsafe.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Security.AccessControl.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Security.Principal.Windows.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.ServiceProcess.ServiceController.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Text.Encodings.Web.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Text.Json.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Threading.Channels.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.Threading.Tasks.Extensions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\System.ValueTuple.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\version.txt
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\MlModels\pe_model.zip
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\service\MlModels\url_model.zip
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\CpuMathNative.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\FastTreeNative.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\GSecurity.inf
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\IndexRange.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\LdaNative.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\LGPO.exe
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Bcl.AsyncInterfaces.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Bcl.Numerics.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Configuration.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Configuration.Binder.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Configuration.CommandLine.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Configuration.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Configuration.EnvironmentVariables.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Configuration.FileExtensions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Configuration.Json.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Configuration.UserSecrets.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.DependencyInjection.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Diagnostics.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Diagnostics.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.FileProviders.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.FileProviders.Physical.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.FileSystemGlobbing.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Hosting.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Hosting.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Logging.Abstractions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Logging.Configuration.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Logging.Console.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Logging.Debug.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Logging.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Logging.EventLog.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Logging.EventSource.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Options.ConfigurationExtensions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Options.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Extensions.Primitives.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.ML.Core.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.ML.CpuMath.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.ML.Data.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.ML.DataView.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.ML.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.ML.FastTree.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.ML.KMeansClustering.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.ML.PCA.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.ML.StandardTrainers.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.ML.Transforms.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Microsoft.Win32.Registry.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\NAudio.Asio.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\NAudio.Core.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\NAudio.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\NAudio.Midi.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\NAudio.Wasapi.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\NAudio.WinForms.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\NAudio.WinMM.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Newtonsoft.Json.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Sentinel.Agent.exe
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Sentinel.Agent.exe.config
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Sentinel.Core.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\Sentinel.ico
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Buffers.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.CodeDom.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Collections.Immutable.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Diagnostics.DiagnosticSource.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Diagnostics.EventLog.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.IO.FileSystem.AccessControl.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Memory.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Net.Http.Json.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Numerics.Tensors.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Numerics.Vectors.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Runtime.CompilerServices.Unsafe.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Security.AccessControl.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Security.Principal.Windows.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.ServiceProcess.ServiceController.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Text.Encodings.Web.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Text.Json.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Threading.Channels.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.Threading.Tasks.Extensions.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\System.ValueTuple.dll
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\version.txt
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\MlModels\pe_model.zip
+   Compressing: \\?\D:\Gorstak\Sentinel\publish\agent\MlModels\url_model.zip
+   Compressing Setup program executable
+   Updating version info (Setup.exe)
+   Updating manifest (Setup.exe)
+
+
+Successful compile (2.438 sec). Resulting Setup program filename is:
+D:\Gorstak\Sentinel\installer\SentinelSetup-2.7.6.exe
+==============================================
+Build completed successfully!
+Installer: installer\SentinelSetup-2.7.6.exe (10.37 MB)
+Runtime:   .NET Framework 4.8 (framework-dependent)
+==============================================
+Copied installer to releases\2.7.6\
+==> Installer ready: D:\Gorstak\Sentinel\releases\2.7.6\SentinelSetup-2.7.6.exe
+==> Committing release 2.7.6
+warning: in the working copy of 'docs/THREAT_MODEL.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/architecture-council.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'installer/setup.iss', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/Sentinel.Core/Models.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/Sentinel.Core/Monitors/BrowserAppControlGuard.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/Sentinel.Core/Monitors/CredentialProtectionMonitors.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/Sentinel.Core/Monitors/SystemIntegrityMonitors.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/Sentinel.Core/PersistentConnectionMonitor.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/Sentinel.Tests/BrowserAppControlGuardTests.cs', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/Sentinel.Tests/HostsFileGuardTests.cs', LF will be replaced by CRLF the next time Git touches it
+0
+[main bbccba2] Release 2.7.6
+ 17 files changed, 945 insertions(+), 569 deletions(-)
+0
+==> Pushing to origin
+To https://github.com/Gorstak-Zadar/Sentinel.git
+   73913cc..bbccba2  HEAD -> main
+0
+==> Publishing GitHub release v2.7.6
+https://github.com/Gorstak-Zadar/Sentinel/releases/tag/v2.7.6
+0
+==============================================
+Release 2.7.6 complete.
+==============================================

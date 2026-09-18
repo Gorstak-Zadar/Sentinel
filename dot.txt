@@ -1,0 +1,1 @@
+dot-failed: File D:\Gorstak\Sentinel\installer\_stamp.ps1 cannot be loaded because running scripts is disabled on this system. For more information, see about_Execution_Policies at https:/go.microsoft.com/fwlink/?LinkID=135170.

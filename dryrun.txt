@@ -1,0 +1,4 @@
+﻿==> Current version: 2.7.5
+==> Next version:    2.7.6
+[DryRun] Would set version.txt -> 2.7.6
+[DryRun] Would run build.ps1, commit, push, and publish GitHub release.

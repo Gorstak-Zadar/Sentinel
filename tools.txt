@@ -1,0 +1,4 @@
+git: C:\Program Files\Git\cmd\git.exe
+gh: C:\Program Files\GitHub CLI\gh.exe
+iscc: 
+gitdir: False

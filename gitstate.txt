@@ -1,0 +1,7 @@
+remotes:
+origin	https://github.com/Gorstak-Zadar/Sentinel.git (fetch)
+origin	https://github.com/Gorstak-Zadar/Sentinel.git (push)
+branch:
+main
+log:
+bbccba2 Release 2.7.6

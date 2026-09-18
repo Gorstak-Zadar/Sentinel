@@ -322,7 +322,7 @@ See [design.md](design.md) for the full component inventory (all MonitorGroups +
 | MicrosoftAccountGuardMonitor | Watches for MS account token access |
 | NullSessionGuard | Detects null session enumeration |
 | BuiltinAdminGuard | Detects enabled/exploited built-in Administrator |
-| PasswordRotationGuard | Monitors password age and blank passwords |
+| RemoteLogonHardeningGuard | Denies network/RDP logon for local admin accounts; clears auto-logon leak (v2.7.6) |
 
 ### Group 6: Peripheral & Environmental
 | Monitor | Purpose |

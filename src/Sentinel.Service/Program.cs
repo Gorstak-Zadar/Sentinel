@@ -629,7 +629,7 @@ namespace Sentinel.Service
                             ("MicrosoftAccountGuardMonitor",    s => s.GetRequiredService<MicrosoftAccountGuardMonitor>()),
                             ("NullSessionGuard",                s => s.GetRequiredService<NullSessionGuard>()),
                             ("BuiltinAdminGuard",               s => s.GetRequiredService<BuiltinAdminGuard>()),
-                            ("PasswordRotationGuard",           s => s.GetRequiredService<PasswordRotationGuard>()),
+                            ("RemoteLogonHardeningGuard",       s => s.GetRequiredService<RemoteLogonHardeningGuard>()),
                             ("RemoteSessionGuard",              s => s.GetRequiredService<RemoteSessionGuard>()),
                             ("TokenPrivilegeAuditMonitor",      s => s.GetRequiredService<TokenPrivilegeAuditMonitor>())
                         );
@@ -656,7 +656,7 @@ namespace Sentinel.Service
                     services.AddSingleton<MicrosoftAccountGuardMonitor>();
                     services.AddSingleton<NullSessionGuard>();
                     services.AddSingleton<BuiltinAdminGuard>();
-                    services.AddSingleton<PasswordRotationGuard>();
+                    services.AddSingleton<RemoteLogonHardeningGuard>();
                     services.AddSingleton<RemoteSessionGuard>();
                     services.AddSingleton<TokenPrivilegeAuditMonitor>();
 

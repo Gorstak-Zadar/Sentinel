@@ -2,6 +2,97 @@
 
 
 
+## [2.7.6] - 2026-09-19
+
+### Removed - PasswordRotationGuard (local account password rotation)
+
+Removed the `PasswordRotationGuard` credential-protection monitor entirely, along with its DI
+registration and all supporting code (auto-logon configuration, LSA `DefaultPassword` secret
+storage, Ctrl+Alt+Del disable, screen-lock-timeout disable, and forced UAC `ConsentPromptBehaviorAdmin=5`).
+
+**Why:** the guard rotated every enabled local account's password to a random value the user never
+sees, then - to avoid locking the user out - configured silent Windows auto-logon (`AutoAdminLogon=1`
+plus the password stored as an LSA secret), set `DisableCAD=1`, disabled the screen-lock timeout,
+and pinned UAC to consent-only. The net effect was to remove the interactive authentication boundary
+rather than strengthen it: a machine that boots straight to the desktop with no credential entry,
+never locks, and whose elevation prompt never asks for a password. That combination is an access /
+persistence mechanism and conflicts with Sentinel's hard constraints (userland-only, no persistence
+tricks, no self-hiding, never trust a signal an attacker controls). In practice the rotation also
+failed silently (ADSI `SetPassword` requires privileges the running context often lacks, and the
+exception was swallowed at Debug level), leaving accounts in a blank-password state - the worst of
+both worlds.
+
+**Replacement guidance:** remote-logon exposure is addressed by the existing `NullSessionGuard`
+(LimitBlankPasswordUse / RestrictAnonymous), `RemoteSessionGuard` (force-logoff of non-console
+remote sessions), and `BuiltinAdminGuard`, combined with OS-level "deny network / deny RDP logon"
+user-rights hardening for privileged local accounts. Credential secrecy is not achieved by rotating
+the interactive login password.
+
+- Deleted `PasswordRotationGuard` class from `Sentinel.Core/Monitors/CredentialProtectionMonitors.cs`.
+- Removed its `MonitorGroup` entry and `AddSingleton` registration from `Sentinel.Service/Program.cs`.
+- Updated `docs/design.md`, `docs/THREAT_MODEL.md`, and `docs/architecture-council.md` to drop the
+  monitor and the retired `Install-PasswordRotator.ps1` council row.
+
+### Added - RemoteLogonHardeningGuard (deny remote logon + no auto-logon leak)
+
+The constructive replacement for the removed rotation guard. It never touches an account password;
+instead it closes the remote-logon surface for privileged local accounts and removes any auto-logon
+leak. Standing proactive OS hardening, gated on `ProductPosture.AllowsProactiveHostLockdown` with a
+`MayEnforce` seam and a default-deny test.
+
+- Denies **network + RDP logon** for local admin-class accounts (built-in Administrator RID 500 +
+  local Administrators members) via `SeDenyNetworkLogonRight` / `SeDenyRemoteInteractiveLogonRight`
+  (secedit, net48-safe quoted arguments).
+- Clears any auto-logon leak: `AutoAdminLogon=0`, removes Winlogon `DefaultPassword`/`ForceAutoLogon`,
+  and clears the LSA `DefaultPassword` secret.
+- Enforces on startup and re-checks every 5 minutes. Registered in the CredentialProtection group.
+
+### Removed - hardcoded forum.hr block (kept the generic hosts/NRPT mechanism)
+
+The forum.hr-specific hosts-file blackhole and wildcard NRPT rule were removed. The generic
+capability is retained so a future domain block can be reintroduced cleanly.
+
+- `HostsFileGuard` now enforces a localhost/loopback baseline **only** (`HostsBaselineLines`); no
+  external domain is blocked by default. Renamed `EnsureForumHrBlockAsync` -> `EnsureHostsBaselineAsync`
+  and `MayEnforceForumHrBlock` -> `MayEnforceHostsBaseline`.
+- Added `CleanupRetiredForumHrArtifacts`: on startup it deletes the stale forum.hr NRPT rule and
+  strips any forum.hr lines from the hosts file, so machines previously blocked are un-blocked.
+- Kept a generic, reusable `BuildDomainNrptRule(ruleGuid, domainSuffix, sinkhole)` for future blocks;
+  no caller invokes it by default.
+
+### Added - behavioral pairing discriminator + risky-origin aggravator (site-to-local-app)
+
+Sharpens the anti-pairing guards to separate a benign data handoff (a page handing a magnet/URL to a
+purpose-built local client) from a malicious control channel (a page taking scripting/automation
+control of a browser), keying on **behavior, never on the domain**.
+
+- `LocalControlChannelMonitor.ClassifyPairing` classifies a loopback pairing as
+  `BrowserControlChannel` (a browser is the driven server = remote-control/session-theft shape,
+  escalated even when the client is signed/in-path), `UntrustedController` (script-host or
+  user-writable client), or `DataHandoff` (signed/in-path client -> non-browser app; observe-first).
+- New `SentinelConfig.RiskyPairingOrigins` (seeded with `forum.hr` as an example) is an **aggravator
+  only**: a domain match never fires a detection or action on its own - it only raises confidence /
+  nudges an already-established behavioral signal, and can never promote a benign `DataHandoff` to
+  kill grade. This deliberately avoids domain-identity trust as a verdict.
+
+### Added - config-driven reusable domain + IP block capability
+
+Generalizes the (now-removed) forum.hr block into an operator-driven, reusable mechanism. **Empty by
+default - nothing is blocked unless the operator populates the lists; no domain or IP is hardcoded.**
+Both gate on `ProductPosture.AllowsProactiveHostLockdown` (`MayEnforceConfiguredBlocks` seam +
+default-deny test) and self-heal on startup and every `HostsFileGuard` scan.
+
+- `SentinelConfig.EnforcedDomainBlocks` - each domain is blocked via the proven forum.hr path: a
+  hosts-file line (apex + `www`) **plus** a wildcard NRPT rule (leading-dot suffix -> `0.0.0.0`,
+  apex + all subdomains) under the GP-managed policy hive, with a stable per-domain rule GUID
+  (`NrptRuleGuidForDomain`). Because `BrowserDnsPolicyGuard` keeps DoH disabled, these blocks are
+  authoritative for Chromium/Firefox browsers too (matching the observed forum.hr behavior).
+- `SentinelConfig.EnforcedIpBlocks` - each IP is blocked with inbound + outbound Windows Firewall
+  rules (`Sentinel-EnforcedIpBlock-*`). Loopback / broadcast / `Any` / invalid addresses are refused.
+  NRPT cannot match a raw IP, so IP blocking is a separate firewall mechanism.
+- Input hardening: `NormalizeBlockDomain` strips scheme/port/path/leading-dot; firewall args are
+  fixed-shape with the IP validated first (no untrusted interpolation into a shell).
+
 ## [2.7.5] - 2026-09-17
 
 ### Fix - wire the mandatory pre-action audit trail into the response engine

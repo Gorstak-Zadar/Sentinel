@@ -178,7 +178,6 @@ detection events but Sentinel monitors for regression of their settings.
 | `Hardening` | Hardening.cmd + 3 .ps1 + 1 .reg | SMBv1 disable, NTLM hardening, firewall (block SMB/RDP/WinRM), services, account lockout, UAC, autorun/USB disable, Office macros, Defender CFA/ASR |
 | `Consent` | Consent.cmd | UAC consent.exe ACL hardening (Console Logon only) |
 | `Creds` | 1 .ps1 | LSASS PPL enable, credential caching disable, cached creds clear, auditing enable |
-| `Password` | Install-PasswordRotator.ps1 | Password rotation (10 min), blank at logoff |
 | `GRules` | 1 .ps1 (740 lines) | YARA/Sigma/Snort rule download + apply, ASR rules |
 | `CVE-MitigationPatcher` | 1 .ps1 (486 lines) | CISA KEV catalog fetch, scriptable CVE mitigations |
 | `Registry` | 26 .reg files | Immunity (P3P blocklist, 18 MB), Firewall, Privacy (MRU cleanup), Services (SvcHostSplit), Restrictions (SRP), GShield (disallowed certs), IPSecPolicy, ComputerPolicy, UserPolicy, Games, Browsers, etc. |

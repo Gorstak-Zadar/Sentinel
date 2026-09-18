@@ -144,7 +144,7 @@ Organized by MonitorGroup. Each group has staggered startup, independent failure
 | `MicrosoftAccountGuardMonitor` | TokenBroker cache, PRT extraction, Azure AD token theft tool detection | 30s |
 | `NullSessionGuard` | Enforces LimitBlankPasswordUse, RestrictAnonymous, EveryoneIncludesAnonymous; optional FCM TCP 5228 block when `BlockFcmPushChannel=true` | 60s |
 | `BuiltinAdminGuard` | Monitors built-in Administrator account (RID 500); disables if found active | 15s |
-| `PasswordRotationGuard` | Rotates local account passwords every 10 min; UAC=5; auto-logon via LSA secret | 10 min |
+| `RemoteLogonHardeningGuard` | **v2.7.6.** Denies network + RDP logon for local admin-class accounts (SeDenyNetworkLogonRight / SeDenyRemoteInteractiveLogonRight via secedit); clears auto-logon leak (AutoAdminLogon=0, Winlogon DefaultPassword, LSA DefaultPassword secret). Never touches passwords. Posture-gated | 5 min |
 | `RemoteSessionGuard` | WTSEnumerateSessions; force-logoff non-console remote sessions (RDP etc.); never session 0 / console | 5s |
 | `TokenPrivilegeAuditMonitor` | **v2.2.0 registered.** SeDebug/SeImpersonate from user-writable paths | 20s |
 
@@ -192,7 +192,7 @@ Organized by MonitorGroup. Each group has staggered startup, independent failure
 | `ServiceProcessMap` | Service name <-> PID map (shared `svchost` attribution for privacy observe) | on demand |
 | `TlsCertificateMonitor` | Monitors LocalMachine\Root + TrustedPublisher; baselines at startup. BYOVD follow-up: exact cert **thumbprint** match only -> stop service + delete SCM key (does **not** delete `System32\drivers\*.sys`) | 60s |
 | `UacBypassSurfaceMonitor` | Detects COM AutoElevation vectors and manifest autoElevate + copy-drop | periodic |
-| `HostsFileGuard` | Monitors hosts file for suspicious modifications (C2 IP redirects, security domain blocking); users may freely edit. Only enforces FCM `mtalk.*` lines when `MitmDefense.Enabled` or `BlockFcmPushChannel=true` (appends missing lines, never overwrites) | FSW + 30s |
+| `HostsFileGuard` | Monitors hosts file for suspicious modifications (C2 IP redirects, security domain blocking); users may freely edit. Enforces a localhost/loopback baseline only (**v2.7.6:** forum.hr block removed; `CleanupRetiredForumHrArtifacts` un-blocks previously blocked machines). Only enforces FCM `mtalk.*` lines when `MitmDefense.Enabled` or `BlockFcmPushChannel=true` (appends missing lines, never overwrites). **v2.7.6:** enforces operator-defined `EnforcedDomainBlocks` (hosts line + wildcard NRPT, browser-authoritative via DoH-off) and `EnforcedIpBlocks` (in/out firewall rules) - empty by default, self-healing, posture-gated | FSW + 30s |
 | `BrowserDnsPolicyGuard` | Disables DoH system-wide across all browsers; 15s self-healing | 15s |
 | `BootIntegrityGuard` | Monitors BCD, boot drivers, EFI partition for bootkit indicators | 60s |
 | `CveShieldHardener` | Fetches CISA KEV feed; maps against local assets; generates block rules | 4h |
@@ -684,20 +684,18 @@ Config section: `AutoIncidentReporting` (see CHANGELOG 1.7.7 / 1.7.8).
 
 ## v1.7.6 Additions (superseded in v2.6.9)
 
-### Forum.hr policy: block at the hosts file
+### Forum.hr policy: REMOVED in v2.7.6 (history)
 
-The v1.7.6 "watch, don't block" approach (`ForumHrWatchMonitor`) proved useless against a
-real forum.hr drive-by reinfection and was **removed in v2.6.9**. The domain is once again
-blackholed outright at the hosts-file level (the original pre-v1.7.6 policy).
+The forum.hr hosts-file block and wildcard NRPT rule (restored in v2.6.9 after the v1.7.6
+`ForumHrWatchMonitor` was deleted) were **removed entirely in v2.7.6**. No domain is blocked
+by default. The generic mechanism is preserved:
 
 | Item | Value |
 |------|--------|
-| Hosts block | **Restored** - `HostsFileGuard` enforces localhost header + `0.0.0.0 forum.hr` + subdomains (`www`, `m`, `cdn`, `static`, `api`, `img`, `mail`, `ads`, `tracker`) |
-| Wildcard DNS block | NRPT rule `Name=.forum.hr` -> `GenericDNSServers=0.0.0.0` under policy hive `SOFTWARE\Policies\Microsoft\Windows NT\DNSClient\DnsPolicyConfig`; covers the apex **and every subdomain** (hosts file matches exact names only) |
-| Enforcement | Hosts lines appended on startup and every scan if missing (other content preserved); NRPT rule created/repaired on startup and every periodic scan |
-| Self-heal | `Hosts File: Baseline Restored (localhost + forum.hr)` and `DNS Policy: forum.hr Wildcard Block Restored` |
-| Authoritative | `BrowserDnsPolicyGuard` disables DoH so the OS resolver (hosts file + NRPT) governs all resolution |
-| Monitor removed | `ForumHrWatchMonitor` deleted (non-browser DNS/TCP watch, signed->Tier2 demotion) |
+| Hosts baseline | `HostsFileGuard` enforces the localhost/loopback header only (`HostsBaselineLines`). No external domain is blackholed |
+| Cleanup | `CleanupRetiredForumHrArtifacts` deletes the stale forum.hr NRPT rule and strips any forum.hr hosts lines on startup, un-blocking previously blocked machines |
+| Reusable capability | `BuildDomainNrptRule(ruleGuid, domainSuffix, sinkhole)` retained for future domain blocks; no caller invokes it by default |
+| Behavioral pairing | The forum.hr *behavior* (a page taking control of a browser) is caught by `LocalControlChannelMonitor.ClassifyPairing` regardless of domain; `SentinelConfig.RiskyPairingOrigins` (seeded with `forum.hr`) is an aggravator only, never a verdict |
 
 ## v1.7.5 Additions
 

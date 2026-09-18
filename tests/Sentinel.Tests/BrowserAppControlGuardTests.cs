@@ -179,5 +179,84 @@ namespace Sentinel.Tests
                 ProductPosture.AllowsProactiveHostLockdown(new SentinelConfig()),
                 LocalControlChannelMonitor.MayEnforce(new SentinelConfig()));
         }
+
+        [Fact]
+        public void RemoteLogonHardeningGuard_GatesOnProductPosture()
+        {
+            // v2.7.6: deny-network/RDP-logon + auto-logon-leak removal is a proactive host
+            // mutation. Its enforcement seam must gate on the always-on hardening posture
+            // (default and null config authorize it), never on an independent flag.
+            Assert.True(RemoteLogonHardeningGuard.MayEnforce(new SentinelConfig()));
+            Assert.True(RemoteLogonHardeningGuard.MayEnforce(null));
+            Assert.Equal(
+                ProductPosture.AllowsProactiveHostLockdown(new SentinelConfig()),
+                RemoteLogonHardeningGuard.MayEnforce(new SentinelConfig()));
+        }
+
+        // ---- Pairing behavioral discriminator (v2.7.6): benign data-handoff vs malicious control ----
+
+        [Theory]
+        [InlineData("chrome")]
+        [InlineData("chrome.exe")]
+        [InlineData("msedge")]
+        [InlineData("firefox.exe")]
+        [InlineData("brave")]
+        public void ClassifyPairing_BrowserAsServer_IsControlChannel(string serverName)
+        {
+            // A browser being DRIVEN over a loopback control channel is remote-control/session
+            // theft shape - malicious even if the client binary is signed and in-path.
+            var shape = LocalControlChannelMonitor.ClassifyPairing(serverName, clientScriptHost: false, clientUserWritable: false);
+            Assert.Equal(LocalControlChannelMonitor.PairingShape.BrowserControlChannel, shape);
+        }
+
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        [InlineData(true, true)]
+        public void ClassifyPairing_UntrustedClientToNonBrowser_IsUntrustedController(bool scriptHost, bool userWritable)
+        {
+            // A script-host or user-writable-path client driving a non-browser app is a
+            // page-dropped controller.
+            var shape = LocalControlChannelMonitor.ClassifyPairing("qbittorrent", scriptHost, userWritable);
+            Assert.Equal(LocalControlChannelMonitor.PairingShape.UntrustedController, shape);
+        }
+
+        [Fact]
+        public void ClassifyPairing_SignedInPathClientToNonBrowser_IsDataHandoff()
+        {
+            // The benign case: e.g. a page hands a magnet/URL to a signed, in-path media/torrent
+            // client. This must NOT be treated as a control channel - it is observe-first.
+            var shape = LocalControlChannelMonitor.ClassifyPairing("qbittorrent", clientScriptHost: false, clientUserWritable: false);
+            Assert.Equal(LocalControlChannelMonitor.PairingShape.DataHandoff, shape);
+        }
+
+        // ---- Risky-origin aggravator (v2.7.6): never a verdict on its own ----
+
+        [Fact]
+        public void MatchesRiskyOrigin_SuffixMatch_IsCaseInsensitiveAndCoversSubdomains()
+        {
+            var origins = new[] { "forum.hr" };
+            Assert.True(LocalControlChannelMonitor.MatchesRiskyOrigin("https://www.FORUM.hr/thread", origins));
+            Assert.True(LocalControlChannelMonitor.MatchesRiskyOrigin("board.forum.hr", origins));
+            Assert.False(LocalControlChannelMonitor.MatchesRiskyOrigin("example.com", origins));
+        }
+
+        [Fact]
+        public void MatchesRiskyOrigin_EmptyOrNullInputs_NeverMatch()
+        {
+            // Aggravator must be inert when there is nothing to match - it can never be the
+            // sole basis for a decision.
+            Assert.False(LocalControlChannelMonitor.MatchesRiskyOrigin(null, new[] { "forum.hr" }));
+            Assert.False(LocalControlChannelMonitor.MatchesRiskyOrigin("forum.hr", null));
+            Assert.False(LocalControlChannelMonitor.MatchesRiskyOrigin("forum.hr", new string[0]));
+        }
+
+        [Fact]
+        public void RiskyPairingOrigins_DefaultConfig_SeedsForumHrAsExampleAggravator()
+        {
+            // forum.hr is retired as a hard block and lives on only as an example aggravator
+            // entry - behavior stays authoritative; this list never triggers action alone.
+            Assert.Contains("forum.hr", new SentinelConfig().RiskyPairingOrigins);
+        }
     }
 }

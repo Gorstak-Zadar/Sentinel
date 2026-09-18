@@ -205,22 +205,6 @@ namespace Sentinel.Tests
         // ---- forum.hr block coverage (v2.6.9) ------------------------------
 
         [Theory]
-        [InlineData("0.0.0.0 forum.hr")]
-        [InlineData("0.0.0.0 www.forum.hr")]
-        [InlineData("0.0.0.0 m.forum.hr")]
-        [InlineData("0.0.0.0 cdn.forum.hr")]
-        [InlineData("0.0.0.0 static.forum.hr")]
-        [InlineData("0.0.0.0 api.forum.hr")]
-        [InlineData("0.0.0.0 img.forum.hr")]
-        [InlineData("0.0.0.0 mail.forum.hr")]
-        [InlineData("0.0.0.0 ads.forum.hr")]
-        [InlineData("0.0.0.0 tracker.forum.hr")]
-        public void ForumHrBlock_ContainsApexAndAllSubdomains(string expectedLine)
-        {
-            Assert.Contains(expectedLine, HostsFileGuard.ForumHrBlockLinesForTest);
-        }
-
-        [Theory]
         [InlineData("127.0.0.1 localhost")]
         [InlineData("127.0.0.1 localhost.localdomain")]
         [InlineData("127.0.0.1 local")]
@@ -235,35 +219,26 @@ namespace Sentinel.Tests
         [InlineData("ff02::2 ip6-allrouters")]
         [InlineData("ff02::3 ip6-allhosts")]
         [InlineData("0.0.0.0 0.0.0.0")]
-        public void ForumHrBlock_ContainsLocalhostHeader(string expectedLine)
+        public void HostsBaseline_ContainsLocalhostHeader(string expectedLine)
         {
-            Assert.Contains(expectedLine, HostsFileGuard.ForumHrBlockLinesForTest);
+            Assert.Contains(expectedLine, HostsFileGuard.HostsBaselineLinesForTest);
         }
 
         [Fact]
-        public void ForumHrBlock_EveryForumHrLineSinkholesToZero()
+        public void HostsBaseline_ContainsNoDomainBlock_ForumHrRemoved()
         {
-            var forumLines = new List<string>();
-            foreach (var line in HostsFileGuard.ForumHrBlockLinesForTest)
-                if (line.Contains("forum.hr"))
-                    forumLines.Add(line);
-
-            Assert.Equal(10, forumLines.Count); // apex + 9 subdomains
-            Assert.All(forumLines, l => Assert.StartsWith("0.0.0.0 ", l));
+            // v2.7.6: the forum.hr blackhole was removed from the enforced baseline. The
+            // baseline is the localhost/loopback header only - no external domain is blocked.
+            Assert.DoesNotContain(
+                HostsFileGuard.HostsBaselineLinesForTest,
+                l => l.IndexOf("forum.hr", System.StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
         [Fact]
-        public void ForumHrDnsPolicy_WildcardSuffixCoversAllSubdomains()
+        public void HostsBaseline_UsesGpManagedPolicyHive_NotDnscacheParameters()
         {
-            // Leading-dot suffix is what makes the NRPT rule match forum.hr AND every subdomain.
-            Assert.Equal(".forum.hr", HostsFileGuard.ForumHrDnsSuffixForTest);
-            Assert.Equal("0.0.0.0", HostsFileGuard.ForumHrDnsSinkholeForTest);
-        }
-
-        [Fact]
-        public void ForumHrDnsPolicy_UsesGpManagedPolicyHive_NotDnscacheParameters()
-        {
-            // Must be the policy-scope hive (authoritative), not the local effective table.
+            // The generic NRPT capability (kept for future blocks) targets the policy-scope
+            // hive (authoritative), not the local effective table.
             Assert.Equal(
                 @"SOFTWARE\Policies\Microsoft\Windows NT\DNSClient\DnsPolicyConfig",
                 HostsFileGuard.DnsPolicyConfigKeyForTest);
@@ -273,18 +248,69 @@ namespace Sentinel.Tests
         // ---- Proactive host mutation gate (default-deny seam) --------------
 
         [Fact]
-        public void ForumHrBlock_ProactiveMutation_GatesOnProductPosture()
+        public void HostsBaseline_ProactiveMutation_GatesOnProductPosture()
         {
-            // The forum.hr hosts-file write and NRPT rule are proactive host mutations. They
-            // route through ProductPosture.AllowsProactiveHostLockdown. Under the always-on
-            // hardening posture (v2.5.5+) that returns true, so the block is enforced for the
-            // default config and even a null config - the "deny" branch exists as a single seam.
-            Assert.True(HostsFileGuard.MayEnforceForumHrBlock(new SentinelConfig()));
-            Assert.True(HostsFileGuard.MayEnforceForumHrBlock(null));
-            // The gate is exactly the always-on posture predicate - not an independent flag.
+            // The hosts-baseline write + retired-artifact cleanup are proactive host mutations.
+            // They route through ProductPosture.AllowsProactiveHostLockdown. Under the always-on
+            // hardening posture (v2.5.5+) that returns true, so it is enforced for the default
+            // config and even a null config - the "deny" branch exists as a single seam.
+            Assert.True(HostsFileGuard.MayEnforceHostsBaseline(new SentinelConfig()));
+            Assert.True(HostsFileGuard.MayEnforceHostsBaseline(null));
             Assert.Equal(
                 ProductPosture.AllowsProactiveHostLockdown(new SentinelConfig()),
-                HostsFileGuard.MayEnforceForumHrBlock(new SentinelConfig()));
+                HostsFileGuard.MayEnforceHostsBaseline(new SentinelConfig()));
+        }
+
+        // ---- Operator-defined reusable blocks (v2.7.6, option B) ----
+
+        [Fact]
+        public void EnforcedBlocks_EmptyByDefault()
+        {
+            // Nothing is blocked unless the operator populates the lists - no domain/IP hardcoded.
+            var cfg = new SentinelConfig();
+            Assert.Empty(cfg.EnforcedDomainBlocks);
+            Assert.Empty(cfg.EnforcedIpBlocks);
+        }
+
+        [Fact]
+        public void EnforcedBlocks_ProactiveMutation_GatesOnProductPosture()
+        {
+            Assert.True(HostsFileGuard.MayEnforceConfiguredBlocks(new SentinelConfig()));
+            Assert.True(HostsFileGuard.MayEnforceConfiguredBlocks(null));
+            Assert.Equal(
+                ProductPosture.AllowsProactiveHostLockdown(new SentinelConfig()),
+                HostsFileGuard.MayEnforceConfiguredBlocks(new SentinelConfig()));
+        }
+
+        [Fact]
+        public void NrptRuleGuidForDomain_IsStableAndCaseInsensitive()
+        {
+            // Same domain must always map to the same rule GUID (find/repair/remove), and be
+            // insensitive to case/whitespace so "Example.COM " == "example.com".
+            var a = HostsFileGuard.NrptRuleGuidForDomain("example.com");
+            var b = HostsFileGuard.NrptRuleGuidForDomain("  Example.COM ");
+            Assert.Equal(a, b);
+            Assert.NotEqual(a, HostsFileGuard.NrptRuleGuidForDomain("other.com"));
+            Assert.StartsWith("{", a);
+        }
+
+        [Theory]
+        [InlineData("https://www.Example.com/path", "www.example.com")]
+        [InlineData("example.com:8080", "example.com")]
+        [InlineData(".example.com", "example.com")]
+        [InlineData("  EXAMPLE.com  ", "example.com")]
+        public void NormalizeBlockDomain_StripsSchemePortPathAndLeadingDot(string raw, string expected)
+        {
+            Assert.Equal(expected, HostsFileGuard.NormalizeBlockDomain(raw));
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("   ")]
+        [InlineData(null)]
+        public void NormalizeBlockDomain_EmptyOrNull_ReturnsNull(string? raw)
+        {
+            Assert.Null(HostsFileGuard.NormalizeBlockDomain(raw));
         }
     }
 }

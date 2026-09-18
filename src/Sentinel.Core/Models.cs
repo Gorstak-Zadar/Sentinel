@@ -206,6 +206,39 @@ namespace Sentinel.Core
         /// </summary>
         public VpnShieldConfig VpnShield { get; set; } = new();
 
+        /// <summary>
+        /// v2.7.6: Operator-defined DOMAIN blocks, enforced by the proven forum.hr-style path -
+        /// a hosts-file line (exact host) PLUS a wildcard NRPT rule (apex + all subdomains ->
+        /// 0.0.0.0) under the GP-managed policy hive, self-healed on startup and every scan.
+        /// Because BrowserDnsPolicyGuard disables DoH, these blocks are authoritative for
+        /// browsers too. EMPTY BY DEFAULT - nothing is blocked unless the operator populates
+        /// it. Each entry is a bare domain (e.g. "example.com"); the leading-dot NRPT suffix
+        /// covers every subdomain. No domain is hardcoded.
+        /// </summary>
+        public string[] EnforcedDomainBlocks { get; set; } = Array.Empty<string>();
+
+        /// <summary>
+        /// v2.7.6: Operator-defined IP blocks, enforced with inbound + outbound Windows Firewall
+        /// block rules (Sentinel-owned rule names), re-asserted on startup and every scan.
+        /// EMPTY BY DEFAULT. Each entry is an IPv4/IPv6 address; loopback / broadcast / invalid
+        /// values are refused. NRPT is a name-resolution policy and cannot match a raw IP, so IP
+        /// blocking is a separate firewall mechanism from EnforcedDomainBlocks.
+        /// </summary>
+        public string[] EnforcedIpBlocks { get; set; } = Array.Empty<string>();
+
+        /// <summary>
+        /// v2.7.6: Known-risky pairing origins (domain suffixes) used ONLY as an aggravator
+        /// for the site-to-local-app pairing guards (LocalControlChannelMonitor,
+        /// NativeMessagingHostGuard, DangerousBrowserFlagRule). A match here NEVER triggers
+        /// action or a detection on its own - it only raises confidence / lowers the chain
+        /// threshold when a *behavioral* pairing signal has already fired. This deliberately
+        /// avoids domain-identity trust as a verdict (an attacker controls the domain and can
+        /// move it), keeping behavior authoritative. Matched as a case-insensitive suffix so
+        /// "forum.hr" covers the apex and all subdomains. Seeded with the historical
+        /// forum.hr spy-pairing origin as an example; empty is a valid (behavior-only) config.
+        /// </summary>
+        public string[] RiskyPairingOrigins { get; set; } = new[] { "forum.hr" };
+
         // Dynamic polling intervals (configurable)
         public int DnsPollIntervalSeconds { get; set; } = 15;
         public int RouteTableScanIntervalSeconds { get; set; } = 15;

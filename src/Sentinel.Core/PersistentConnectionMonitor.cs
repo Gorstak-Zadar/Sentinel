@@ -27,8 +27,8 @@ namespace Sentinel.Core
     /// Attack model: Rootkit/implant maintains a persistent WebSocket or long-poll to a C2 relay.
     /// When the connection is severed (hosts block, firewall rule), the implant panics and
     /// executes a defensive routine to survive the disruption.
-    /// Note: forum.hr is blocked outright at the hosts-file level by HostsFileGuard; this
-    /// monitor remains the general post-drop behavioral correlator for any long-lived endpoint.
+    /// Note: this monitor is the general post-drop behavioral correlator for any long-lived
+    /// endpoint (no domain is hardcoded; the retired forum.hr hosts block was removed in v2.7.6).
     /// </summary>
     public sealed class PersistentConnectionMonitor : BackgroundService
     {

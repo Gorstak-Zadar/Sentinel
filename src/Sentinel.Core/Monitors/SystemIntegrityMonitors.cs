@@ -1977,14 +1977,15 @@ namespace Sentinel.Core
         // Previous file hash - used to detect actual changes (not just watcher noise)
         private string _lastKnownHash = string.Empty;
 
-        // Enforced hosts baseline: the standard localhost/loopback header followed by the
-        // forum.hr blackhole. forum.hr is a known reinfection/drive-by vector and is blocked
-        // at the hosts-file level (the original pre-v1.7.6 policy). Covers the apex plus common
-        // subdomains so www./m./cdn. etc. cannot bypass the block. Enforced unconditionally:
-        // any missing line is appended, all other user content is preserved. Works because
-        // BrowserDnsPolicyGuard disables DoH, making the hosts file the authoritative DNS
-        // override point.
-        private static readonly string[] ForumHrBlockLines = new[]
+        // Enforced hosts baseline: the standard localhost/loopback header only.
+        //
+        // v2.7.6: the forum.hr blackhole (apex + subdomains) was REMOVED. The generic
+        // baseline-enforcement mechanism is kept - it appends any missing baseline line and
+        // preserves all other user content - so a future domain block can be reintroduced by
+        // adding "0.0.0.0 <host>" lines here (plus an NRPT rule via BuildDomainNrptRule). No
+        // domain is blocked by default. Works because BrowserDnsPolicyGuard disables DoH,
+        // making the hosts file the authoritative DNS override point.
+        private static readonly string[] HostsBaselineLines = new[]
         {
             // Localhost / loopback header
             "127.0.0.1 localhost",
@@ -2001,53 +2002,35 @@ namespace Sentinel.Core
             "ff02::2 ip6-allrouters",
             "ff02::3 ip6-allhosts",
             "0.0.0.0 0.0.0.0",
-            // forum.hr blackhole
-            "0.0.0.0 forum.hr",
-            "0.0.0.0 www.forum.hr",
-            "0.0.0.0 m.forum.hr",
-            "0.0.0.0 cdn.forum.hr",
-            "0.0.0.0 static.forum.hr",
-            "0.0.0.0 api.forum.hr",
-            "0.0.0.0 img.forum.hr",
-            "0.0.0.0 mail.forum.hr",
-            "0.0.0.0 ads.forum.hr",
-            "0.0.0.0 tracker.forum.hr",
         };
 
-        // Wildcard DNS-policy (NRPT) block for forum.hr and ALL subdomains.
-        // The hosts file can only match exact hostnames, so it can never cover every
-        // possible forum.hr subdomain. Windows' Name Resolution Policy Table supports a
-        // leading-dot suffix match: ".forum.hr" matches forum.hr and *.forum.hr. We point
-        // the rule at 0.0.0.0 so every resolution is blackholed. This is the only mechanism
-        // that guarantees the entire domain is blocked. BrowserDnsPolicyGuard disables DoH,
-        // so this OS-level policy is authoritative for browsers too.
-        // Policy-scope NRPT (the GP-managed hive) - this is the authoritative override the
-        // DNS client honors, the same hive BrowserDnsPolicyGuard uses for its DoH policy and
-        // the same one AdBlocker.ps1 writes to. A rule under Dnscache\Parameters (the local
-        // effective table) can be overwritten or ignored during NRPT merge, so we own the
-        // policy key instead.
+        // Generic wildcard DNS-policy (NRPT) capability, kept for future domain blocks.
+        // The hosts file can only match exact hostnames; the Name Resolution Policy Table
+        // supports a leading-dot suffix match (".example.com" matches the apex + all
+        // subdomains) pointed at a sinkhole. Policy-scope NRPT (the GP-managed hive) is the
+        // authoritative override the DNS client honors - the same hive BrowserDnsPolicyGuard
+        // uses for its DoH policy. No rule is created by default in v2.7.6.
         private const string DnsPolicyConfigKey =
             @"SOFTWARE\Policies\Microsoft\Windows NT\DNSClient\DnsPolicyConfig";
-        // Stable, Sentinel-owned GUID for the forum.hr NRPT rule (so we can find/repair it).
-        private const string ForumHrDnsRuleName = "{5E1F0A73-4C2B-4E9A-9F3D-0F0342110001}";
-        private const string ForumHrDnsSuffix = ".forum.hr";
-        private const string ForumHrDnsSinkhole = "0.0.0.0";
+
+        // v2.7.6 cleanup: the retired forum.hr artifacts. On startup the guard removes any
+        // forum.hr hosts-file lines and deletes this stale NRPT rule so machines that were
+        // previously blocked are un-blocked. These are only referenced by the cleanup path.
+        private const string RetiredForumHrDnsRuleName = "{5E1F0A73-4C2B-4E9A-9F3D-0F0342110001}";
+        private static readonly string[] RetiredForumHrHostFragments = new[] { "forum.hr" };
 
         // Test-visible accessors (InternalsVisibleTo Sentinel.Tests). These let tests assert the
         // enforced content without touching the live hosts file or registry.
-        internal static IReadOnlyList<string> ForumHrBlockLinesForTest => ForumHrBlockLines;
-        internal static string ForumHrDnsSuffixForTest => ForumHrDnsSuffix;
-        internal static string ForumHrDnsSinkholeForTest => ForumHrDnsSinkhole;
+        internal static IReadOnlyList<string> HostsBaselineLinesForTest => HostsBaselineLines;
         internal static string DnsPolicyConfigKeyForTest => DnsPolicyConfigKey;
 
         /// <summary>
-        /// Whether the forum.hr proactive host mutations (hosts-file block + NRPT rule) are
-        /// permitted. Both <see cref="EnsureForumHrBlockAsync"/> and
-        /// <see cref="EnsureForumHrDnsPolicy"/> gate on this. It follows the always-on hardening
-        /// posture (<see cref="ProductPosture.AllowsProactiveHostLockdown"/>), so a null/default
-        /// config still allows the block. Exposed for the default-deny test.
+        /// Whether the hosts-baseline proactive host mutation (localhost header enforcement +
+        /// retired-artifact cleanup) is permitted. Follows the always-on hardening posture
+        /// (<see cref="ProductPosture.AllowsProactiveHostLockdown"/>), so a null/default config
+        /// still allows it. Exposed for the default-deny test.
         /// </summary>
-        internal static bool MayEnforceForumHrBlock(SentinelConfig? config) =>
+        internal static bool MayEnforceHostsBaseline(SentinelConfig? config) =>
             ProductPosture.AllowsProactiveHostLockdown(config);
 
         // MitM defense: FCM mtalk lines that must remain present when MitmDefense is active
@@ -2115,12 +2098,15 @@ namespace Sentinel.Core
             // Capture initial baseline hash
             _lastKnownHash = ComputeFileHash(HostsFilePath);
 
-            // Restore the forum.hr blackhole block on startup (original pre-v1.7.6 policy)
-            await EnsureForumHrBlockAsync("Startup", ct);
+            // Enforce the localhost/loopback hosts baseline on startup.
+            await EnsureHostsBaselineAsync("Startup", ct);
 
-            // Wildcard DNS-policy rule so ALL forum.hr subdomains are blocked, not just the
-            // enumerated hosts-file entries.
-            EnsureForumHrDnsPolicy("Startup");
+            // v2.7.6: remove any retired forum.hr artifacts (hosts lines + stale NRPT rule)
+            // from machines that were previously blocked.
+            CleanupRetiredForumHrArtifacts("Startup");
+
+            // v2.7.6: enforce operator-defined domain + IP blocks (empty by default).
+            await EnforceConfiguredBlocks("Startup", ct);
 
             // If MitM defense is active, ensure the FCM lines are present on startup
             if (_enforceMitmLines)
@@ -2136,8 +2122,8 @@ namespace Sentinel.Core
                 {
                     await Task.Delay(30000, ct);
                     await ScanHostsFileAsync("PeriodicCheck", ct);
-                    // Re-assert the wildcard DNS-policy rule in case it was removed/tampered.
-                    EnsureForumHrDnsPolicy("PeriodicCheck");
+                    // Re-assert operator-defined domain + IP blocks (self-heal on tamper).
+                    await EnforceConfiguredBlocks("PeriodicCheck", ct);
                 }
                 catch (OperationCanceledException) { break; }
                 catch (Exception ex)
@@ -2173,8 +2159,8 @@ namespace Sentinel.Core
 
                 await AnalyzeForSuspiciousEntries(lines, trigger, ct);
 
-                // Re-enforce the forum.hr blackhole if any of its lines were removed
-                await EnsureForumHrBlockAsync(trigger, ct);
+                // Re-enforce the localhost/loopback baseline if any line was removed
+                await EnsureHostsBaselineAsync(trigger, ct);
 
                 // If MitM defense is active, ensure FCM lines haven't been removed
                 if (_enforceMitmLines)
@@ -2257,13 +2243,13 @@ namespace Sentinel.Core
         /// the original pre-v1.7.6 hosts-file block. Appends any missing lines and does NOT
         /// touch other user content.
         /// </summary>
-        private async Task EnsureForumHrBlockAsync(string trigger, CancellationToken ct)
+        private async Task EnsureHostsBaselineAsync(string trigger, CancellationToken ct)
         {
             // Proactive host mutation (writing the hosts file) - gated on the always-on
             // hardening posture. AllowsProactiveHostLockdown returns true unconditionally
-            // (v2.5.5+), so the block is always enforced, but the gate makes the intent
+            // (v2.5.5+), so the baseline is always enforced, but the gate makes the intent
             // explicit and gives a single seam that a future posture change would honor.
-            if (!MayEnforceForumHrBlock(_config)) return;
+            if (!MayEnforceHostsBaseline(_config)) return;
 
             try
             {
@@ -2274,17 +2260,17 @@ namespace Sentinel.Core
                     content.Select(l => l.Trim()),
                     StringComparer.OrdinalIgnoreCase);
 
-                var missingLines = ForumHrBlockLines
+                var missingLines = HostsBaselineLines
                     .Where(l => !existingLines.Contains(l))
                     .ToList();
 
                 if (missingLines.Count == 0) return;
 
                 _logger.LogWarning(
-                    "[HostsFileGuard] Restoring {Count} missing hosts baseline line(s) (localhost + forum.hr) (trigger: {Trigger})",
+                    "[HostsFileGuard] Restoring {Count} missing hosts baseline line(s) (localhost header) (trigger: {Trigger})",
                     missingLines.Count, trigger);
 
-                var appendText = "\r\n# Sentinel - enforced hosts baseline (localhost header + forum.hr blackhole; do not remove)\r\n" +
+                var appendText = "\r\n# Sentinel - enforced hosts baseline (localhost header; do not remove)\r\n" +
                                  string.Join("\r\n", missingLines) + "\r\n";
 
                 for (int i = 0; i < 3; i++)
@@ -2306,15 +2292,12 @@ namespace Sentinel.Core
 
                 await _detectionEngine.EmitAsync(new DetectionEvent
                 {
-                    RuleName = "Hosts File: Baseline Restored (localhost + forum.hr)",
-                    Evidence = $"{missingLines.Count} enforced hosts baseline line(s) (localhost header and/or " +
-                               $"forum.hr blackhole) were missing from the hosts file and have been re-appended " +
-                               $"(trigger: {trigger}).",
-                    Reasoning = "The hosts file enforces a standard localhost/loopback header plus a forum.hr " +
-                                "blackhole. forum.hr has been a reinfection / drive-by vector on this system, so " +
-                                "removal of these lines re-exposes the machine and the block is self-healed. DoH " +
-                                "is disabled by BrowserDnsPolicyGuard, so the hosts file is the authoritative DNS " +
-                                "override point.",
+                    RuleName = "Hosts File: Baseline Restored (localhost header)",
+                    Evidence = $"{missingLines.Count} enforced hosts baseline line(s) (localhost/loopback header) " +
+                               $"were missing from the hosts file and have been re-appended (trigger: {trigger}).",
+                    Reasoning = "The hosts file enforces a standard localhost/loopback header. Removal of these " +
+                                "lines can break local name resolution or indicate tampering, so the baseline is " +
+                                "self-healed. No external domain is blocked by this baseline.",
                     Confidence = 0.85,
                     Tier = DetectionTier.Tier1Behavioral,
                     AuthorizedResponse = ResponseAction.LogOnly,
@@ -2325,126 +2308,312 @@ namespace Sentinel.Core
                     {
                         { "File", "hosts" },
                         { "Trigger", trigger },
-                        { "MissingLines", missingLines.Count.ToString() },
-                        { "BlockTarget", "forum.hr" }
+                        { "MissingLines", missingLines.Count.ToString() }
                     }
                 });
             }
             catch (OperationCanceledException) { }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "[HostsFileGuard] EnsureForumHrBlock error");
+                _logger.LogDebug(ex, "[HostsFileGuard] EnsureHostsBaseline error");
             }
         }
 
         /// <summary>
-        /// Ensures a wildcard Name Resolution Policy Table (NRPT) rule is present that
-        /// blackholes forum.hr and ALL of its subdomains to 0.0.0.0. Unlike the hosts file
-        /// (exact-hostname match only), the NRPT leading-dot suffix ".forum.hr" matches the
-        /// apex and every subdomain, so this is the only mechanism that blocks the whole
-        /// domain. Creates the rule if missing and repairs it if tampered.
+        /// v2.7.6 cleanup: removes the retired forum.hr artifacts so machines previously
+        /// blocked are un-blocked. Deletes the stale forum.hr NRPT rule and strips any
+        /// forum.hr hosts-file lines. Idempotent and best-effort. This is the removal
+        /// counterpart to the deleted EnsureForumHrDnsPolicy; the generic NRPT-writing
+        /// capability is preserved in <see cref="BuildDomainNrptRule"/> for future blocks.
         /// </summary>
-        private void EnsureForumHrDnsPolicy(string trigger)
+        private void CleanupRetiredForumHrArtifacts(string trigger)
         {
-            // Proactive host mutation (writing an NRPT registry rule) - gated on the always-on
-            // hardening posture, same as the hosts-file block above.
-            if (!MayEnforceForumHrBlock(_config)) return;
+            if (!MayEnforceHostsBaseline(_config)) return;
+
+            // 1. Delete the stale forum.hr NRPT rule if present.
+            try
+            {
+                using var policyRoot = Registry.LocalMachine.OpenSubKey(DnsPolicyConfigKey, true);
+                if (policyRoot != null)
+                {
+                    var existing = policyRoot.GetSubKeyNames();
+                    if (Array.IndexOf(existing, RetiredForumHrDnsRuleName) >= 0)
+                    {
+                        policyRoot.DeleteSubKeyTree(RetiredForumHrDnsRuleName, throwOnMissingSubKey: false);
+                        try { DnsFlushResolverCache(); } catch { }
+                        _logger.LogInformation(
+                            "[HostsFileGuard] Removed retired forum.hr NRPT rule (trigger: {Trigger})", trigger);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[HostsFileGuard] CleanupRetiredForumHrArtifacts (NRPT) error");
+            }
+
+            // 2. Strip any forum.hr lines from the hosts file (preserve all other content).
+            try
+            {
+                if (!File.Exists(HostsFilePath)) return;
+                var lines = File.ReadAllLines(HostsFilePath);
+                var kept = lines
+                    .Where(l => !RetiredForumHrHostFragments.Any(frag =>
+                        l.IndexOf(frag, StringComparison.OrdinalIgnoreCase) >= 0))
+                    .ToArray();
+
+                if (kept.Length == lines.Length) return; // nothing to remove
+
+                // Also drop the retired "forum.hr blackhole" section header comment if present.
+                kept = kept
+                    .Where(l => l.IndexOf("forum.hr blackhole", StringComparison.OrdinalIgnoreCase) < 0)
+                    .ToArray();
+
+                for (int i = 0; i < 3; i++)
+                {
+                    try
+                    {
+                        File.WriteAllLines(HostsFilePath, kept, new UTF8Encoding(false));
+                        break;
+                    }
+                    catch (IOException) when (i < 2) { System.Threading.Thread.Sleep(500); }
+                }
+
+                _eventCooldown[HostsFilePath] = DateTime.UtcNow;
+                _lastKnownHash = ComputeFileHash(HostsFilePath);
+                _logger.LogInformation(
+                    "[HostsFileGuard] Removed {N} retired forum.hr hosts line(s) (trigger: {Trigger})",
+                    lines.Length - kept.Length, trigger);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[HostsFileGuard] CleanupRetiredForumHrArtifacts (hosts) error");
+            }
+        }
+
+        /// <summary>
+        /// Generic, reusable NRPT wildcard-block builder kept for FUTURE domain blocks (the
+        /// forum.hr-specific caller was removed in v2.7.6). Creates/repairs an NRPT rule under
+        /// the GP-managed DnsPolicyConfig hive that sinkholes <paramref name="domainSuffix"/>
+        /// (leading-dot suffix, e.g. ".example.com" -> apex + all subdomains) to 0.0.0.0.
+        /// No caller invokes this by default; wire it up with a concrete domain + a stable
+        /// rule GUID when a new block is needed. Returns true if a change was written.
+        /// </summary>
+        internal bool BuildDomainNrptRule(string ruleGuid, string domainSuffix, string sinkhole = "0.0.0.0")
+        {
+            if (!MayEnforceHostsBaseline(_config)) return false;
+            if (string.IsNullOrWhiteSpace(ruleGuid) || string.IsNullOrWhiteSpace(domainSuffix)) return false;
 
             try
             {
                 using var policyRoot = Registry.LocalMachine.CreateSubKey(DnsPolicyConfigKey, true);
-                if (policyRoot == null)
-                {
-                    _logger.LogDebug("[HostsFileGuard] Could not open DnsPolicyConfig key");
-                    return;
-                }
-
-                using var rule = policyRoot.CreateSubKey(ForumHrDnsRuleName, true);
-                if (rule == null) return;
+                if (policyRoot == null) return false;
+                using var rule = policyRoot.CreateSubKey(ruleGuid, true);
+                if (rule == null) return false;
 
                 bool changed = false;
-
-                // Name: REG_MULTI_SZ, leading-dot suffix => matches forum.hr + all subdomains
                 var name = rule.GetValue("Name") as string[];
                 if (name == null || name.Length != 1 ||
-                    !string.Equals(name[0], ForumHrDnsSuffix, StringComparison.OrdinalIgnoreCase))
+                    !string.Equals(name[0], domainSuffix, StringComparison.OrdinalIgnoreCase))
                 {
-                    rule.SetValue("Name", new[] { ForumHrDnsSuffix }, RegistryValueKind.MultiString);
+                    rule.SetValue("Name", new[] { domainSuffix }, RegistryValueKind.MultiString);
                     changed = true;
                 }
-
-                // Version: NRPT schema version 2
-                var version = rule.GetValue("Version");
-                if (version == null || (int)version != 2)
+                if (rule.GetValue("Version") is not int v || v != 2)
                 {
-                    rule.SetValue("Version", 2, RegistryValueKind.DWord);
-                    changed = true;
+                    rule.SetValue("Version", 2, RegistryValueKind.DWord); changed = true;
                 }
-
-                // ConfigOptions: 0x8 => use a generic DNS server (we point it at the sinkhole)
-                var configOptions = rule.GetValue("ConfigOptions");
-                if (configOptions == null || (int)configOptions != 0x8)
+                if (rule.GetValue("ConfigOptions") is not int co || co != 0x8)
                 {
-                    rule.SetValue("ConfigOptions", 0x8, RegistryValueKind.DWord);
-                    changed = true;
+                    rule.SetValue("ConfigOptions", 0x8, RegistryValueKind.DWord); changed = true;
                 }
-
-                // GenericDNSServers: REG_SZ sinkhole address (0.0.0.0) => resolutions blackholed
-                var dnsServers = rule.GetValue("GenericDNSServers") as string;
-                if (dnsServers == null ||
-                    !string.Equals(dnsServers, ForumHrDnsSinkhole, StringComparison.Ordinal))
+                if (rule.GetValue("GenericDNSServers") as string != sinkhole)
                 {
-                    rule.SetValue("GenericDNSServers", ForumHrDnsSinkhole, RegistryValueKind.String);
-                    changed = true;
+                    rule.SetValue("GenericDNSServers", sinkhole, RegistryValueKind.String); changed = true;
                 }
-
-                // IPSECCARestriction is required to be present (empty) by the NRPT schema.
                 if (rule.GetValue("IPSECCARestriction") == null)
                 {
-                    rule.SetValue("IPSECCARestriction", "", RegistryValueKind.String);
-                    changed = true;
+                    rule.SetValue("IPSECCARestriction", "", RegistryValueKind.String); changed = true;
                 }
 
-                if (!changed) return;
-
-                // Flush the resolver cache so the new/repaired rule takes effect immediately
-                // instead of waiting for cached forum.hr entries to expire or a reboot.
-                try { DnsFlushResolverCache(); } catch { }
-
-                _logger.LogWarning(
-                    "[HostsFileGuard] Restored wildcard forum.hr DNS-policy rule ({Suffix} -> {Sink}) (trigger: {Trigger})",
-                    ForumHrDnsSuffix, ForumHrDnsSinkhole, trigger);
-
-                _ = _detectionEngine.EmitAsync(new DetectionEvent
-                {
-                    RuleName = "DNS Policy: forum.hr Wildcard Block Restored",
-                    Evidence = $"The NRPT rule blackholing '{ForumHrDnsSuffix}' (forum.hr and all subdomains) " +
-                               $"to {ForumHrDnsSinkhole} was missing or altered and has been re-applied " +
-                               $"(trigger: {trigger}).",
-                    Reasoning = "The hosts file can only block exact hostnames, so it cannot cover every forum.hr " +
-                                "subdomain. A wildcard NRPT rule with the leading-dot suffix '.forum.hr' matches the " +
-                                "apex and all subdomains and sinkholes them to 0.0.0.0. Removal of this rule re-opens " +
-                                "the domain, so it is self-healed. DoH is disabled by BrowserDnsPolicyGuard, so this " +
-                                "OS-level policy is authoritative.",
-                    Confidence = 0.85,
-                    Tier = DetectionTier.Tier1Behavioral,
-                    AuthorizedResponse = ResponseAction.LogOnly,
-                    ProcessName = "Sentinel",
-                    ProcessId = System.Net48Environment.ProcessId,
-                    SignalType = SignalType.AntiTamper,
-                    Metadata = new Dictionary<string, string>
-                    {
-                        { "Mechanism", "NRPT" },
-                        { "Suffix", ForumHrDnsSuffix },
-                        { "Sinkhole", ForumHrDnsSinkhole },
-                        { "Trigger", trigger },
-                        { "BlockTarget", "forum.hr" }
-                    }
-                });
+                if (changed) { try { DnsFlushResolverCache(); } catch { } }
+                return changed;
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "[HostsFileGuard] EnsureForumHrDnsPolicy error");
+                _logger.LogDebug(ex, "[HostsFileGuard] BuildDomainNrptRule error");
+                return false;
+            }
+        }
+
+        // 
+        // v2.7.6: Operator-defined reusable blocks (empty by default). Domain blocks reuse the
+        // proven forum.hr path (hosts line + wildcard NRPT + DoH-off authority). IP blocks use
+        // inbound/outbound Windows Firewall rules. Both gate on the always-on hardening posture.
+        // 
+
+        // Track applied artifacts so we only write/log on change (idempotent self-heal).
+        private readonly HashSet<string> _appliedIpBlocks = new(StringComparer.OrdinalIgnoreCase);
+        private const string EnforcedIpBlockRulePrefix = "Sentinel-EnforcedIpBlock-";
+
+        /// <summary>
+        /// Test seam / posture gate for the operator-defined block enforcement. Follows the
+        /// always-on hardening posture, so a null/default config still authorizes it (there is
+        /// simply nothing to enforce when the lists are empty). Exposed for the default-deny test.
+        /// </summary>
+        internal static bool MayEnforceConfiguredBlocks(SentinelConfig? config) =>
+            ProductPosture.AllowsProactiveHostLockdown(config);
+
+        /// <summary>
+        /// Derives a stable, Sentinel-owned NRPT rule GUID from a domain so the same domain
+        /// always maps to the same rule (find/repair/remove). Pure and testable.
+        /// </summary>
+        internal static string NrptRuleGuidForDomain(string domain)
+        {
+            using var md5 = System.Security.Cryptography.MD5.Create();
+            var hash = md5.ComputeHash(Encoding.UTF8.GetBytes("Sentinel-EnforcedDomainBlock|" + domain.Trim().ToLowerInvariant()));
+            return new Guid(hash).ToString("B"); // {xxxxxxxx-....}
+        }
+
+        /// <summary>Normalizes a config domain to a bare lowercase host (strips scheme/path/port).</summary>
+        internal static string? NormalizeBlockDomain(string? raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            var d = raw!.Trim().ToLowerInvariant();
+            int scheme = d.IndexOf("://", StringComparison.Ordinal);
+            if (scheme >= 0) d = d.Substring(scheme + 3);
+            d = d.Split('/')[0].Split(':')[0].TrimStart('.');
+            return string.IsNullOrWhiteSpace(d) ? null : d;
+        }
+
+        private async Task EnforceConfiguredBlocks(string trigger, CancellationToken ct)
+        {
+            if (!MayEnforceConfiguredBlocks(_config)) return;
+
+            var domains = _config?.EnforcedDomainBlocks ?? Array.Empty<string>();
+            var ips = _config?.EnforcedIpBlocks ?? Array.Empty<string>();
+            if (domains.Length == 0 && ips.Length == 0) return; // nothing configured
+
+            // --- Domain blocks: hosts line (exact) + wildcard NRPT (apex + subdomains) ---
+            var missingHostLines = new List<string>();
+            foreach (var raw in domains)
+            {
+                var domain = NormalizeBlockDomain(raw);
+                if (domain == null) continue;
+
+                // NRPT wildcard rule (leading-dot suffix) with a stable per-domain GUID.
+                BuildDomainNrptRule(NrptRuleGuidForDomain(domain), "." + domain);
+
+                // Hosts lines for the apex + www (exact-match layer alongside the NRPT wildcard).
+                foreach (var host in new[] { domain, "www." + domain })
+                {
+                    var line = "0.0.0.0 " + host;
+                    missingHostLines.Add(line);
+                }
+            }
+
+            if (missingHostLines.Count > 0)
+            {
+                try
+                {
+                    var content = await ReadHostsFileSafe();
+                    if (content != null)
+                    {
+                        var existing = new HashSet<string>(content.Select(l => l.Trim()), StringComparer.OrdinalIgnoreCase);
+                        var toAppend = missingHostLines.Where(l => !existing.Contains(l)).Distinct().ToList();
+                        if (toAppend.Count > 0)
+                        {
+                            var appendText = "\r\n# Sentinel - enforced domain blocks (operator-defined; do not remove)\r\n" +
+                                             string.Join("\r\n", toAppend) + "\r\n";
+                            for (int i = 0; i < 3; i++)
+                            {
+                                try { File.AppendAllText(HostsFilePath, appendText, new UTF8Encoding(false)); break; }
+                                catch (IOException) when (i < 2) { await Task.Delay(500, ct); }
+                            }
+                            _eventCooldown[HostsFilePath] = DateTime.UtcNow;
+                            _lastKnownHash = ComputeFileHash(HostsFilePath);
+                            _logger.LogWarning(
+                                "[HostsFileGuard] Enforced {N} operator domain-block hosts line(s) (trigger: {Trigger})",
+                                toAppend.Count, trigger);
+                        }
+                    }
+                }
+                catch (Exception ex) { _logger.LogDebug(ex, "[HostsFileGuard] EnforceConfiguredBlocks (domain hosts) error"); }
+            }
+
+            // --- IP blocks: inbound + outbound firewall block rules ---
+            foreach (var rawIp in ips)
+            {
+                var ip = rawIp?.Trim();
+                if (string.IsNullOrEmpty(ip)) continue;
+                if (_appliedIpBlocks.Contains(ip!)) continue;
+                if (EnsureIpFirewallBlock(ip!))
+                {
+                    _appliedIpBlocks.Add(ip!);
+                    _logger.LogWarning("[HostsFileGuard] Enforced firewall IP block {IP} (trigger: {Trigger})", ip, trigger);
+                    _ = _detectionEngine.EmitAsync(new DetectionEvent
+                    {
+                        RuleName = "Hardening: Operator IP Block Enforced",
+                        Evidence = $"Inbound + outbound Windows Firewall block rules applied for operator-defined IP {ip} (trigger: {trigger}).",
+                        Reasoning = "An operator-listed IP is blocked at the firewall (both directions). This is a " +
+                                    "config-driven hardening block, not a detection - empty by default; only IPs the " +
+                                    "operator explicitly lists are blocked.",
+                        Confidence = 0.99,
+                        Tier = DetectionTier.Tier2Indicator,
+                        AuthorizedResponse = ResponseAction.LogOnly,
+                        ProcessName = "SYSTEM",
+                        ProcessId = 0,
+                        SignalType = SignalType.AntiTamper,
+                        Metadata = new Dictionary<string, string>
+                        {
+                            { "Action", "FirewallBlock" },
+                            { "TargetIP", ip! },
+                            { "Trigger", trigger }
+                        }
+                    });
+                }
+            }
+        }
+
+        /// <summary>
+        /// Applies inbound + outbound Windows Firewall block rules for a single IP. Refuses
+        /// loopback / broadcast / invalid addresses (never self-inflict a lockout). Modeled on
+        /// CastDeviceGuard's block helper. Returns true if rules were applied.
+        /// </summary>
+        private bool EnsureIpFirewallBlock(string ip)
+        {
+            if (!System.Net.IPAddress.TryParse(ip, out var parsed) ||
+                System.Net.IPAddress.IsLoopback(parsed) ||
+                parsed.Equals(System.Net.IPAddress.Broadcast) ||
+                parsed.Equals(System.Net.IPAddress.Any))
+            {
+                _logger.LogDebug("[HostsFileGuard] Refusing firewall block for invalid/reserved IP: {IP}", ip);
+                return false;
+            }
+
+            try
+            {
+                var safeLabel = ip.Replace(':', '_').Replace('.', '_');
+                var ruleName = EnforcedIpBlockRulePrefix + safeLabel;
+
+                foreach (var dir in new[] { "out", "in" })
+                {
+                    var psi = new ProcessStartInfo("netsh",
+                        $"advfirewall firewall add rule name=\"{ruleName}-{dir.ToUpperInvariant()}\" dir={dir} action=block remoteip={ip} enable=yes")
+                    {
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
+                    };
+                    using var proc = Process.Start(psi);
+                    proc?.WaitForExit(15000);
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[HostsFileGuard] EnsureIpFirewallBlock failed for {IP}", ip);
+                return false;
             }
         }
 

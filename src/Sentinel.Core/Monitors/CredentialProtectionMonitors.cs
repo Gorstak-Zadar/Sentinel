@@ -798,157 +798,308 @@ namespace Sentinel.Core
     }
 
 
+    // NOTE: PasswordRotationGuard was removed in v2.7.6. It rotated local account
+    // passwords on a timer and, to avoid lockout, configured silent auto-logon
+    // (AutoAdminLogon + LSA DefaultPassword secret), disabled Ctrl+Alt+Del, disabled the
+    // screen-lock timeout, and pinned UAC to consent-only. That combination removed the
+    // interactive authentication boundary rather than strengthening it and conflicts with
+    // Sentinel's userland / no-persistence / no-self-hiding constraints. Remote-logon
+    // exposure is handled by NullSessionGuard, RemoteSessionGuard, and BuiltinAdminGuard
+    // plus OS-level "deny network/RDP logon" hardening - not by rotating the local password.
+
+
     // 
-    // Password Rotation Guard - rotates the local account password every 10 minutes
-    // and enforces UAC ConsentPromptBehaviorAdmin = 5 (consent, not a password prompt).
+    // Remote Logon Hardening Guard (v2.7.6) - the constructive replacement for the removed
+    // PasswordRotationGuard. It does NOT touch any account password. Instead it closes the
+    // remote-logon surface for privileged local accounts and removes any auto-logon leak:
     //
-    // Design constraints:
-    //   - User must be able to log in at boot, restart, hibernate, and lock screen
-    //   - Solution: Windows auto-logon is configured with the current rotated password
-    //     so boot/restart/hibernate log in seamlessly without user input.
-    //   - For lock screen: user should set up a Windows Hello PIN (Settings -> Accounts ->
-    //     Sign-in options -> PIN). PIN works independently of the account password.
-    //   - If no PIN is configured: Sentinel sets the screen lock timeout to "Never"
-    //     to prevent lockout scenarios. The machine won't auto-lock.
+    //   1. Deny network + RDP logon for local admin-class accounts by assigning
+    //      SeDenyNetworkLogonRight + SeDenyRemoteInteractiveLogonRight (via LGPO if present,
+    //      else secedit). This makes those accounts unusable over SMB / WinRM / RDP.
+    //   2. Ensure no auto-logon leak: AutoAdminLogon=0, delete Winlogon\DefaultPassword,
+    //      and clear the LSA "DefaultPassword" private-data secret if present.
     //
-    // Attack model: attacker with code execution in the user session cannot:
-    //   - Elevate via UAC (requires the unknown rotated password)
-    //   - Use 'runas' (requires the unknown password)
-    //   - Create admin accounts (requires elevation)
-    //   - Enable built-in Administrator (requires elevation)
-    //   - Read the password from auto-logon registry (it's DPAPI-encrypted via LSA secret)
-    //
-    // IMPORTANT: Only applies to LOCAL accounts. Microsoft accounts are skipped.
-    //
-    // v1.4.2: New monitor - response to active intrusion via blank-password local account.
+    // Enforced on startup and re-checked on an interval so an attacker cannot silently
+    // re-grant the right or re-arm auto-logon. Standing proactive OS hardening, so it is
+    // gated on ProductPosture.AllowsProactiveHostLockdown (always-on in current posture).
+    // MayEnforce is exposed for the default-deny test required by docs/constraints.md.
     // 
-    public sealed class PasswordRotationGuard : BackgroundService
+    public sealed class RemoteLogonHardeningGuard : BackgroundService
     {
         private readonly DetectionEngine _detectionEngine;
-        private readonly ILogger<PasswordRotationGuard> _logger;
+        private readonly SentinelConfig _config;
+        private readonly ILogger<RemoteLogonHardeningGuard> _logger;
 
-        private static readonly TimeSpan RotationInterval = TimeSpan.FromMinutes(10);
+        private static readonly TimeSpan RecheckInterval = TimeSpan.FromMinutes(5);
 
-        // 5 = consent for non-Windows binaries. The human does not know the
-        // rotated password, so a credential prompt would lock them out.
-        private const int UacConsentNonWindows = 5;
-
-        public PasswordRotationGuard(DetectionEngine de, ILogger<PasswordRotationGuard> l)
+        public RemoteLogonHardeningGuard(DetectionEngine de, SentinelConfig config, ILogger<RemoteLogonHardeningGuard> l)
         {
             _detectionEngine = de;
+            _config = config;
             _logger = l;
         }
 
+        /// <summary>
+        /// Posture gate for this guard's host mutation. Exposed for the default-deny test.
+        /// Follows the always-on proactive-hardening posture (a null/default config still
+        /// authorizes it), matching the other credential/hardening guards.
+        /// </summary>
+        internal static bool MayEnforce(SentinelConfig? config) =>
+            ProductPosture.AllowsProactiveHostLockdown(config);
+
         protected override async Task ExecuteAsync(CancellationToken ct)
         {
-            _logger.LogInformation("[PasswordRotationGuard] Started - rotating local account passwords every 10 minutes, UAC=5");
-
-            // Initial enforcement
-            EnforceUacPolicy();
-            await RotateLocalAccountPasswords(ct);
+            _logger.LogInformation("[RemoteLogonHardeningGuard] Started - deny network/RDP logon for local admin accounts; no auto-logon leak");
 
             while (!ct.IsCancellationRequested)
             {
                 try
                 {
-                    await Task.Delay(RotationInterval, ct);
-                    await RotateLocalAccountPasswords(ct);
-                    EnforceUacPolicy();
+                    Enforce();
+                    await Task.Delay(RecheckInterval, ct);
                 }
                 catch (OperationCanceledException) { break; }
-                catch (Exception ex) { _logger.LogDebug(ex, "[PasswordRotationGuard] Error"); }
+                catch (Exception ex) { _logger.LogDebug(ex, "[RemoteLogonHardeningGuard] Error"); }
             }
         }
 
-        /// <summary>
-        /// Rotates passwords for all enabled local (non-Microsoft) accounts.
-        /// After rotation, configures Windows auto-logon so boot/restart/hibernate
-        /// seamlessly log the user in without requiring password entry.
-        /// </summary>
-        private async Task RotateLocalAccountPasswords(CancellationToken ct)
+        private void Enforce()
         {
-            try
+            // Default-deny: never mutate the host unless posture authorizes it.
+            if (!MayEnforce(_config))
             {
-                var localUsers = GetEnabledLocalAccounts();
-
-                foreach (var username in localUsers)
-                {
-                    var newPassword = GenerateRandomPassword(32);
-                    bool success = SetLocalAccountPassword(username, newPassword);
-
-                    if (success)
-                    {
-                        _logger.LogInformation("[PasswordRotationGuard] Rotated password for '{User}'", username);
-
-                        // Configure auto-logon so boot/restart doesn't require password entry
-                        ConfigureAutoLogon(username, newPassword);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("[PasswordRotationGuard] Failed to rotate password for '{User}'", username);
-                    }
-                }
+                _logger.LogInformation("[RemoteLogonHardeningGuard] Skipped - proactive host lockdown not authorized by posture");
+                return;
             }
-            catch (Exception ex)
+
+            ClearAutoLogonLeak();
+
+            var admins = GetLocalAdminAccountSids();
+            if (admins.Count == 0)
             {
-                _logger.LogDebug(ex, "[PasswordRotationGuard] RotateLocalAccountPasswords failed");
+                _logger.LogDebug("[RemoteLogonHardeningGuard] No local admin accounts resolved to deny");
+                return;
             }
+            DenyRemoteLogon(admins);
         }
 
-        /// <summary>
-        /// Configures Windows auto-logon securely. The password is stored as an LSA secret
-        /// (DefaultPassword) rather than plaintext in the Winlogon registry key.
-        /// Windows reads the LSA secret at boot to perform auto-logon.
-        ///
-        /// Lock screen: User should use Windows Hello PIN (independent of account password).
-        /// If no PIN credential is enrolled, we disable the lock timeout to prevent lockout.
-        /// </summary>
-        private void ConfigureAutoLogon(string username, string password)
+        // 
+        // 1. No auto-logon leak
+        // 
+        private void ClearAutoLogonLeak()
         {
             try
             {
                 using var winlogon = Registry.LocalMachine.OpenSubKey(
                     @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon", writable: true);
-                if (winlogon == null) return;
+                if (winlogon != null)
+                {
+                    var auto = winlogon.GetValue("AutoAdminLogon") as string;
+                    if (auto != null && auto != "0")
+                    {
+                        winlogon.SetValue("AutoAdminLogon", "0", RegistryValueKind.String);
+                        _logger.LogWarning("[RemoteLogonHardeningGuard] Disabled AutoAdminLogon (was '{Old}')", auto);
+                    }
 
-                winlogon.SetValue("AutoAdminLogon", "1", RegistryValueKind.String);
-                winlogon.SetValue("ForceAutoLogon", "1", RegistryValueKind.DWord);
-                winlogon.SetValue("DefaultUserName", username, RegistryValueKind.String);
-                winlogon.SetValue("DefaultDomainName", Environment.MachineName, RegistryValueKind.String);
+                    if (winlogon.GetValue("DefaultPassword") != null)
+                    {
+                        winlogon.DeleteValue("DefaultPassword", throwOnMissingValue: false);
+                        _logger.LogWarning("[RemoteLogonHardeningGuard] Removed plaintext Winlogon DefaultPassword");
+                    }
 
-                // Disable Ctrl+Alt+Del requirement - needed for seamless auto-logon
-                winlogon.SetValue("DisableCAD", 1, RegistryValueKind.DWord);
-
-                // Remove values that block seamless auto-logon
-                winlogon.DeleteValue("AutoLogonCount", throwOnMissingValue: false);
-                winlogon.DeleteValue("LegalNoticeCaption", throwOnMissingValue: false);
-                winlogon.DeleteValue("LegalNoticeText", throwOnMissingValue: false);
-
-                // SECURITY FIX (v1.4.5): Store password as LSA secret instead of plaintext registry value.
-                // Remove any plaintext DefaultPassword that may exist from prior versions.
-                winlogon.DeleteValue("DefaultPassword", throwOnMissingValue: false);
-
-                // Store via LSA secret - only SYSTEM can read it, Windows uses it for auto-logon
-                StoreAutoLogonPasswordAsLsaSecret(password);
-
-                _logger.LogDebug("[PasswordRotationGuard] Auto-logon configured for '{User}' (LSA secret)", username);
+                    if (winlogon.GetValue("ForceAutoLogon") != null)
+                        winlogon.DeleteValue("ForceAutoLogon", throwOnMissingValue: false);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "[PasswordRotationGuard] ConfigureAutoLogon failed");
+                _logger.LogDebug(ex, "[RemoteLogonHardeningGuard] ClearAutoLogonLeak (registry) failed");
             }
 
-            // If Windows Hello PIN is NOT configured, disable screen lock timeout
-            // to prevent the user from being locked out (they can't type the random password)
-            if (!IsWindowsHelloPinConfigured())
+            // Clear the LSA "DefaultPassword" private-data secret if present.
+            ClearLsaDefaultPasswordSecret();
+        }
+
+        private void ClearLsaDefaultPasswordSecret()
+        {
+            var objectAttributes = new LSA_OBJECT_ATTRIBUTES { Length = (uint)Marshal.SizeOf<LSA_OBJECT_ATTRIBUTES>() };
+            var systemName = new LSA_UNICODE_STRING();
+
+            uint status = LsaOpenPolicy(ref systemName, ref objectAttributes, POLICY_CREATE_SECRET, out IntPtr policyHandle);
+            if (status != 0 || policyHandle == IntPtr.Zero)
             {
-                DisableScreenLockTimeout();
+                _logger.LogDebug("[RemoteLogonHardeningGuard] LsaOpenPolicy failed: 0x{Status:X8}", status);
+                return;
+            }
+
+            try
+            {
+                var keyName = CreateLsaString("DefaultPassword");
+                try
+                {
+                    // Storing null private-data deletes the secret.
+                    status = LsaStorePrivateData(policyHandle, ref keyName, IntPtr.Zero);
+                    if (status == 0)
+                        _logger.LogDebug("[RemoteLogonHardeningGuard] Cleared LSA DefaultPassword secret");
+                }
+                finally
+                {
+                    if (keyName.Buffer != IntPtr.Zero)
+                        Marshal.FreeHGlobal(keyName.Buffer);
+                }
+            }
+            finally
+            {
+                LsaClose(policyHandle);
             }
         }
 
-        #region LSA Secret Storage
+        // 
+        // 2. Deny network + RDP logon for local admin-class accounts
+        // 
+        private void DenyRemoteLogon(List<string> sids)
+        {
+            var tmpDir = Path.Combine(Path.GetTempPath(), "sentinel-rlhg");
+            try { Directory.CreateDirectory(tmpDir); } catch { /* best effort */ }
 
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+            var infPath = Path.Combine(tmpDir, "deny-remote.inf");
+            var dbPath = Path.Combine(tmpDir, "deny-remote.sdb");
+            var logPath = Path.Combine(tmpDir, "deny-remote.log");
+
+            // Build the two deny-right lines. secedit expects SIDs prefixed with '*'.
+            var accountList = string.Join(",", sids.Select(s => "*" + s));
+
+            var inf = new StringBuilder();
+            inf.AppendLine("[Unicode]");
+            inf.AppendLine("Unicode=yes");
+            inf.AppendLine("[Version]");
+            inf.AppendLine("signature=\"$CHICAGO$\"");
+            inf.AppendLine("Revision=1");
+            inf.AppendLine("[Privilege Rights]");
+            inf.AppendLine("SeDenyNetworkLogonRight = " + accountList);
+            inf.AppendLine("SeDenyRemoteInteractiveLogonRight = " + accountList);
+
+            try
+            {
+                File.WriteAllText(infPath, inf.ToString(), new UTF8Encoding(true));
+
+                // net48 has no ProcessStartInfo.ArgumentList; build a quoted argument string.
+                // All path values are Sentinel-controlled temp paths (no untrusted input), and
+                // each is wrapped in double quotes to survive spaces.
+                string args = string.Join(" ", new[]
+                {
+                    "/configure",
+                    "/db",    Quote(dbPath),
+                    "/cfg",   Quote(infPath),
+                    "/areas", "USER_RIGHTS",
+                    "/log",   Quote(logPath),
+                    "/quiet"
+                });
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = "secedit.exe",
+                    Arguments = args,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                using var proc = Process.Start(psi);
+                if (proc != null)
+                {
+                    proc.WaitForExit(30000);
+                    if (proc.ExitCode == 0)
+                        _logger.LogWarning("[RemoteLogonHardeningGuard] Denied network + RDP logon for {Count} local admin account(s)", sids.Count);
+                    else
+                        _logger.LogDebug("[RemoteLogonHardeningGuard] secedit exit code {Code}", proc.ExitCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[RemoteLogonHardeningGuard] DenyRemoteLogon (secedit) failed");
+            }
+            finally
+            {
+                try { if (File.Exists(infPath)) File.Delete(infPath); } catch { }
+                try { if (File.Exists(dbPath)) File.Delete(dbPath); } catch { }
+                try { if (File.Exists(logPath)) File.Delete(logPath); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Resolves SIDs of enabled local accounts that are members of the local
+        /// Administrators group, plus the built-in Administrator (RID 500). Domain accounts
+        /// and Microsoft-linked accounts are still local admins here if group members; we deny
+        /// remote logon for any local admin-class principal.
+        /// </summary>
+        private List<string> GetLocalAdminAccountSids()
+        {
+            var sids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using var machine = new System.DirectoryServices.DirectoryEntry("WinNT://.");
+                foreach (System.DirectoryServices.DirectoryEntry child in machine.Children)
+                {
+                    try
+                    {
+                        if (child.SchemaClassName != "User") continue;
+
+                        if (child.Properties["objectSid"].Value is not byte[] sidBytes) continue;
+                        var sid = new System.Security.Principal.SecurityIdentifier(sidBytes, 0).Value;
+
+                        // Built-in Administrator (RID 500) is always in scope.
+                        bool isBuiltinAdmin = sid.EndsWith("-500", StringComparison.Ordinal);
+
+                        // Enabled?
+                        bool disabled = false;
+                        if (child.Properties["UserFlags"].Value is int flags)
+                            disabled = (flags & 0x0002) != 0;
+
+                        if (isBuiltinAdmin || (!disabled && IsLocalAdmin(child.Name)))
+                            sids.Add(sid);
+                    }
+                    catch { }
+                    finally { child.Dispose(); }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[RemoteLogonHardeningGuard] GetLocalAdminAccountSids failed");
+            }
+            return sids.ToList();
+        }
+
+        private bool IsLocalAdmin(string userName)
+        {
+            try
+            {
+                // Well-known Administrators group SID S-1-5-32-544 -> resolve local name.
+                var adminsSid = new System.Security.Principal.SecurityIdentifier(
+                    System.Security.Principal.WellKnownSidType.BuiltinAdministratorsSid, null);
+                var adminsName = ((System.Security.Principal.NTAccount)adminsSid.Translate(
+                    typeof(System.Security.Principal.NTAccount))).Value;
+                var groupLeaf = adminsName.Contains('\\') ? adminsName.Split('\\')[1] : adminsName;
+
+                using var group = new System.DirectoryServices.DirectoryEntry($"WinNT://./{groupLeaf},group");
+                var members = (System.Collections.IEnumerable?)group.Invoke("Members");
+                if (members == null) return false;
+                foreach (var m in members)
+                {
+                    using var member = new System.DirectoryServices.DirectoryEntry(m);
+                    if (string.Equals(member.Name, userName, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        // 
+        // LSA interop (scoped to this guard; used only to clear the DefaultPassword secret)
+        // 
+        [StructLayout(LayoutKind.Sequential)]
         private struct LSA_UNICODE_STRING
         {
             public ushort Length;
@@ -956,7 +1107,7 @@ namespace Sentinel.Core
             public IntPtr Buffer;
         }
 
-        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential)]
         private struct LSA_OBJECT_ATTRIBUTES
         {
             public uint Length;
@@ -967,299 +1118,37 @@ namespace Sentinel.Core
             public IntPtr SecurityQualityOfService;
         }
 
-        [System.Runtime.InteropServices.DllImport("advapi32.dll", SetLastError = true, PreserveSig = true)]
+        [DllImport("advapi32.dll", SetLastError = true, PreserveSig = true)]
         private static extern uint LsaOpenPolicy(
             ref LSA_UNICODE_STRING SystemName,
             ref LSA_OBJECT_ATTRIBUTES ObjectAttributes,
             uint DesiredAccess,
             out IntPtr PolicyHandle);
 
-        [System.Runtime.InteropServices.DllImport("advapi32.dll", SetLastError = true, PreserveSig = true)]
+        // PrivateData = IntPtr.Zero deletes the secret.
+        [DllImport("advapi32.dll", SetLastError = true, PreserveSig = true)]
         private static extern uint LsaStorePrivateData(
             IntPtr PolicyHandle,
             ref LSA_UNICODE_STRING KeyName,
-            ref LSA_UNICODE_STRING PrivateData);
+            IntPtr PrivateData);
 
-        [System.Runtime.InteropServices.DllImport("advapi32.dll", SetLastError = true, PreserveSig = true)]
+        [DllImport("advapi32.dll", SetLastError = true, PreserveSig = true)]
         private static extern uint LsaClose(IntPtr PolicyHandle);
 
         private const uint POLICY_CREATE_SECRET = 0x00000020;
 
-        /// <summary>
-        /// Stores the auto-logon password as an LSA secret named "DefaultPassword".
-        /// This is the same mechanism Windows uses internally - the password is encrypted
-        /// and only accessible to SYSTEM.
-        /// </summary>
-        private void StoreAutoLogonPasswordAsLsaSecret(string password)
-        {
-            var objectAttributes = new LSA_OBJECT_ATTRIBUTES { Length = (uint)System.Runtime.InteropServices.Marshal.SizeOf<LSA_OBJECT_ATTRIBUTES>() };
-            var systemName = new LSA_UNICODE_STRING();
-
-            uint status = LsaOpenPolicy(ref systemName, ref objectAttributes, POLICY_CREATE_SECRET, out IntPtr policyHandle);
-            if (status != 0)
-            {
-                _logger.LogDebug("[PasswordRotationGuard] LsaOpenPolicy failed: 0x{Status:X8}", status);
-                return;
-            }
-
-            try
-            {
-                var keyName = CreateLsaString("DefaultPassword");
-                var privateData = CreateLsaString(password);
-
-                try
-                {
-                    status = LsaStorePrivateData(policyHandle, ref keyName, ref privateData);
-                    if (status != 0)
-                    {
-                        _logger.LogDebug("[PasswordRotationGuard] LsaStorePrivateData failed: 0x{Status:X8}", status);
-                    }
-                }
-                finally
-                {
-                    // Zero out the password buffer
-                    if (privateData.Buffer != IntPtr.Zero)
-                    {
-                        var zeros = new byte[privateData.MaximumLength];
-                        System.Runtime.InteropServices.Marshal.Copy(zeros, 0, privateData.Buffer, zeros.Length);
-                        System.Runtime.InteropServices.Marshal.FreeHGlobal(privateData.Buffer);
-                    }
-                    if (keyName.Buffer != IntPtr.Zero)
-                        System.Runtime.InteropServices.Marshal.FreeHGlobal(keyName.Buffer);
-                }
-            }
-            finally
-            {
-                LsaClose(policyHandle);
-            }
-        }
-
         private static LSA_UNICODE_STRING CreateLsaString(string value)
         {
-            var lsaStr = new LSA_UNICODE_STRING();
-            lsaStr.Length = (ushort)(value.Length * 2);
-            lsaStr.MaximumLength = (ushort)((value.Length + 1) * 2);
-            lsaStr.Buffer = System.Runtime.InteropServices.Marshal.StringToHGlobalUni(value);
+            var lsaStr = new LSA_UNICODE_STRING
+            {
+                Length = (ushort)(value.Length * 2),
+                MaximumLength = (ushort)((value.Length + 1) * 2),
+                Buffer = Marshal.StringToHGlobalUni(value)
+            };
             return lsaStr;
         }
 
-        #endregion
-
-        /// <summary>
-        /// Checks if Windows Hello PIN is configured for the current user.
-        /// If PIN exists, the user can unlock the lock screen without knowing the password.
-        /// </summary>
-        private static bool IsWindowsHelloPinConfigured()
-        {
-            try
-            {
-                // NGC (Next Generation Credentials) folder exists when PIN/Hello is configured
-                var ngcFolder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    @"Packages\Microsoft.AAD.BrokerPlugin_cw5n1h2txyewy\AC\TokenBroker\Accounts");
-
-                // More reliable: check the NGC key container directory
-                var ngcPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.Windows),
-                    @"ServiceProfiles\LocalService\AppData\Local\Microsoft\Ngc");
-
-                if (Directory.Exists(ngcPath) && Directory.GetDirectories(ngcPath).Length > 0)
-                    return true;
-
-                // Fallback: check registry for PIN credential provider
-                using var key = Registry.LocalMachine.OpenSubKey(
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\Credential Providers\{D6886603-9D2F-4EB2-B667-1971041FA96B}");
-                if (key != null)
-                {
-                    // PIN credential provider is registered - check if it has enrolled credentials
-                    using var logonKey = Registry.CurrentUser.OpenSubKey(
-                        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\NgcPin");
-                    return logonKey != null;
-                }
-            }
-            catch { }
-            return false;
-        }
-
-        /// <summary>
-        /// Disables the screen lock timeout to prevent lockout when no PIN is configured.
-        /// The user can still manually lock (Win+L) but won't be auto-locked by timeout.
-        /// </summary>
-        private void DisableScreenLockTimeout()
-        {
-            try
-            {
-                // Disable the screensaver-based lock
-                using var desktop = Registry.CurrentUser.OpenSubKey(
-                    @"Control Panel\Desktop", writable: true);
-                if (desktop != null)
-                {
-                    desktop.SetValue("ScreenSaveActive", "0", RegistryValueKind.String);
-                    desktop.SetValue("ScreenSaverIsSecure", "0", RegistryValueKind.String);
-                }
-
-                // Disable console lock display off timeout via power policy
-                // (this is a best-effort - power settings are complex)
-                using var powerKey = Registry.LocalMachine.OpenSubKey(
-                    @"SYSTEM\CurrentControlSet\Control\Power\PowerSettings\7516b95f-f776-4464-8c53-06167f40cc99\8EC4B3A5-6868-48c2-BE75-4F3044BE88A7",
-                    writable: true);
-                if (powerKey != null)
-                {
-                    powerKey.SetValue("Attributes", 2, RegistryValueKind.DWord); // Make visible, user can adjust
-                }
-
-                _logger.LogInformation("[PasswordRotationGuard] Disabled screen lock timeout (no Windows Hello PIN configured)");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "[PasswordRotationGuard] DisableScreenLockTimeout failed");
-            }
-        }
-
-        /// <summary>
-        /// Consent for non-Windows binaries. The owner does not know the rotated
-        /// password, so a credential prompt would lock them out.
-        /// </summary>
-        private void EnforceUacPolicy()
-        {
-            try
-            {
-                using var key = Registry.LocalMachine.OpenSubKey(
-                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System", writable: true);
-                if (key == null) return;
-
-                var current = key.GetValue("ConsentPromptBehaviorAdmin");
-                if (current == null || (int)current != UacConsentNonWindows)
-                {
-                    key.SetValue("ConsentPromptBehaviorAdmin", UacConsentNonWindows, RegistryValueKind.DWord);
-                    _logger.LogWarning("[PasswordRotationGuard] Enforced ConsentPromptBehaviorAdmin=5 (was {Old})", current);
-                }
-
-                var lua = key.GetValue("EnableLUA");
-                if (lua == null || (int)lua != 1)
-                {
-                    key.SetValue("EnableLUA", 1, RegistryValueKind.DWord);
-                    _logger.LogWarning("[PasswordRotationGuard] Enforced EnableLUA=1");
-                }
-
-                var secureDesktop = key.GetValue("PromptOnSecureDesktop");
-                if (secureDesktop == null || (int)secureDesktop != 1)
-                {
-                    key.SetValue("PromptOnSecureDesktop", 1, RegistryValueKind.DWord);
-                    _logger.LogWarning("[PasswordRotationGuard] Enforced PromptOnSecureDesktop=1");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "[PasswordRotationGuard] EnforceUacPolicy failed");
-            }
-        }
-
-        /// <summary>
-        /// Gets all enabled local accounts that are NOT Microsoft accounts and not built-in.
-        /// </summary>
-        private List<string> GetEnabledLocalAccounts()
-        {
-            var accounts = new List<string>();
-            try
-            {
-                using var machine = new System.DirectoryServices.DirectoryEntry("WinNT://.");
-                foreach (System.DirectoryServices.DirectoryEntry child in machine.Children)
-                {
-                    if (child.SchemaClassName != "User") { child.Dispose(); continue; }
-
-                    try
-                    {
-                        var username = child.Name;
-
-                        // Check if account is disabled
-                        var flagsObj = child.Properties["UserFlags"].Value;
-                        if (flagsObj is not int flags) { child.Dispose(); continue; }
-                        bool isDisabled = (flags & 0x0002) != 0;
-                        if (isDisabled) { child.Dispose(); continue; }
-
-                        // Get SID
-                        if (child.Properties["objectSid"].Value is not byte[] sidBytes) { child.Dispose(); continue; }
-                        var sid = new System.Security.Principal.SecurityIdentifier(sidBytes, 0);
-                        var sidString = sid.Value;
-
-                        // Skip built-in accounts (RID 500, 501)
-                        if (sidString.EndsWith("-500") || sidString.EndsWith("-501"))
-                        { child.Dispose(); continue; }
-
-                        // Skip Microsoft accounts
-                        if (IsMicrosoftAccount(username, sidString))
-                        { child.Dispose(); continue; }
-
-                        accounts.Add(username);
-                    }
-                    catch { }
-                    finally { child.Dispose(); }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "[PasswordRotationGuard] GetEnabledLocalAccounts failed");
-            }
-            return accounts;
-        }
-
-        private static bool IsMicrosoftAccount(string username, string sid)
-        {
-            try
-            {
-                if (username.IndexOf('@') >= 0) return true;
-
-                using var profileKey = Registry.LocalMachine.OpenSubKey(
-                    $@"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\{sid}");
-                if (profileKey == null) return false;
-
-                // Check for Microsoft identity store cache entry
-                using var identityKey = Registry.LocalMachine.OpenSubKey(
-                    $@"SOFTWARE\Microsoft\IdentityStore\Cache\{sid}");
-                if (identityKey != null) return true;
-            }
-            catch { }
-            return false;
-        }
-
-        private bool SetLocalAccountPassword(string username, string newPassword)
-        {
-            try
-            {
-                using var entry = new System.DirectoryServices.DirectoryEntry($"WinNT://./{username},user");
-                entry.Invoke("SetPassword", new object[] { newPassword });
-                entry.CommitChanges();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "[PasswordRotationGuard] SetPassword via ADSI failed for {User}", username);
-                return false;
-            }
-        }
-
-        private static string GenerateRandomPassword(int length)
-        {
-            const string chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>?";
-            var bytes = new byte[length];
-            using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
-            rng.GetBytes(bytes);
-
-            var result = new char[length];
-            for (int i = 0; i < length; i++)
-                result[i] = chars[bytes[i] % chars.Length];
-
-            // Ensure complexity requirements
-            rng.GetBytes(bytes, 0, 4);
-            result[0] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[bytes[0] % 26];
-            result[1] = "abcdefghijklmnopqrstuvwxyz"[bytes[1] % 26];
-            result[2] = "0123456789"[bytes[2] % 10];
-            result[3] = "!@#$%^&*()-_=+"[bytes[3] % 14];
-
-            return new string(result);
-        }
+        // Wrap a path in double quotes and escape any embedded quotes for a safe command line.
+        private static string Quote(string value) => "\"" + value.Replace("\"", "\\\"") + "\"";
     }
-
-
 }

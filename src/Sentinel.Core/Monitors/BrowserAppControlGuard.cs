@@ -387,6 +387,7 @@ namespace Sentinel.Core
         private readonly DetectionEngine _detectionEngine;
         private readonly ILogger<LocalControlChannelMonitor> _logger;
         private readonly ProcessAncestryCache? _ancestry;
+        private readonly SentinelConfig? _config;
 
         private readonly ConcurrentDictionary<string, DateTime> _cooldown = new();
         private static readonly TimeSpan ScanInterval = TimeSpan.FromSeconds(20);
@@ -400,6 +401,59 @@ namespace Sentinel.Core
             "firefox", "iexplore",
         };
 
+        /// <summary>
+        /// The kind of loopback pairing, used to separate a benign data-handoff (a page telling
+        /// a purpose-built media/torrent client to open a URL/magnet) from a malicious control
+        /// channel (a page taking scripting/automation control of a browser). Pure and testable.
+        /// </summary>
+        internal enum PairingShape
+        {
+            /// <summary>Server is a mainstream browser being driven over loopback = automation/
+            /// remote-control of the browser (CDP-style). The strongest malicious shape.</summary>
+            BrowserControlChannel,
+            /// <summary>Client is a script host or lives in a user-writable drop = page-dropped
+            /// controller. Malicious shape regardless of what the server is.</summary>
+            UntrustedController,
+            /// <summary>Neither of the above: a signed/in-path client talking to a non-browser
+            /// app. Consistent with a data handoff to a legitimate local client. Observe-first.</summary>
+            DataHandoff,
+        }
+
+        /// <summary>
+        /// Classifies a loopback pairing by behavior only (never by domain). A browser as the
+        /// driven server is a control channel; a script-host / user-writable client is an
+        /// untrusted controller; anything else is a benign-shaped data handoff.
+        /// </summary>
+        internal static PairingShape ClassifyPairing(
+            string serverName, bool clientScriptHost, bool clientUserWritable)
+        {
+            var serverLeaf = StringNet48.ReplaceIgnoreCase(serverName ?? "", ".exe", "");
+            if (BrowserProcessNames.Contains(serverLeaf))
+                return PairingShape.BrowserControlChannel;
+            if (clientScriptHost || clientUserWritable)
+                return PairingShape.UntrustedController;
+            return PairingShape.DataHandoff;
+        }
+
+        /// <summary>
+        /// Aggravator only: true if <paramref name="origins"/> (config-supplied risky pairing
+        /// origins) is non-empty and any entry is a case-insensitive suffix of the evidence
+        /// string (e.g. a resolved URL/host in metadata). NEVER a verdict on its own - callers
+        /// use it only to raise confidence / lower the chain threshold once a behavioral
+        /// pairing shape has already been established.
+        /// </summary>
+        internal static bool MatchesRiskyOrigin(string? evidenceHost, IEnumerable<string>? origins)
+        {
+            if (string.IsNullOrEmpty(evidenceHost) || origins == null) return false;
+            foreach (var o in origins)
+            {
+                if (string.IsNullOrWhiteSpace(o)) continue;
+                if (evidenceHost!.IndexOf(o.Trim(), StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+            }
+            return false;
+        }
+
         // Common well-known loopback services we should not treat as control ports.
         private static readonly HashSet<int> BenignLoopbackPorts = new()
         {
@@ -409,11 +463,13 @@ namespace Sentinel.Core
         public LocalControlChannelMonitor(
             DetectionEngine detectionEngine,
             ILogger<LocalControlChannelMonitor> logger,
-            ProcessAncestryCache? ancestry = null)
+            ProcessAncestryCache? ancestry = null,
+            SentinelConfig? config = null)
         {
             _detectionEngine = detectionEngine;
             _logger = logger;
             _ancestry = ancestry;
+            _config = config;
         }
 
         protected override async Task ExecuteAsync(CancellationToken ct)
@@ -487,29 +543,63 @@ namespace Sentinel.Core
             _cooldown[key] = now;
             if (_cooldown.Count > 500) PruneCooldown(now);
 
-            // The malicious shape: the CLIENT (the thing doing the driving) is a script host
-            // or lives in a user-writable path. That is what a page-dropped controller looks
-            // like. A signed client in Program Files talking to a signed app is normal IPC.
+            // Behavioral discriminator (v2.7.6): separate a benign data handoff (a page telling
+            // a purpose-built local client to open a URL/magnet) from a malicious control
+            // channel (a page taking scripting/automation control of a browser).
             bool clientScriptHost = UserlandProtocolHeuristics.IsScriptHost(clientName);
             bool clientUserWritable = ModuleIdentity.IsUserWritableDrop(clientPath);
-            bool suspicious = clientScriptHost || clientUserWritable;
+            var shape = ClassifyPairing(serverName, clientScriptHost, clientUserWritable);
 
-            double confidence = suspicious ? (clientScriptHost && clientUserWritable ? 0.80 : 0.66) : 0.45;
-            var tier = suspicious ? DetectionTier.Tier1Behavioral : DetectionTier.Tier2Indicator;
+            // BrowserControlChannel: a browser is the DRIVEN server = automation/remote-control
+            //   of the browser itself (session theft / relay). Malicious shape even if the
+            //   client binary is signed and in-path - the control relationship is the harm.
+            // UntrustedController: page-dropped script-host / user-writable controller.
+            // DataHandoff: signed/in-path client -> non-browser app. Observe-first (a torrent/
+            //   media client being handed a magnet/URL looks exactly like this).
+            bool suspicious = shape != PairingShape.DataHandoff;
+
+            double confidence =
+                shape == PairingShape.BrowserControlChannel ? 0.82 :
+                shape == PairingShape.UntrustedController   ? (clientScriptHost && clientUserWritable ? 0.80 : 0.66) :
+                                                              0.45;
+
+            // Aggravator ONLY: a configured risky pairing origin never fires on its own. It
+            // only sharpens an already-established behavioral signal - raising confidence and
+            // nudging an observe-first DataHandoff up to a Tier2 indicator (still LogOnly, never
+            // an autonomous action). Behavior stays authoritative.
+            string evidenceHost = $"{serverName} {serverPath} {clientName} {clientPath}";
+            bool riskyOrigin = MatchesRiskyOrigin(evidenceHost, _config?.RiskyPairingOrigins);
+            if (riskyOrigin)
+                confidence = Math.Min(0.95, confidence + 0.10);
+
+            var tier = (suspicious || riskyOrigin)
+                ? DetectionTier.Tier1Behavioral
+                : DetectionTier.Tier2Indicator;
+            // A risky-origin match alone (DataHandoff shape) must not reach kill grade: it is a
+            // Tier2 indicator, not a Tier1 behavioral terminal.
+            if (!suspicious && riskyOrigin)
+                tier = DetectionTier.Tier2Indicator;
+
+            string shapeDesc =
+                shape == PairingShape.BrowserControlChannel ? "browser driven over a loopback control channel (automation/remote-control of the browser)" :
+                shape == PairingShape.UntrustedController   ? "page-dropped controller (script host or user-writable path) driving the app" :
+                                                              "signed/in-path client handing data to a non-browser local app (data-handoff shape)";
 
             _ = _detectionEngine.EmitAsync(new DetectionEvent
             {
                 RuleName = "Local Control Channel: App Driven Over Loopback",
                 Evidence = $"Process '{clientName}' (PID {clientPid}, path {clientPath ?? "?"}) is connected to a " +
                            $"loopback control port {port} owned by '{serverName}' (PID {serverPid}, path {serverPath ?? "?"}). " +
-                           $"Client is not a browser and not in the server's process ancestry.",
-                Reasoning = "A local process is driving another GUI/browser-like application over a loopback socket " +
-                            "the app is listening on. This is the local half of a site->app hijack: a page-delivered " +
-                            "controller pairs with a running browser-like app to steal its session or relay through it. " +
-                            "Browser tabs/subprocesses and parent-child helpers are excluded. Observe-first: a signed " +
-                            "in-path client is normal IPC (logged); a script-host or user-writable-path client driving " +
-                            "the app is the malicious shape." +
-                            (suspicious ? "" : " Low-risk pairing - logged for correlation."),
+                           $"Shape: {shapeDesc}." +
+                           (riskyOrigin ? " A configured risky pairing origin was present (aggravator only)." : ""),
+                Reasoning = "A local process is driving another GUI/browser-like application over a loopback socket. " +
+                            "The differentiator is behavioral, not the site: driving a browser over a control channel " +
+                            "is remote-control/session-theft shape; a script-host or user-writable controller is a " +
+                            "page-dropped driver; a signed in-path client talking to a non-browser app is a benign data " +
+                            "handoff (e.g. a page handing a magnet/URL to a media client). Browser tabs/subprocesses and " +
+                            "parent-child helpers are excluded. Observe-first: the pairing is logged; a credential-store " +
+                            "read or a chain confirms intent before any action. Risky-origin config is an aggravator only " +
+                            "and never authorizes action on its own.",
                 Confidence = confidence,
                 Tier = tier,
                 AuthorizedResponse = ResponseAction.LogOnly,
@@ -523,8 +613,10 @@ namespace Sentinel.Core
                     ["ServerPath"] = serverPath ?? "",
                     ["ClientPath"] = clientPath ?? "",
                     ["LoopbackPort"] = port.ToString(),
+                    ["PairingShape"] = shape.ToString(),
                     ["ClientScriptHost"] = clientScriptHost.ToString(),
                     ["ClientUserWritable"] = clientUserWritable.ToString(),
+                    ["RiskyOriginAggravator"] = riskyOrigin.ToString(),
                     ["WeakObserveSeed"] = suspicious ? "false" : "true",
                 }
             });

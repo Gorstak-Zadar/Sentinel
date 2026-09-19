@@ -225,10 +225,11 @@ namespace Sentinel.Tests
         }
 
         [Fact]
-        public void HostsBaseline_ContainsNoDomainBlock_ForumHrRemoved()
+        public void HostsBaseline_ContainsNoDomainBlock_HeaderIsLoopbackOnly()
         {
-            // v2.7.6: the forum.hr blackhole was removed from the enforced baseline. The
-            // baseline is the localhost/loopback header only - no external domain is blocked.
+            // The localhost/loopback baseline header contains no external domain. forum.hr is
+            // blocked again (v2.7.7) but via EnforcedDomainBlocks (hosts + wildcard NRPT), NOT
+            // by being baked into this baseline header - the two mechanisms stay separate.
             Assert.DoesNotContain(
                 HostsFileGuard.HostsBaselineLinesForTest,
                 l => l.IndexOf("forum.hr", System.StringComparison.OrdinalIgnoreCase) >= 0);
@@ -264,12 +265,100 @@ namespace Sentinel.Tests
         // ---- Operator-defined reusable blocks (v2.7.6, option B) ----
 
         [Fact]
-        public void EnforcedBlocks_EmptyByDefault()
+        public void EnforcedBlocks_DefaultsSeedForumHr()
         {
-            // Nothing is blocked unless the operator populates the lists - no domain/IP hardcoded.
+            // v2.7.7: forum.hr is restored as a default enforced domain block (via the generic
+            // hosts + wildcard-NRPT mechanism). IP blocks remain empty by default.
             var cfg = new SentinelConfig();
-            Assert.Empty(cfg.EnforcedDomainBlocks);
+            Assert.Contains("forum.hr", cfg.EnforcedDomainBlocks);
             Assert.Empty(cfg.EnforcedIpBlocks);
+        }
+
+        // ---- Runtime blocklist store (v2.7.7) ------------------------------
+
+        [Fact]
+        public void DomainBlocklistStore_MergesConfigAndRuntimeDomains()
+        {
+            DomainBlocklistStore.ResetForTests();
+            try
+            {
+                Assert.True(DomainBlocklistStore.AddDomain("https://Evil.example.com/x"));
+                // Normalized, de-duplicated union of config + runtime.
+                var merged = DomainBlocklistStore.MergeDomains(new[] { "forum.hr", "forum.hr" });
+                Assert.Contains("forum.hr", merged);
+                Assert.Contains("evil.example.com", merged);
+                Assert.Equal(merged.Length, merged.Distinct(System.StringComparer.OrdinalIgnoreCase).Count());
+            }
+            finally { DomainBlocklistStore.ResetForTests(); }
+        }
+
+        [Fact]
+        public void DomainBlocklistStore_AddIsIdempotentAndRemovable()
+        {
+            DomainBlocklistStore.ResetForTests();
+            try
+            {
+                Assert.True(DomainBlocklistStore.AddDomain("bad.test"));
+                Assert.False(DomainBlocklistStore.AddDomain("bad.test"));   // already present
+                Assert.True(DomainBlocklistStore.ContainsDomain("BAD.test")); // case-insensitive
+                Assert.True(DomainBlocklistStore.RemoveDomain("bad.test"));
+                Assert.False(DomainBlocklistStore.ContainsDomain("bad.test"));
+            }
+            finally { DomainBlocklistStore.ResetForTests(); }
+        }
+
+        [Fact]
+        public void DomainBlocklistStore_NormalizeMatchesGuard()
+        {
+            // The store and the guard must normalize identically so a runtime-added domain maps
+            // to the same hosts line / NRPT rule GUID the config path would produce.
+            Assert.Equal(
+                HostsFileGuard.NormalizeBlockDomain("https://WWW.Example.com:8080/p"),
+                DomainBlocklistStore.NormalizeDomain("https://WWW.Example.com:8080/p"));
+        }
+
+        [Fact]
+        public void DomainBlocklistStore_RejectsEmptyOrNull()
+        {
+            DomainBlocklistStore.ResetForTests();
+            Assert.False(DomainBlocklistStore.AddDomain(null));
+            Assert.False(DomainBlocklistStore.AddDomain("   "));
+        }
+
+        // ---- Domain-block enforcement detection: Tier2 / LogOnly contract ----
+
+        [Fact]
+        public void DomainBlockEnforced_Detection_IsTier2LogOnly()
+        {
+            // The "Hardening: Domain Block Enforced" event that EnforceConfiguredBlocks emits is a
+            // hardening notice, not a behavioral kill signal. It must honor the Tier2 log-only
+            // contract: even under an active-response config it stays LogOnly and never authorizes
+            // a process action. (Mirrors the shape emitted by the guard.)
+            var d = new DetectionEvent
+            {
+                RuleName = "Hardening: Domain Block Enforced",
+                Evidence = "forum.hr blackholed via hosts + wildcard NRPT",
+                Confidence = 0.99,
+                Tier = DetectionTier.Tier2Indicator,
+                AuthorizedResponse = ResponseAction.LogOnly,
+                ProcessName = "SYSTEM",
+                ProcessId = 0,
+                SignalType = SignalType.AntiTamper,
+            };
+
+            ResponsePolicy.ApplyTierLaw(d);
+            Assert.Equal(DetectionTier.Tier2Indicator, d.Tier);
+            Assert.Equal(ResponseAction.LogOnly, d.AuthorizedResponse);
+            Assert.False(d.KillAuthorized);
+            // A hardening notice is not a terminal family and can never authorize a kill alone.
+            Assert.Null(ResponsePolicy.ClassifyTerminalOutcome(d));
+            Assert.False(ResponsePolicy.MayPerformDestructiveResponse(d, new SentinelConfig
+            {
+                ActiveResponse = true,
+                ObserveUntilChain = true,
+                ChainConfirmMinSignals = 2,
+                MinTier1Confidence = 0.85,
+            }));
         }
 
         [Fact]

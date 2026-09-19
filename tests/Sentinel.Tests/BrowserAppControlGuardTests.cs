@@ -254,8 +254,10 @@ namespace Sentinel.Tests
         [Fact]
         public void RiskyPairingOrigins_DefaultConfig_SeedsForumHrAsExampleAggravator()
         {
-            // forum.hr is retired as a hard block and lives on only as an example aggravator
-            // entry - behavior stays authoritative; this list never triggers action alone.
+            // RiskyPairingOrigins is the behavioral AGGRAVATOR list (raises confidence on an
+            // already-fired pairing signal; never acts alone). This is separate from the
+            // EnforcedDomainBlocks hard block (v2.7.7 restored forum.hr there). forum.hr appears
+            // in both: an aggravator here, and a name-resolution block via EnforcedDomainBlocks.
             Assert.Contains("forum.hr", new SentinelConfig().RiskyPairingOrigins);
         }
     }

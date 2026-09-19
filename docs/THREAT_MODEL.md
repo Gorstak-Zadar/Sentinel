@@ -264,10 +264,11 @@ See [design.md](design.md) for the full component inventory (all MonitorGroups +
 - **PackageRuntimeMonitor** (v1.8.2) - Package-manager runtime + AI config poison
 - **AsrPolicyGuard** (v1.7.5) - Self-healing Defender ASR Block rules
 - **RemoteSessionGuard** (v1.7.5) - Force-logoff unauthorized RDP/remote sessions
-- **HostsFileGuard forum.hr block** (v2.6.9) - forum.hr + subdomains blackholed at hosts-file level plus a wildcard NRPT rule (`.forum.hr` -> 0.0.0.0) covering all subdomains (reinfection vector); `ForumHrWatchMonitor` removed
+- **Enforced domain/IP blocks** (v2.7.7) - `EnforcedDomainBlocks` (default `forum.hr`) blackholed via hosts line + wildcard NRPT rule (`.<domain>` -> 0.0.0.0, apex + all subdomains) under the GP-managed policy hive; unioned at enforcement time with the runtime `DomainBlocklistStore` so any component can add to the same blacklist at runtime; self-healed on startup and every scan; gated on `ProductPosture.AllowsProactiveHostLockdown`
 - **Observe-first posture (v1.8.3)** - Weak path/port/shell heuristics LogOnly; IPSec attack-only by default; `RestrictivePortHardening` for full lockdown
 - **MitmDefense suite (v2.0.1)** - Opt-in post-incident: planted root cert remove, FCM Send-Tab-to-Self block, ghost process -> fake Chromecast kill, rogue Cast FW (narrow exception to ObserveUntilChain)
-- **GpuProcessMonitor** (v2.1.5) - GPU sandbox escape + crypto-mining detection
+- **GpuProcessMonitor** (v2.1.5) - GPU sandbox escape (child/net/post-ex DLL) + vulnerable GPU driver audit
+- **MinerBehaviorMonitor** (v2.7.7) - Behavioral cryptominer detection (sustained multi-core CPU + persistent low-diversity pool connection); observe-only `CoinMiner` seed, never a solo kill; browsers/torrent/P2P/games excluded so streaming and torrenting stay unblocked
 - **WebDashboardService** (v2.1.3) - Local web-based settings UI replacing WinForms
 - **ScanEngine** (v2.1.3) - On-demand comprehensive system security scan
 - **AmsiIntegrityCheck** (v2.1.8 code / **registered v2.2.0**) - AMSI/ETW function prologue integrity monitoring
@@ -737,7 +738,8 @@ See CHANGELOG.md for full history. Key fixes:
 
 - **v2.2.0:** Dashboard bearer is actually required (Referer ignored; token not in GET /; WS authenticated). V217 monitors **registered**. Game-path reputation skip refuses user-profile trees. ChainTracer System32/SysWOW64 only. Watchdog publisher pin + install-path liveness. DriverLoadMonitor user-profile scan. Kiosk LGPO no longer disables audit/passwords/FIPS. Worker RATE_LIMITER after HMAC. Encrypted config HMAC envelope. President's Law no longer includes DnsAnomaly/NetworkAnomaly.
 - **v2.1.8:** Binary integrity before agent launch (RT-2026-H1/H3); AntiTamperGuard SHA-256 replacement detection; Worker nonce-after-HMAC (RT-2026-M1); Worker input validation (RT-2026-M4); chain-confirmed budget bypass (RT-2026-M2). Six monitors were **written** here and **wired in 2.2.0**. Dashboard "bearer auth" in 2.1.8 was a Referer shortcut (closed in 2.2.0).
-- **v2.6.9:** Restored the forum.hr hosts-file block (reinfection vector); removed the useless `ForumHrWatchMonitor` and its DNS-feed wiring.
+- **v2.7.7:** Added `MinerBehaviorMonitor` (behavioral cryptominer detection, observe-only `CoinMiner`, streaming/torrenting excluded). Restored `forum.hr` as a default `EnforcedDomainBlocks` entry and generalized the enforced blocklist with the runtime `DomainBlocklistStore` (any component can add domains/IPs; unioned with config, self-healing, posture-gated).
+- **v2.6.9:** Restored the forum.hr hosts-file block (reinfection vector); removed the useless `ForumHrWatchMonitor` and its DNS-feed wiring. **(the hardcoded block was removed in v2.7.6; forum.hr returns as a config default in v2.7.7)**
 - **v1.7.6:** Removed opinionated forum.hr hosts block; added `ForumHrWatchMonitor` for non-browser C2/relay abuse of that site alone. **(reverted in v2.6.9)**
 - **v1.7.5:** ASR Block self-heal (`AsrPolicyGuard`), remote session force-logoff (`RemoteSessionGuard`), install-time credential/browser residual hardening. Documentation inventory parity with runtime registration.
 - **v1.7.4:** ThreatIntelFeedBlocker (Spamhaus/Feodo/ET), real-time `LnkShortcutMonitor`, Agent scareware/cursor/cookie ports.

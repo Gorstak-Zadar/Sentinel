@@ -2330,6 +2330,15 @@ namespace Sentinel.Core
         {
             if (!MayEnforceHostsBaseline(_config)) return;
 
+            // v2.7.7: forum.hr is an enforced block again (default EnforcedDomainBlocks + the
+            // runtime DomainBlocklistStore). Only run the retirement cleanup when forum.hr is
+            // NOT in the effective blocklist, so we never strip artifacts that EnforceConfiguredBlocks
+            // is about to (re)assert. This keeps the generic un-block-on-removal behavior for any
+            // domain the operator later drops from the list.
+            var effectiveDomains = DomainBlocklistStore.MergeDomains(_config?.EnforcedDomainBlocks);
+            if (effectiveDomains.Any(d => string.Equals(d, "forum.hr", StringComparison.OrdinalIgnoreCase)))
+                return;
+
             // 1. Delete the stale forum.hr NRPT rule if present.
             try
             {
@@ -2489,8 +2498,10 @@ namespace Sentinel.Core
         {
             if (!MayEnforceConfiguredBlocks(_config)) return;
 
-            var domains = _config?.EnforcedDomainBlocks ?? Array.Empty<string>();
-            var ips = _config?.EnforcedIpBlocks ?? Array.Empty<string>();
+            // Union the operator config with the runtime blocklist store, so any Sentinel
+            // component that added a domain/IP at runtime is enforced on this same pass.
+            var domains = DomainBlocklistStore.MergeDomains(_config?.EnforcedDomainBlocks);
+            var ips = DomainBlocklistStore.MergeIps(_config?.EnforcedIpBlocks);
             if (domains.Length == 0 && ips.Length == 0) return; // nothing configured
 
             // --- Domain blocks: hosts line (exact) + wildcard NRPT (apex + subdomains) ---
@@ -2532,8 +2543,31 @@ namespace Sentinel.Core
                             _eventCooldown[HostsFilePath] = DateTime.UtcNow;
                             _lastKnownHash = ComputeFileHash(HostsFilePath);
                             _logger.LogWarning(
-                                "[HostsFileGuard] Enforced {N} operator domain-block hosts line(s) (trigger: {Trigger})",
+                                "[HostsFileGuard] Enforced {N} domain-block hosts line(s) (trigger: {Trigger})",
                                 toAppend.Count, trigger);
+                            _ = _detectionEngine.EmitAsync(new DetectionEvent
+                            {
+                                RuleName = "Hardening: Domain Block Enforced",
+                                Evidence = $"Applied {toAppend.Count} hosts-file blackhole line(s) plus wildcard NRPT rule(s) " +
+                                           $"for enforced domain block(s) (trigger: {trigger}).",
+                                Reasoning = "A domain on the enforced blocklist (operator config unioned with the runtime " +
+                                            "DomainBlocklistStore) is sinkholed via a hosts-file line and a wildcard NRPT rule " +
+                                            "covering the apex and all subdomains. This is a config/runtime-driven hardening " +
+                                            "block, not a behavioral detection - it controls name resolution only and never " +
+                                            "authorizes a process action on its own.",
+                                Confidence = 0.99,
+                                Tier = DetectionTier.Tier2Indicator,
+                                AuthorizedResponse = ResponseAction.LogOnly,
+                                ProcessName = "SYSTEM",
+                                ProcessId = 0,
+                                SignalType = SignalType.AntiTamper,
+                                Metadata = new Dictionary<string, string>
+                                {
+                                    { "Action", "DomainBlock" },
+                                    { "LinesApplied", toAppend.Count.ToString() },
+                                    { "Trigger", trigger }
+                                }
+                            });
                         }
                     }
                 }

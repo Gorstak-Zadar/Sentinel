@@ -2,6 +2,61 @@
 
 
 
+## [2.7.7] - 2026-09-19
+
+### Added - MinerBehaviorMonitor (behavioral cryptominer detection, observe-only)
+
+New `MinerBehaviorMonitor` in the SystemIntegrity group closes the cryptominer blind spot common to
+pirated-streaming pages, malvertising, and dropped "codec/player" payloads (native miners such as the
+xmrig family and browser-hosted WASM miners). Detection is purely behavioral and never uses a
+filename, path, or hash as a signal.
+
+- Fires only when BOTH signals hold together: sustained CPU saturation (>=80% of total machine
+  capacity, sampled every 15s) for over 4 minutes AND a persistent, low-diversity outbound
+  connection (<=3 distinct remote endpoints - a mining pool, not a swarm/CDN). Either signal alone
+  is ordinary heavy compute or a normal long-lived connection and is ignored.
+- Emits a Tier2 / LogOnly seed `Resource Abuse: Cryptominer Behavior` tagged
+  `TerminalFamily.CoinMiner` (MITRE T1496 Resource Hijacking).
+- **Never kills on the miner signature alone.** `CoinMiner` is a terminal family (it seeds the
+  multi-signal chain) but is deliberately NOT in the kill-grade set, so a miner is terminated only
+  when it corroborates a real kill-grade terminal (injection, C2, credential dump, ...) inside a
+  confirmed chain - honoring the "behavioral signals only for kill authority" constraint.
+- **Streaming and torrenting stay fully unblocked.** Browsers (video playback / WebGL), BitTorrent /
+  P2P / download-manager clients (`BulkTransferNoise`), and games / GPU compute are excluded up front,
+  and a torrent swarm's high endpoint diversity fails the pool test anyway. Watching movies and
+  torrenting are observe-only and are never affected.
+- Registered as a singleton + `MonitorGroup` entry in `Sentinel.Service/Program.cs` (SystemIntegrity
+  group only - the Service is the detection authority; the Agent registers no detection monitors).
+- Added `TerminalFamily.CoinMiner` to the typed family taxonomy (not kill-grade). Tests in
+  `MinerBehaviorTests.cs` prove Tier2Indicator, the Tier2 log-only contract, CoinMiner classification,
+  non-solo-kill posture, and that a miner + a real terminal on the same PID confirms a chain.
+
+### Added - forum.hr restored as an enforced block + runtime-writable blocklist
+
+Restored the historical `forum.hr` name-resolution block and generalized the enforced-blocklist
+mechanism so any Sentinel component can add to the same blacklist at runtime.
+
+- `SentinelConfig.EnforcedDomainBlocks` now defaults to `{ "forum.hr" }` (was empty). It is blocked
+  via the proven path: a hosts-file blackhole line (apex + `www`) plus a wildcard NRPT rule
+  (leading-dot suffix -> `0.0.0.0`, covering the apex and all subdomains) under the GP-managed policy
+  hive. Because `BrowserDnsPolicyGuard` disables DoH, the block is authoritative for browsers too.
+  Set the array to empty to disable the default block.
+- New `DomainBlocklistStore` (`Sentinel.Core/DomainBlocklistStore.cs`): a process-wide, thread-safe
+  runtime blocklist. `AddDomain`/`RemoveDomain`/`AddIp`/`RemoveIp`/`ContainsDomain` let any component
+  add domains/IPs at runtime; `HostsFileGuard.EnforceConfiguredBlocks` now UNIONS the operator config
+  with this store on every pass (startup + every 30s scan), so a runtime addition is enforced within
+  one scan cycle and self-heals on tamper. Domains are normalized identically to the guard, so a
+  runtime entry maps to the same hosts line / NRPT rule GUID as a config entry.
+- `EnforceConfiguredBlocks` now emits a Tier2 / LogOnly `Hardening: Domain Block Enforced` audit
+  event when domain-block lines are applied (parity with the existing IP-block audit event). It is a
+  name-resolution hardening notice only and never authorizes a process action.
+- `CleanupRetiredForumHrArtifacts` now skips its retirement cleanup when `forum.hr` is in the
+  effective blocklist (so it no longer fights enforcement), while keeping the generic
+  un-block-on-removal behavior for any domain the operator later drops from the list.
+- Enforcement remains gated on `ProductPosture.AllowsProactiveHostLockdown`
+  (`MayEnforceConfiguredBlocks` seam + default-deny test). `RiskyPairingOrigins` (the behavioral
+  aggravator list) is unchanged and independent of this name-resolution block.
+
 ## [2.7.6] - 2026-09-19
 
 ### Removed - PasswordRotationGuard (local account password rotation)

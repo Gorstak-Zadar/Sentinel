@@ -192,7 +192,7 @@ Organized by MonitorGroup. Each group has staggered startup, independent failure
 | `ServiceProcessMap` | Service name <-> PID map (shared `svchost` attribution for privacy observe) | on demand |
 | `TlsCertificateMonitor` | Monitors LocalMachine\Root + TrustedPublisher; baselines at startup. BYOVD follow-up: exact cert **thumbprint** match only -> stop service + delete SCM key (does **not** delete `System32\drivers\*.sys`) | 60s |
 | `UacBypassSurfaceMonitor` | Detects COM AutoElevation vectors and manifest autoElevate + copy-drop | periodic |
-| `HostsFileGuard` | Monitors hosts file for suspicious modifications (C2 IP redirects, security domain blocking); users may freely edit. Enforces a localhost/loopback baseline only (**v2.7.6:** forum.hr block removed; `CleanupRetiredForumHrArtifacts` un-blocks previously blocked machines). Only enforces FCM `mtalk.*` lines when `MitmDefense.Enabled` or `BlockFcmPushChannel=true` (appends missing lines, never overwrites). **v2.7.6:** enforces operator-defined `EnforcedDomainBlocks` (hosts line + wildcard NRPT, browser-authoritative via DoH-off) and `EnforcedIpBlocks` (in/out firewall rules) - empty by default, self-healing, posture-gated | FSW + 30s |
+| `HostsFileGuard` | Monitors hosts file for suspicious modifications (C2 IP redirects, security domain blocking); users may freely edit. Enforces a localhost/loopback baseline. Only enforces FCM `mtalk.*` lines when `MitmDefense.Enabled` or `BlockFcmPushChannel=true` (appends missing lines, never overwrites). Enforces `EnforcedDomainBlocks` (hosts line + wildcard NRPT, browser-authoritative via DoH-off) and `EnforcedIpBlocks` (in/out firewall rules). **v2.7.7:** the enforced lists are UNIONED with the runtime `DomainBlocklistStore` (any component can add domains/IPs at runtime; blocked next scan, self-healing); `EnforcedDomainBlocks` defaults to `forum.hr`; emits a Tier2/LogOnly `Hardening: Domain Block Enforced` audit event; `CleanupRetiredForumHrArtifacts` skips forum.hr while it is in the effective blocklist. Posture-gated on `AllowsProactiveHostLockdown` | FSW + 30s |
 | `BrowserDnsPolicyGuard` | Disables DoH system-wide across all browsers; 15s self-healing | 15s |
 | `BootIntegrityGuard` | Monitors BCD, boot drivers, EFI partition for bootkit indicators | 60s |
 | `CveShieldHardener` | Fetches CISA KEV feed; maps against local assets; generates block rules | 4h |
@@ -201,7 +201,8 @@ Organized by MonitorGroup. Each group has staggered startup, independent failure
 | `AcousticThreatMonitor` | Detects harmful audio frequencies via WASAPI loopback + Goertzel algorithm | continuous |
 | `WfpIntegrityMonitor` | Scans WFP filters for BLOCK rules targeting Sentinel/EDR processes | 30s |
 | `DriverLoadMonitor` | BYOVD via Event 7045 (PID when > 4), registry, **interactive user** .sys drops (not SYSTEM profile); cert-tracing | 15s |
-| `GpuProcessMonitor` | GPU helper sandbox-escape (child/net/post-ex DLL) + trojanized GPU .sys names | periodic |
+| `GpuProcessMonitor` | GPU helper sandbox-escape (child/net/post-ex DLL) + trojanized GPU .sys names + vulnerable GPU driver CVE audit | periodic |
+| `MinerBehaviorMonitor` | **v2.7.7.** Behavioral cryptominer detection: sustained multi-core CPU (>=80%, >4 min) correlated with a persistent low-diversity outbound connection (mining pool). Observe-only `CoinMiner` seed (Tier2/LogOnly), never a solo kill - kills only via a confirmed multi-signal chain. Excludes browsers, torrent/P2P clients, games and GPU compute, so streaming and torrenting are never affected. Behavioral only (no filename/path/hash) | 15s |
 | `KernelModuleAuditMonitor` | **v2.2.0 registered.** NtQuerySystemInformation module list; logs pre-existing RTCore64/WinRing0 | 30s |
 | `LegacyHiveMonitor` | **v2.2.3.** HKU hive loaded for a user who is not logged on (CVE-2026-62832); custom HKU names | 20s |
 | `CloudFilesHydrationMonitor` | **v2.2.3.** Unknown CfApi sync roots + Cloud Files placeholders in staging (ShieldBreak / CVE-2026-62713). Does not disable OneDrive | 30s |
@@ -684,6 +685,15 @@ Config section: `AutoIncidentReporting` (see CHANGELOG 1.7.7 / 1.7.8).
 
 ## v1.7.6 Additions (superseded in v2.6.9)
 
+### Forum.hr policy: RESTORED in v2.7.7 as a config default (history)
+
+The forum.hr block was removed in v2.7.6, then **restored in v2.7.7** - not by hardcoding it into
+the hosts baseline, but as the default value of `SentinelConfig.EnforcedDomainBlocks` (`{ "forum.hr" }`),
+enforced through the generic hosts-line + wildcard-NRPT path and unioned with the runtime
+`DomainBlocklistStore`. `CleanupRetiredForumHrArtifacts` now skips its cleanup while forum.hr is in
+the effective blocklist. Set `EnforcedDomainBlocks` to empty to opt out. The historical (removed)
+state is retained below for context.
+
 ### Forum.hr policy: REMOVED in v2.7.6 (history)
 
 The forum.hr hosts-file block and wildcard NRPT rule (restored in v2.6.9 after the v1.7.6
@@ -827,7 +837,9 @@ Honest remediations. Several 2.1.8 "fixes" were not in force until this version.
 | `WebDashboardService` | Sentinel.Agent | Local HTTP dashboard (`http://localhost:19845`); CSRF + bearer from tray `?token=` (Referer is not auth) |
 | `DashboardHtml` | Sentinel.Agent | Static HTML/CSS/JS generator for the web dashboard |
 | `ScanEngine` | Sentinel.Core | On-demand file/directory scan engine; powers `/api/scan` from dashboard and `scan` IPC command |
-| `GpuProcessMonitor` | Sentinel.Core/Monitors | Detects crypto-mining via GPU compute usage patterns (non-gaming, non-video processes) |
+| `GpuProcessMonitor` | Sentinel.Core/Monitors | Browser GPU-helper sandbox-escape indicators (child spawn / outbound net / post-ex DLL) + vulnerable GPU driver CVE audit. Does NOT detect crypto-mining (see `MinerBehaviorMonitor`) |
+| `MinerBehaviorMonitor` | Sentinel.Core/Monitors | Behavioral cryptominer detection (sustained CPU + persistent low-diversity pool connection); observe-only `CoinMiner`, never a solo kill; browsers/torrent/P2P/games excluded |
+| `DomainBlocklistStore` | Sentinel.Core | Process-wide thread-safe runtime blocklist; any component can add domains/IPs; unioned with `EnforcedDomainBlocks`/`EnforcedIpBlocks` by `HostsFileGuard` and enforced/self-healed each scan |
 | `LegacyVerdictSidecarPurgeService` | Sentinel.Core | Cleanup service for deprecated verdict sidecar files from pre-ADS versions |
 | `BulkTransferNoise` | Sentinel.Core | Noise suppression for legitimate bulk transfer clients (torrent, P2P, aria2) |
 | `EnrichmentSignals` | Sentinel.Core | Cross-monitor enrichment signal types for ContextBus pub/sub |

@@ -45,6 +45,16 @@ namespace Sentinel.Core
 
         /// <summary>Executable WMI persistence / policy rewrite. Kill-grade.</summary>
         WmiPersistence,
+
+        /// <summary>
+        /// Cryptocurrency miner (sustained multi-core CPU/GPU abuse + persistent low-diversity
+        /// pool connection / stratum-shaped traffic). Terminal - it seeds a chain - but
+        /// deliberately NOT solo kill-grade: mining is resource abuse, not a kill-grade terminal,
+        /// and the behavioral signature overlaps with legitimate heavy compute (video encode,
+        /// 3D render, scientific workloads). A miner is only killed when it corroborates a real
+        /// kill-grade terminal in a multi-signal chain, never on the miner signature alone.
+        /// </summary>
+        CoinMiner,
     }
 
     /// <summary>
@@ -68,6 +78,7 @@ namespace Sentinel.Core
                 [TerminalFamily.Evasion] = "Evasion",
                 [TerminalFamily.Injection] = "Injection",
                 [TerminalFamily.WmiPersistence] = "WmiPersistence",
+                [TerminalFamily.CoinMiner] = "CoinMiner",
             };
 
         // Families that, at sufficient confidence + chain confirmation, may authorize a kill.

@@ -207,15 +207,21 @@ namespace Sentinel.Core
         public VpnShieldConfig VpnShield { get; set; } = new();
 
         /// <summary>
-        /// v2.7.6: Operator-defined DOMAIN blocks, enforced by the proven forum.hr-style path -
+        /// Enforced DOMAIN blocks, applied by the proven hosts-file + wildcard-NRPT path -
         /// a hosts-file line (exact host) PLUS a wildcard NRPT rule (apex + all subdomains ->
         /// 0.0.0.0) under the GP-managed policy hive, self-healed on startup and every scan.
         /// Because BrowserDnsPolicyGuard disables DoH, these blocks are authoritative for
-        /// browsers too. EMPTY BY DEFAULT - nothing is blocked unless the operator populates
-        /// it. Each entry is a bare domain (e.g. "example.com"); the leading-dot NRPT suffix
-        /// covers every subdomain. No domain is hardcoded.
+        /// browsers too. Each entry is a bare domain (e.g. "example.com"); the leading-dot NRPT
+        /// suffix covers every subdomain.
+        ///
+        /// This config list is UNIONED at enforcement time with the runtime
+        /// <see cref="DomainBlocklistStore"/>, so any Sentinel component can add a domain to the
+        /// same enforced blacklist at runtime and it is blocked on the next scan cycle.
+        ///
+        /// v2.7.7: seeded with "forum.hr" (restores the historical block via the generic
+        /// mechanism). Set to an empty array to disable the default block.
         /// </summary>
-        public string[] EnforcedDomainBlocks { get; set; } = Array.Empty<string>();
+        public string[] EnforcedDomainBlocks { get; set; } = new[] { "forum.hr" };
 
         /// <summary>
         /// v2.7.6: Operator-defined IP blocks, enforced with inbound + outbound Windows Firewall

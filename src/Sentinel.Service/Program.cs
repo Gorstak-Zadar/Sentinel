@@ -753,6 +753,7 @@ namespace Sentinel.Service
                             ("WfpIntegrityMonitor",             s => s.GetRequiredService<WfpIntegrityMonitor>()),
                             ("DriverLoadMonitor",               s => s.GetRequiredService<DriverLoadMonitor>()),
                             ("GpuProcessMonitor",               s => s.GetRequiredService<GpuProcessMonitor>()),
+                            ("MinerBehaviorMonitor",            s => s.GetRequiredService<MinerBehaviorMonitor>()),
                             ("WmiProviderIntegrityMonitor",     s => s.GetRequiredService<WmiProviderIntegrityMonitor>()),
                             ("KernelModuleAuditMonitor",        s => s.GetRequiredService<KernelModuleAuditMonitor>()),
                             ("LegacyHiveMonitor",               s => s.GetRequiredService<LegacyHiveMonitor>()),
@@ -799,6 +800,7 @@ namespace Sentinel.Service
                     services.AddSingleton<AcousticThreatMonitor>();
                     services.AddSingleton<WmiProviderIntegrityMonitor>();
                     services.AddSingleton<GpuProcessMonitor>();
+                    services.AddSingleton<MinerBehaviorMonitor>();
                     services.AddSingleton<KernelModuleAuditMonitor>();
                     services.AddSingleton<LegacyHiveMonitor>();
                     services.AddSingleton<CloudFilesHydrationMonitor>();
